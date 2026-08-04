@@ -1055,3 +1055,188 @@
     width: 100%;
   }
 }
+
+.hero {
+  padding: 80px 0;
+  overflow: hidden;
+}
+
+.container {
+  width: min(1180px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+  align-items: center;
+  gap: 48px;
+}
+
+.hero-copy {
+  min-width: 0;
+}
+
+.hero-copy h1 {
+  margin: 12px 0 18px;
+  font-size: clamp(42px, 6vw, 72px);
+  line-height: 1.05;
+}
+
+.hero-copy p {
+  max-width: 650px;
+  font-size: clamp(16px, 2vw, 19px);
+  line-height: 1.7;
+}
+
+.hero-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-top: 24px;
+}
+
+.rating-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.trust-bar {
+  padding: 18px 0;
+}
+
+.trust-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.trust-grid span {
+  text-align: center;
+}
+
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.step-card {
+  min-width: 0;
+  height: 100%;
+}
+
+.benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.benefit-card {
+  min-width: 0;
+  height: 100%;
+}
+
+.center-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .hero-grid {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .hero-copy {
+    text-align: center;
+  }
+
+  .hero-copy p {
+    margin-inline: auto;
+  }
+
+  .hero-points,
+  .rating-strip {
+    justify-content: center;
+  }
+
+  .hero-grid .hero-form {
+    width: min(100%, 620px);
+    margin-inline: auto;
+  }
+
+  .trust-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .steps-grid,
+  .benefit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .container {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .hero {
+    padding: 56px 0;
+  }
+
+  .hero-grid {
+    gap: 28px;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(38px, 12vw, 52px);
+  }
+
+  .hero-copy p {
+    font-size: 16px;
+  }
+
+  .hero-points {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .rating-strip {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hero-grid .hero-form {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .trust-grid,
+  .steps-grid,
+  .benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trust-grid span {
+    padding: 10px;
+  }
+
+  .step-card,
+  .benefit-card {
+    width: 100%;
+  }
+
+  .center-button .btn {
+    width: 100%;
+    text-align: center;
+  }
+}
