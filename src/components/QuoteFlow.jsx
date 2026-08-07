@@ -37,10 +37,7 @@ const questions = [
   ['isRunning', 'Is the vehicle running?'],
   ['hasFourWheels', 'Does it have all four wheels?'],
   ['isComplete', 'Is the vehicle complete?'],
-  [
-    'hasCatalyticConverter',
-    'Is the catalytic converter present?',
-  ],
+  ['hasCatalyticConverter', 'Is the catalytic converter present?'],
   ['hasAlloyWheels', 'Does the vehicle have alloy wheels?'],
 ];
 
@@ -52,6 +49,64 @@ const steps = [
   'Quote',
   'Success',
 ];
+
+const labelClass = 'mb-[15px] flex flex-col gap-[7px] text-sm font-bold';
+const inputClass =
+  'rounded-[10px] border border-slate-200 bg-white px-3.5 py-[13px] outline-none focus:border-[#0f7b4f] focus:shadow-[0_0_0_3px_rgba(15,123,79,0.1)]';
+const regInputClass = `rounded-[10px] border border-slate-200 px-3.5 py-[13px] outline-none focus:border-[#0f7b4f] focus:shadow-[0_0_0_3px_rgba(15,123,79,0.1)] border-[#d1aa16] bg-[#f8ce3d] font-mono font-black uppercase tracking-[0.13em] text-[#111]`;
+const primaryButtonClass =
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-[#0f7b4f] px-[22px] py-3.5 font-extrabold text-white shadow-[0_10px_25px_rgba(15,123,79,0.23)] transition hover:-translate-y-0.5 hover:bg-[#075b3a] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0';
+const secondaryButtonClass =
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-[22px] py-3.5 font-extrabold text-slate-950 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0';
+const dangerButtonClass =
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-600 bg-red-600 px-[22px] py-3.5 font-extrabold text-white transition hover:-translate-y-0.5 hover:border-red-700 hover:bg-red-700 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-red-600/25 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0';
+const whatsAppButtonClass =
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-[#25d366] px-[22px] py-3.5 font-extrabold text-[#082d1c] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0';
+const alertErrorClass =
+  'my-[15px] rounded-[10px] border border-red-200 bg-red-50 px-[15px] py-[13px] text-sm text-red-700';
+const alertInfoClass =
+  'my-[15px] rounded-[10px] border border-emerald-200 bg-emerald-50 px-[15px] py-[13px] text-sm text-emerald-900';
+
+function StepHeading({ number, title, children, center = false }) {
+  return (
+    <div className={`mb-[30px] ${center ? 'text-center' : ''}`}>
+      <span className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0f7b4f]">
+        Step {number} of 6
+      </span>
+      <h2 className="mt-2 mb-3.5 text-[clamp(2rem,4vw,3.15rem)] leading-tight">
+        {title}
+      </h2>
+      <p className="m-0 text-slate-500">{children}</p>
+    </div>
+  );
+}
+
+function ChoiceButton({ selected, negative = false, children, ...props }) {
+  return (
+    <button
+      className={`cursor-pointer rounded-lg border px-4 py-2 font-extrabold ${
+        selected
+          ? negative
+            ? 'border-orange-800 bg-orange-800 text-white'
+            : 'border-[#0f7b4f] bg-[#0f7b4f] text-white'
+          : 'border-slate-200 bg-white text-slate-950'
+      }`}
+      type="button"
+      {...props}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DetailItem({ label, children }) {
+  return (
+    <span className="flex flex-col">
+      <small className="text-slate-500">{label}</small>
+      {children}
+    </span>
+  );
+}
 
 export default function QuoteFlow({ compact = false }) {
   const [step, setStep] = useState(0);
@@ -252,100 +307,80 @@ export default function QuoteFlow({ compact = false }) {
 
   if (compact) {
     return (
-      <form className="hero-form" onSubmit={findVehicle}>
-        <h3>Get an instant estimate</h3>
+      <form
+        className="mx-auto w-full max-w-[620px] rounded-[20px] bg-white p-[22px] text-slate-950 shadow-[0_30px_80px_rgba(0,0,0,0.25)] sm:p-[30px]"
+        onSubmit={findVehicle}
+      >
+        <h3 className="mb-3.5 text-[1.55rem]">Get an instant estimate</h3>
 
-        <label>
+        <label className={labelClass}>
           Vehicle registration
           <input
-            className="reg-input"
+            className={regInputClass}
             value={data.registration}
             onChange={(event) =>
-              update(
-                'registration',
-                event.target.value.toUpperCase(),
-              )
+              update('registration', event.target.value.toUpperCase())
             }
             placeholder="AB12 CDE"
             autoComplete="off"
           />
         </label>
 
-        <label>
+        <label className={labelClass}>
           Collection postcode
           <input
+            className={inputClass}
             value={data.postcode}
             onChange={(event) =>
-              update(
-                'postcode',
-                event.target.value.toUpperCase(),
-              )
+              update('postcode', event.target.value.toUpperCase())
             }
             placeholder="SW1A 1AA"
             autoComplete="postal-code"
           />
         </label>
 
-        <label>
+        <label className={labelClass}>
           Mileage
           <input
+            className={inputClass}
             type="number"
             min="0"
             value={data.mileage}
-            onChange={(event) =>
-              update('mileage', event.target.value)
-            }
+            onChange={(event) => update('mileage', event.target.value)}
             placeholder="e.g. 85000"
           />
         </label>
 
-        <div className="inline-choice">
-          <span>Vehicle running?</span>
+        <div className="mb-[18px] flex items-center gap-2">
+          <span className="mr-auto font-bold">Vehicle running?</span>
 
-          <button
-            type="button"
-            className={
-              data.condition.isRunning === true
-                ? 'selected'
-                : ''
-            }
-            onClick={() =>
-              updateCondition('isRunning', true)
-            }
+          <ChoiceButton
+            selected={data.condition.isRunning === true}
+            onClick={() => updateCondition('isRunning', true)}
           >
             Yes
-          </button>
+          </ChoiceButton>
 
-          <button
-            type="button"
-            className={
-              data.condition.isRunning === false
-                ? 'selected no'
-                : ''
-            }
-            onClick={() =>
-              updateCondition('isRunning', false)
-            }
+          <ChoiceButton
+            negative
+            selected={data.condition.isRunning === false}
+            onClick={() => updateCondition('isRunning', false)}
           >
             No
-          </button>
+          </ChoiceButton>
         </div>
 
-        {error && (
-          <div className="alert error">{error}</div>
-        )}
+        {error && <div className={alertErrorClass}>{error}</div>}
 
         <button
           type="submit"
-          className="btn btn-primary btn-block"
+          className={`${primaryButtonClass} w-full`}
           disabled={loading}
         >
-          {loading
-            ? 'Finding vehicle…'
-            : 'Get My Quote'}
+          {loading ? 'Finding vehicle…' : 'Get My Quote'}
         </button>
 
-        <small>
+        <small className="mt-2.5 block text-center text-slate-500">
           No obligation. Your details are handled securely.
         </small>
       </form>
@@ -353,61 +388,57 @@ export default function QuoteFlow({ compact = false }) {
   }
 
   return (
-    <div className="quote-shell">
-      <div className="progress">
+    <div className="mx-auto max-w-[980px]">
+      <div className="relative mb-[26px] flex justify-between before:absolute before:top-5 before:right-[7%] before:left-[7%] before:h-0.5 before:bg-[#cfdbd4]">
         {steps.map((stepName, index) => (
           <div
-            className={
-              index <= step
-                ? 'progress-step done'
-                : 'progress-step'
-            }
+            className="relative z-10 flex flex-col items-center gap-[7px]"
             key={stepName}
           >
-            <span>{index + 1}</span>
-            <small>{stepName}</small>
+            <span
+              className={`grid h-[42px] w-[42px] place-items-center rounded-full border-[5px] border-[#f7f8f3] font-black ${
+                index <= step
+                  ? 'bg-[#0f7b4f] text-white'
+                  : 'bg-slate-200 text-slate-500'
+              }`}
+            >
+              {index + 1}
+            </span>
+            <small className="hidden font-bold text-slate-500 sm:inline">
+              {stepName}
+            </small>
           </div>
         ))}
       </div>
 
-      <div className="quote-card">
+      <div className="min-h-[480px] rounded-[22px] bg-white px-[18px] py-6 shadow-[0_18px_50px_rgba(13,52,37,0.11)] sm:p-10">
         {step === 0 && (
           <form onSubmit={findVehicle}>
-            <div className="step-heading">
-              <span>Step 1 of 6</span>
-              <h2>Find your vehicle</h2>
-              <p>
-                Enter your registration and collection
-                postcode.
-              </p>
-            </div>
+            <StepHeading number="1" title="Find your vehicle">
+              Enter your registration and collection postcode.
+            </StepHeading>
 
-            <div className="form-grid two">
-              <label>
+            <div className="grid gap-x-[18px] sm:grid-cols-2">
+              <label className={labelClass}>
                 Vehicle registration
                 <input
-                  className="reg-input"
+                  className={regInputClass}
                   value={data.registration}
                   onChange={(event) =>
-                    update(
-                      'registration',
-                      event.target.value.toUpperCase(),
-                    )
+                    update('registration', event.target.value.toUpperCase())
                   }
                   placeholder="AB12 CDE"
                   autoComplete="off"
                 />
               </label>
 
-              <label>
+              <label className={labelClass}>
                 Collection postcode
                 <input
+                  className={inputClass}
                   value={data.postcode}
                   onChange={(event) =>
-                    update(
-                      'postcode',
-                      event.target.value.toUpperCase(),
-                    )
+                    update('postcode', event.target.value.toUpperCase())
                   }
                   placeholder="SW1A 1AA"
                   autoComplete="postal-code"
@@ -415,74 +446,53 @@ export default function QuoteFlow({ compact = false }) {
               </label>
             </div>
 
-            {error && (
-              <div className="alert error">{error}</div>
-            )}
+            {error && <div className={alertErrorClass}>{error}</div>}
 
             <button
               type="submit"
-              className="btn btn-primary"
+              className={primaryButtonClass}
               disabled={loading}
             >
-              {loading
-                ? 'Searching…'
-                : 'Find My Vehicle'}
+              {loading ? 'Searching…' : 'Find My Vehicle'}
             </button>
           </form>
         )}
 
         {step === 1 && data.vehicle && (
           <div>
-            <div className="step-heading">
-              <span>Step 2 of 6</span>
-              <h2>Is this your vehicle?</h2>
-              <p>
-                Check the details retrieved for{' '}
-                {data.vehicle.registration}.
-              </p>
-            </div>
+            <StepHeading number="2" title="Is this your vehicle?">
+              Check the details retrieved for {data.vehicle.registration}.
+            </StepHeading>
 
-            <div className="vehicle-card">
-              <div className="vehicle-visual">🚗</div>
+            <div className="grid items-center gap-7 rounded-[18px] border border-slate-200 p-[26px] sm:grid-cols-[180px_1fr]">
+              <div className="grid h-[120px] place-items-center rounded-[15px] bg-[#f7f8f3] text-6xl sm:h-[150px]">
+                🚗
+              </div>
 
               <div>
-                <b className="plate">
+                <b className="mb-[15px] inline-block rounded-md bg-[#f6cf3c] px-3.5 py-[7px] font-mono tracking-[0.12em] text-[#111]">
                   {data.vehicle.registration}
                 </b>
 
-                <h3>
-                  {data.vehicle.make}{' '}
-                  {data.vehicle.model}
+                <h3 className="mb-3.5 text-[1.18rem]">
+                  {data.vehicle.make} {data.vehicle.model}
                 </h3>
 
-                <div className="detail-grid">
-                  <span>
-                    <small>Year</small>
-                    {data.vehicle.year}
-                  </span>
-
-                  <span>
-                    <small>Fuel</small>
-                    {data.vehicle.fuelType}
-                  </span>
-
-                  <span>
-                    <small>Engine</small>
-                    {data.vehicle.engineSize}
-                  </span>
-
-                  <span>
-                    <small>Weight</small>
+                <div className="grid gap-[15px] sm:grid-cols-2 lg:grid-cols-4">
+                  <DetailItem label="Year">{data.vehicle.year}</DetailItem>
+                  <DetailItem label="Fuel">{data.vehicle.fuelType}</DetailItem>
+                  <DetailItem label="Engine">{data.vehicle.engineSize}</DetailItem>
+                  <DetailItem label="Weight">
                     {data.vehicle.weightKg} kg
-                  </span>
+                  </DetailItem>
                 </div>
               </div>
             </div>
 
-            <div className="actions">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <button
                 type="button"
-                className="btn btn-primary"
+                className={primaryButtonClass}
                 onClick={handleCorrectVehicle}
               >
                 Yes, this is my vehicle
@@ -490,7 +500,7 @@ export default function QuoteFlow({ compact = false }) {
 
               <button
                 type="button"
-                className="btn btn-danger"
+                className={dangerButtonClass}
                 onClick={handleWrongVehicle}
               >
                 No, this is not my vehicle
@@ -498,7 +508,7 @@ export default function QuoteFlow({ compact = false }) {
 
               <button
                 type="button"
-                className="btn btn-secondary"
+                className={secondaryButtonClass}
                 onClick={handleEditRegistration}
               >
                 Edit registration
@@ -509,60 +519,42 @@ export default function QuoteFlow({ compact = false }) {
 
         {step === 2 && (
           <div>
-            <div className="step-heading">
-              <span>Step 3 of 6</span>
-              <h2>Tell us about its condition</h2>
-              <p>
-                Accurate answers help us provide a more
-                reliable estimate.
-              </p>
-            </div>
+            <StepHeading number="3" title="Tell us about its condition">
+              Accurate answers help us provide a more reliable estimate.
+            </StepHeading>
 
-            <div className="question-list">
+            <div className="flex flex-col gap-3">
               {questions.map(([key, question]) => (
                 <div
-                  className="condition-row"
+                  className="flex flex-col gap-[15px] rounded-[13px] border border-slate-200 px-[19px] py-[17px] sm:flex-row sm:items-center sm:justify-between"
                   key={key}
                 >
                   <b>{question}</b>
 
-                  <div>
-                    <button
-                      type="button"
-                      className={
-                        data.condition[key] === true
-                          ? 'selected'
-                          : ''
-                      }
-                      onClick={() =>
-                        updateCondition(key, true)
-                      }
+                  <div className="flex gap-2">
+                    <ChoiceButton
+                      selected={data.condition[key] === true}
+                      onClick={() => updateCondition(key, true)}
                     >
                       Yes
-                    </button>
+                    </ChoiceButton>
 
-                    <button
-                      type="button"
-                      className={
-                        data.condition[key] === false
-                          ? 'selected no'
-                          : ''
-                      }
-                      onClick={() =>
-                        updateCondition(key, false)
-                      }
+                    <ChoiceButton
+                      negative
+                      selected={data.condition[key] === false}
+                      onClick={() => updateCondition(key, false)}
                     >
                       No
-                    </button>
+                    </ChoiceButton>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="actions">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className={secondaryButtonClass}
                 onClick={() => {
                   setError('');
                   setStep(1);
@@ -573,7 +565,7 @@ export default function QuoteFlow({ compact = false }) {
 
               <button
                 type="button"
-                className="btn btn-primary"
+                className={primaryButtonClass}
                 disabled={!conditionValid}
                 onClick={() => {
                   setError('');
@@ -588,161 +580,130 @@ export default function QuoteFlow({ compact = false }) {
 
         {step === 3 && (
           <div>
-            <div className="step-heading">
-              <span>Step 4 of 6</span>
-              <h2>Your contact details</h2>
-              <p>
-                We use these details to send the enquiry and
-                arrange collection.
-              </p>
-            </div>
+            <StepHeading number="4" title="Your contact details">
+              We use these details to send the enquiry and arrange collection.
+            </StepHeading>
 
-            <div className="form-grid two">
-              <label>
+            <div className="grid gap-x-[18px] sm:grid-cols-2">
+              <label className={labelClass}>
                 Full name *
                 <input
+                  className={inputClass}
                   value={data.customer.fullName}
                   onChange={(event) =>
-                    updateCustomer(
-                      'fullName',
-                      event.target.value,
-                    )
+                    updateCustomer('fullName', event.target.value)
                   }
                   autoComplete="name"
                 />
               </label>
 
-              <label>
+              <label className={labelClass}>
                 Phone number *
                 <input
+                  className={inputClass}
                   type="tel"
                   value={data.customer.phone}
                   onChange={(event) =>
-                    updateCustomer(
-                      'phone',
-                      event.target.value,
-                    )
+                    updateCustomer('phone', event.target.value)
                   }
                   autoComplete="tel"
                 />
               </label>
 
-              <label>
+              <label className={labelClass}>
                 Email address *
                 <input
+                  className={inputClass}
                   type="email"
                   value={data.customer.email}
                   onChange={(event) =>
-                    updateCustomer(
-                      'email',
-                      event.target.value,
-                    )
+                    updateCustomer('email', event.target.value)
                   }
                   autoComplete="email"
                 />
               </label>
 
-              <label>
+              <label className={labelClass}>
                 Mileage *
                 <input
+                  className={inputClass}
                   type="number"
                   min="0"
                   value={data.mileage}
-                  onChange={(event) =>
-                    update(
-                      'mileage',
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => update('mileage', event.target.value)}
                 />
               </label>
 
-              <label>
+              <label className={labelClass}>
                 Collection postcode *
                 <input
+                  className={inputClass}
                   value={data.postcode}
                   onChange={(event) =>
-                    update(
-                      'postcode',
-                      event.target.value.toUpperCase(),
-                    )
+                    update('postcode', event.target.value.toUpperCase())
                   }
                   autoComplete="postal-code"
                 />
               </label>
 
-              <label>
+              <label className={labelClass}>
                 Preferred contact
                 <select
-                  value={
-                    data.customer.preferredContact
-                  }
+                  className={inputClass}
+                  value={data.customer.preferredContact}
                   onChange={(event) =>
-                    updateCustomer(
-                      'preferredContact',
-                      event.target.value,
-                    )
+                    updateCustomer('preferredContact', event.target.value)
                   }
                 >
                   <option value="phone">Phone</option>
-                  <option value="whatsapp">
-                    WhatsApp
-                  </option>
+                  <option value="whatsapp">WhatsApp</option>
                   <option value="email">Email</option>
                 </select>
               </label>
 
-              <label className="full">
+              <label className={`${labelClass} sm:col-span-2`}>
                 Additional notes
                 <textarea
+                  className={inputClass}
                   rows="4"
                   value={data.customer.notes}
                   onChange={(event) =>
-                    updateCustomer(
-                      'notes',
-                      event.target.value,
-                    )
+                    updateCustomer('notes', event.target.value)
                   }
                 />
               </label>
             </div>
 
-            <label className="check">
+            <label className="my-2.5 flex cursor-pointer items-center gap-2 text-[#42534c]">
               <input
+                className="m-0 shrink-0"
                 type="checkbox"
                 checked={data.customer.privacy}
                 onChange={(event) =>
-                  updateCustomer(
-                    'privacy',
-                    event.target.checked,
-                  )
+                  updateCustomer('privacy', event.target.checked)
                 }
               />
-              I agree to the Privacy Policy.
+              <span>I agree to the Privacy Policy.</span>
             </label>
 
-            <label className="check">
+            <label className="my-2.5 flex cursor-pointer items-center gap-2 text-[#42534c]">
               <input
+                className="m-0 shrink-0"
                 type="checkbox"
                 checked={data.customer.terms}
                 onChange={(event) =>
-                  updateCustomer(
-                    'terms',
-                    event.target.checked,
-                  )
+                  updateCustomer('terms', event.target.checked)
                 }
               />
-              I agree to the Terms and Conditions.
+              <span>I agree to the Terms and Conditions.</span>
             </label>
 
-            {error && (
-              <div className="alert error">{error}</div>
-            )}
+            {error && <div className={alertErrorClass}>{error}</div>}
 
-            <div className="actions">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className={secondaryButtonClass}
                 onClick={() => {
                   setError('');
                   setStep(2);
@@ -753,358 +714,317 @@ export default function QuoteFlow({ compact = false }) {
 
               <button
                 type="button"
-                className="btn btn-primary"
+                className={primaryButtonClass}
                 onClick={getQuote}
                 disabled={loading}
               >
-                {loading
-                  ? 'Calculating…'
-                  : 'Calculate My Quote'}
+                {loading ? 'Calculating…' : 'Calculate My Quote'}
               </button>
             </div>
           </div>
         )}
 
-       {step === 4 && data.quote && data.vehicle && (
-  <div className="quote-result">
-    <div className="step-heading center">
-      <span>Step 5 of 6</span>
-      <h2>Your estimated scrap quote</h2>
-      <p>
-        Based on your vehicle details and the condition information
-        provided.
-      </p>
-    </div>
+        {step === 4 && data.quote && data.vehicle && (
+          <div className="w-full">
+            <StepHeading number="5" title="Your estimated scrap quote" center>
+              Based on your vehicle details and the condition information
+              provided.
+            </StepHeading>
 
-    {/* Estimated scrap value */}
-    <div className="estimated-value-card">
-      <span className="estimated-value-label">
-        Estimated scrap value
-      </span>
+            <div className="mb-7 rounded-[18px] border border-[#c9e8d8] bg-[#edf7f2] px-4 py-6 text-center sm:px-5 sm:py-7">
+              <span className="mb-1.5 block text-[15px] font-bold text-[#175c40]">
+                Estimated scrap value
+              </span>
 
-      <div className="quote-price">
-        £{data.quote.finalValue}
-      </div>
+              <div className="my-2 text-[clamp(42px,7vw,64px)] font-extrabold leading-none text-[#0f7b4f]">
+                £{data.quote.finalValue}
+              </div>
 
-      <p className="quote-validity">
-        This estimated quote is valid for{' '}
-        <strong>{data.quote.validUntil}</strong>.
-      </p>
-    </div>
-
-    {/* Vehicle summary */}
-    <div className="quote-section">
-      <div className="quote-section-heading">
-        <h3>Vehicle summary</h3>
-      </div>
-
-      <div className="vehicle-summary-card">
-        <div className="vehicle-summary-top">
-          <div className="vehicle-summary-icon">
-            🚗
-          </div>
-
-          <div>
-            <b className="plate">
-              {data.vehicle.registration}
-            </b>
-
-            <h3>
-              {data.vehicle.make} {data.vehicle.model}
-            </h3>
-          </div>
-        </div>
-
-        <div className="detail-grid quote-vehicle-details">
-          <span>
-            <small>Registration</small>
-            {data.vehicle.registration}
-          </span>
-
-          <span>
-            <small>Make</small>
-            {data.vehicle.make}
-          </span>
-
-          <span>
-            <small>Model</small>
-            {data.vehicle.model}
-          </span>
-
-          <span>
-            <small>Year</small>
-            {data.vehicle.year}
-          </span>
-
-          <span>
-            <small>Fuel type</small>
-            {data.vehicle.fuelType}
-          </span>
-
-          <span>
-            <small>Engine size</small>
-            {data.vehicle.engineSize}
-          </span>
-
-          <span>
-            <small>Vehicle weight</small>
-            {data.vehicle.weightKg} kg
-          </span>
-
-          <span>
-            <small>Mileage</small>
-            {Number(data.mileage).toLocaleString()} miles
-          </span>
-        </div>
-      </div>
-    </div>
-
-    {/* Quote breakdown */}
-    <div className="quote-section">
-      <div className="quote-section-heading">
-        <h3>Quote breakdown</h3>
-        <p>
-          A complete breakdown of how your estimate was calculated.
-        </p>
-      </div>
-
-      <div className="summary-box">
-        <div>
-          <span>Estimated scrap value</span>
-          <b>£{data.quote.baseValue}</b>
-        </div>
-
-        <div>
-          <span>Price per tonne used</span>
-          <b>£{data.quote.pricePerTonne}</b>
-        </div>
-
-        <div>
-          <span>Vehicle weight</span>
-          <b>{data.vehicle.weightKg} kg</b>
-        </div>
-
-        {/* Bonuses applied */}
-        <div className="summary-subheading">
-          <span>Bonuses applied</span>
-        </div>
-
-        {data.quote.bonuses?.length > 0 ? (
-          data.quote.bonuses.map((bonus) => (
-            <div
-              className="positive"
-              key={bonus.name}
-            >
-              <span>{bonus.name}</span>
-              <b>+£{bonus.amount}</b>
+              <p className="mt-3 mb-0 text-slate-600">
+                This estimated quote is valid for{' '}
+                <strong>{data.quote.validUntil}</strong>.
+              </p>
             </div>
-          ))
-        ) : (
-          <div className="summary-empty">
-            <span>No bonuses applied</span>
-            <b>£0</b>
+
+            <div className="mt-7">
+              <div className="mb-3.5">
+                <h3 className="mb-[5px] text-[21px] text-gray-900">
+                  Vehicle summary
+                </h3>
+              </div>
+
+              <div className="rounded-2xl border border-gray-200 bg-white p-[22px]">
+                <div className="flex items-start gap-4 border-b border-gray-200 pb-[18px] sm:items-center">
+                  <div className="grid h-[62px] w-[62px] shrink-0 place-items-center rounded-[14px] bg-[#edf7f2] text-3xl">
+                    🚗
+                  </div>
+
+                  <div>
+                    <b className="mb-[15px] inline-block rounded-md bg-[#f6cf3c] px-3.5 py-[7px] font-mono tracking-[0.12em] text-[#111]">
+                      {data.vehicle.registration}
+                    </b>
+
+                    <h3 className="mt-2.5 mb-0 text-[1.18rem]">
+                      {data.vehicle.make} {data.vehicle.model}
+                    </h3>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-[15px] sm:grid-cols-2 lg:grid-cols-4">
+                  <DetailItem label="Registration">
+                    {data.vehicle.registration}
+                  </DetailItem>
+                  <DetailItem label="Make">{data.vehicle.make}</DetailItem>
+                  <DetailItem label="Model">{data.vehicle.model}</DetailItem>
+                  <DetailItem label="Year">{data.vehicle.year}</DetailItem>
+                  <DetailItem label="Fuel type">
+                    {data.vehicle.fuelType}
+                  </DetailItem>
+                  <DetailItem label="Engine size">
+                    {data.vehicle.engineSize}
+                  </DetailItem>
+                  <DetailItem label="Vehicle weight">
+                    {data.vehicle.weightKg} kg
+                  </DetailItem>
+                  <DetailItem label="Mileage">
+                    {Number(data.mileage).toLocaleString()} miles
+                  </DetailItem>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-7">
+              <div className="mb-3.5">
+                <h3 className="mb-[5px] text-[21px] text-gray-900">
+                  Quote breakdown
+                </h3>
+                <p className="m-0 text-sm text-slate-500">
+                  A complete breakdown of how your estimate was calculated.
+                </p>
+              </div>
+
+              <div className="mx-auto max-w-[650px] rounded-2xl border border-slate-200 px-[22px] py-2">
+                <div className="flex justify-between gap-5 border-b border-slate-200 py-3.5">
+                  <span className="text-slate-500">Estimated scrap value</span>
+                  <b>£{data.quote.baseValue}</b>
+                </div>
+
+                <div className="flex justify-between gap-5 border-b border-slate-200 py-3.5">
+                  <span className="text-slate-500">Price per tonne used</span>
+                  <b>£{data.quote.pricePerTonne}</b>
+                </div>
+
+                <div className="flex justify-between gap-5 border-b border-slate-200 py-3.5">
+                  <span className="text-slate-500">Vehicle weight</span>
+                  <b>{data.vehicle.weightKg} kg</b>
+                </div>
+
+                <div className="mt-2 flex justify-between gap-5 border-b border-gray-200 bg-gray-50 py-3.5">
+                  <span className="text-sm font-extrabold text-gray-900">
+                    Bonuses applied
+                  </span>
+                </div>
+
+                {data.quote.bonuses?.length > 0 ? (
+                  data.quote.bonuses.map((bonus) => (
+                    <div
+                      className="flex justify-between gap-5 border-b border-slate-200 py-3.5"
+                      key={bonus.name}
+                    >
+                      <span className="text-slate-500">{bonus.name}</span>
+                      <b className="text-[#0f7b4f]">+£{bonus.amount}</b>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex justify-between gap-5 border-b border-slate-200 py-3.5 text-slate-500">
+                    <span>No bonuses applied</span>
+                    <b>£0</b>
+                  </div>
+                )}
+
+                <div className="mt-2 flex justify-between gap-5 border-b border-gray-200 bg-gray-50 py-3.5">
+                  <span className="text-sm font-extrabold text-gray-900">
+                    Deductions applied
+                  </span>
+                </div>
+
+                {data.quote.deductions?.length > 0 ? (
+                  data.quote.deductions.map((deduction) => (
+                    <div
+                      className="flex justify-between gap-5 border-b border-slate-200 py-3.5"
+                      key={deduction.name}
+                    >
+                      <span className="text-slate-500">{deduction.name}</span>
+                      <b className="text-red-700">−£{deduction.amount}</b>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex justify-between gap-5 border-b border-slate-200 py-3.5 text-slate-500">
+                    <span>No deductions applied</span>
+                    <b>£0</b>
+                  </div>
+                )}
+
+                <div className="flex justify-between gap-5 py-3.5 text-lg">
+                  <span className="text-slate-500">Final estimated quote</span>
+                  <b>£{data.quote.finalValue}</b>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex flex-col items-start gap-3.5 rounded-[14px] border border-amber-200 bg-amber-50 p-[18px] sm:flex-row">
+              <div className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-amber-100">
+                ⏱
+              </div>
+
+              <div>
+                <strong className="mb-1 block text-amber-800">
+                  Quote validity
+                </strong>
+                <p className="m-0 leading-[1.6] text-amber-900">
+                  Your estimated quote is valid for {data.quote.validUntil}.
+                  Submit your enquiry before this period ends to allow our team
+                  to confirm the offer.
+                </p>
+              </div>
+            </div>
+
+            <div className={`${alertInfoClass} mt-[18px] leading-[1.6]`}>
+              <strong>Important:</strong> This is an estimated scrap value. The
+              final price may change following vehicle inspection and
+              confirmation that the registration, mileage, vehicle condition,
+              missing parts and other submitted details are accurate.
+            </div>
+
+            {error && <div className={alertErrorClass}>{error}</div>}
+
+            <div className="mt-6 grid gap-3 sm:flex sm:flex-wrap sm:justify-center">
+              <button
+                type="button"
+                className={`${primaryButtonClass} min-w-[170px]`}
+                onClick={submit}
+                disabled={loading}
+              >
+                {loading ? 'Submitting enquiry…' : 'Submit My Enquiry'}
+              </button>
+
+              <a
+                className={`${secondaryButtonClass} min-w-[170px]`}
+                href="tel:08001234567"
+              >
+                Call Us
+              </a>
+
+              <a
+                className={`${whatsAppButtonClass} min-w-[170px]`}
+                href="https://wa.me/447700900000"
+                target="_blank"
+                rel="noreferrer"
+              >
+                WhatsApp
+              </a>
+            </div>
           </div>
         )}
 
-        {/* Deductions applied */}
-        <div className="summary-subheading">
-          <span>Deductions applied</span>
-        </div>
-
-        {data.quote.deductions?.length > 0 ? (
-          data.quote.deductions.map((deduction) => (
-            <div
-              className="negative"
-              key={deduction.name}
-            >
-              <span>{deduction.name}</span>
-              <b>−£{deduction.amount}</b>
+        {step === 5 && (
+          <div className="px-0 py-5 text-center">
+            <div className="mx-auto mb-6 grid h-[72px] w-[72px] place-items-center rounded-full bg-[#0f7b4f] text-[2.6rem] text-white">
+              ✓
             </div>
-          ))
-        ) : (
-          <div className="summary-empty">
-            <span>No deductions applied</span>
-            <b>£0</b>
+
+            <span className="mb-4 inline-block text-xs font-extrabold uppercase tracking-[0.16em] text-[#0f7b4f]">
+              Enquiry submitted
+            </span>
+
+            <h2 className="mb-3.5 text-[clamp(2rem,4vw,3.15rem)] leading-tight">
+              Thank you
+              {data.customer.fullName ? `, ${data.customer.fullName}` : ''}!
+            </h2>
+
+            <p className="text-slate-500">
+              Your enquiry has been submitted successfully. Our team will
+              contact you using your preferred contact method.
+            </p>
+
+            <div className="mx-auto my-6 grid max-w-[600px] gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
+                <span className="text-xs text-slate-500">Enquiry reference</span>
+                <b>{data.enquiry?.reference || 'Reference being generated'}</b>
+              </div>
+
+              <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
+                <span className="text-xs text-slate-500">Customer name</span>
+                <b>{data.customer.fullName || 'Not provided'}</b>
+              </div>
+
+              <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
+                <span className="text-xs text-slate-500">
+                  Vehicle registration
+                </span>
+                <b>
+                  {data.vehicle?.registration ||
+                    data.registration ||
+                    'Not available'}
+                </b>
+              </div>
+
+              <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
+                <span className="text-xs text-slate-500">Vehicle</span>
+                <b>
+                  {data.vehicle
+                    ? `${data.vehicle.make} ${data.vehicle.model}`
+                    : 'Not available'}
+                </b>
+              </div>
+
+              <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
+                <span className="text-xs text-slate-500">Estimated quote</span>
+                <b>
+                  {data.quote?.finalValue !== undefined
+                    ? `£${data.quote.finalValue}`
+                    : 'Not available'}
+                </b>
+              </div>
+
+              <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
+                <span className="text-xs text-slate-500">Preferred contact</span>
+                <b>
+                  {data.customer.preferredContact
+                    ? data.customer.preferredContact.charAt(0).toUpperCase() +
+                      data.customer.preferredContact.slice(1)
+                    : 'Phone'}
+                </b>
+              </div>
+            </div>
+
+            <div className={alertInfoClass}>
+              Your enquiry has been received. A member of the MyAutoScrap team
+              will contact you shortly to confirm your vehicle details, final
+              price and collection.
+            </div>
+
+            <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap sm:justify-center">
+              <a className={primaryButtonClass} href="/">
+                Back to homepage
+              </a>
+
+              <a className={secondaryButtonClass} href="tel:08001234567">
+                Call Us
+              </a>
+
+              <a
+                className={whatsAppButtonClass}
+                href="https://wa.me/447700900000"
+                target="_blank"
+                rel="noreferrer"
+              >
+                WhatsApp
+              </a>
+            </div>
           </div>
         )}
-
-        {/* Final estimated quote */}
-        <div className="total">
-          <span>Final estimated quote</span>
-          <b>£{data.quote.finalValue}</b>
-        </div>
       </div>
-    </div>
-
-    {/* Quote validity */}
-    <div className="quote-validity-message">
-      <div className="quote-message-icon">
-        ⏱
-      </div>
-
-      <div>
-        <strong>Quote validity</strong>
-        <p>
-          Your estimated quote is valid for{' '}
-          {data.quote.validUntil}. Submit your enquiry before
-          this period ends to allow our team to confirm the offer.
-        </p>
-      </div>
-    </div>
-
-    {/* Inspection disclaimer */}
-    <div className="alert info quote-disclaimer">
-      <strong>Important:</strong> This is an estimated scrap value.
-      The final price may change following vehicle inspection and
-      confirmation that the registration, mileage, vehicle condition,
-      missing parts and other submitted details are accurate.
-    </div>
-
-    {error && (
-      <div className="alert error">
-        {error}
-      </div>
-    )}
-
-    {/* Actions */}
-    <div className="actions center quote-actions">
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={submit}
-        disabled={loading}
-      >
-        {loading
-          ? 'Submitting enquiry…'
-          : 'Submit My Enquiry'}
-      </button>
-
-      <a
-        className="btn btn-secondary"
-        href="tel:08001234567"
-      >
-        Call Us
-      </a>
-
-      <a
-        className="btn btn-whatsapp"
-        href="https://wa.me/447700900000"
-        target="_blank"
-        rel="noreferrer"
-      >
-        WhatsApp
-      </a>
-    </div>
-  </div>
-)}  
-
-{step === 5 && (
-  <div className="success">
-    <div className="success-icon">✓</div>
-
-    <span className="eyebrow">
-      Enquiry submitted
-    </span>
-
-    <h2>
-      Thank you
-      {data.customer.fullName
-        ? `, ${data.customer.fullName}`
-        : ''}
-      !
-    </h2>
-
-    <p>
-      Your enquiry has been submitted successfully. Our team
-      will contact you using your preferred contact method.
-    </p>
-
-    <div className="success-details">
-      <div>
-        <span>Enquiry reference</span>
-        <b>
-          {data.enquiry?.reference ||
-            'Reference being generated'}
-        </b>
-      </div>
-
-      <div>
-        <span>Customer name</span>
-        <b>{data.customer.fullName || 'Not provided'}</b>
-      </div>
-
-      <div>
-        <span>Vehicle registration</span>
-        <b>
-          {data.vehicle?.registration ||
-            data.registration ||
-            'Not available'}
-        </b>
-      </div>
-
-      <div>
-        <span>Vehicle</span>
-        <b>
-          {data.vehicle
-            ? `${data.vehicle.make} ${data.vehicle.model}`
-            : 'Not available'}
-        </b>
-      </div>
-
-      <div>
-        <span>Estimated quote</span>
-        <b>
-          {data.quote?.finalValue !== undefined
-            ? `£${data.quote.finalValue}`
-            : 'Not available'}
-        </b>
-      </div>
-
-      <div>
-        <span>Preferred contact</span>
-        <b>
-          {data.customer.preferredContact
-            ? data.customer.preferredContact
-                .charAt(0)
-                .toUpperCase() +
-              data.customer.preferredContact.slice(1)
-            : 'Phone'}
-        </b>
-      </div>
-    </div>
-
-    <div className="alert info success-message">
-      Your enquiry has been received. A member of the
-      MyAutoScrap team will contact you shortly to confirm
-      your vehicle details, final price and collection.
-    </div>
-
-    <div className="actions center">
-      <a
-        className="btn btn-primary"
-        href="/"
-      >
-        Back to homepage
-      </a>
-
-      <a
-        className="btn btn-secondary"
-        href="tel:08001234567"
-      >
-        Call Us
-      </a>
-
-      <a
-        className="btn btn-whatsapp"
-        href="https://wa.me/447700900000"
-        target="_blank"
-        rel="noreferrer"
-      >
-        WhatsApp
-      </a>
-    </div>
-  </div>
-)}   </div>
     </div>
   );
 }
