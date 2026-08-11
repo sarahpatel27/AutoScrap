@@ -112,14 +112,14 @@ export default function Step1ConditionForm({
         </div>
 
         {/* Right Column: UKVD API Vehicle Display (order-1 on mobile, order-2 on lg) */}
-        <div className="rounded-[22px] border border-slate-800 bg-linear-to-br from-slate-900 via-slate-800 to-slate-900 p-6 text-white shadow-xl lg:sticky lg:top-6 order-1 lg:order-2">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-5">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-500/15 px-3 py-1 text-xs font-bold text-emerald-300">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+        <div className="rounded-[22px] border border-slate-200 bg-white p-6 text-slate-900 shadow-xl shadow-slate-100 lg:sticky lg:top-6 order-1 lg:order-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-5">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-extrabold text-[#0f7b4f]">
+              <span className="h-2 w-2 rounded-full bg-[#0f7b4f] animate-pulse" />
               UKVD API Data
             </span>
 
-            <div className="inline-flex items-center overflow-hidden rounded-md border border-amber-300 bg-[#f6cf3c] font-mono text-sm font-black text-black shadow-sm">
+            <div className="inline-flex items-center overflow-hidden rounded-md border border-amber-300 bg-[#f6cf3c] font-mono text-sm font-black text-black shadow-xs">
               <span className="bg-[#003399] px-2 py-1 text-[10px] font-bold text-white flex flex-col items-center leading-none">
                 <span className="text-yellow-300 text-[8px]">★</span>
                 UK
@@ -130,67 +130,44 @@ export default function Step1ConditionForm({
             </div>
           </div>
 
-          <div className="my-5 flex items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-xs">
-            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-xl border border-emerald-400/30 bg-emerald-500/20 text-4xl shadow-inner">
+          <div className="my-5 flex items-center gap-4 rounded-xl border border-emerald-100 bg-emerald-50/50 p-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-[#0f7b4f] text-white text-2xl shadow-md shadow-emerald-700/20">
               🚗
             </div>
             <div>
-              <span className="text-[11px] uppercase tracking-wider font-extrabold text-slate-400">
+              <span className="text-[11px] uppercase tracking-wider font-extrabold text-slate-500">
                 Vehicle Identified
               </span>
-              <h3 className="text-xl sm:text-2xl font-black text-white m-0 leading-snug">
-                {data.vehicle.make} <span className="text-[#dff46b]">{data.vehicle.model}</span>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900 m-0 leading-snug">
+                {data.vehicle.make} <span className="text-[#0f7b4f]">{data.vehicle.model}</span>
               </h3>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3 my-5">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs transition hover:bg-white/10">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 transition hover:border-slate-300 hover:bg-slate-100/70">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Year
               </span>
-              <span className="mt-1 flex items-center gap-1.5 text-lg font-black text-white">
+              <span className="mt-1 flex items-center gap-1.5 text-lg font-black text-slate-900">
                 📅 {data.vehicle.year}
               </span>
             </div>
 
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs transition hover:bg-white/10">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Fuel
-              </span>
-              <span className="mt-1 flex items-center gap-1.5 text-lg font-black text-white">
-                ⛽ {data.vehicle.fuelType}
-              </span>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs transition hover:bg-white/10">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Engine
-              </span>
-              <span className="mt-1 flex items-center gap-1.5 text-lg font-black text-white">
-                ⚙️ {data.vehicle.engineSize}
-              </span>
-            </div>
-
-            <div className="rounded-xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs transition hover:bg-white/10">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 transition hover:border-slate-300 hover:bg-slate-100/70">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Weight
               </span>
-              <span className="mt-1 flex items-center gap-1.5 text-lg font-black text-white">
+              <span className="mt-1 flex items-center gap-1.5 text-lg font-black text-slate-900">
                 ⚖️ {data.vehicle.weightKg} kg
               </span>
             </div>
           </div>
 
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-200 flex items-center gap-2">
-            <span className="text-base">✓</span>
-            <span>Vehicle record retrieved live from UKVD database.</span>
-          </div>
-
-          <div className="mt-5 text-center border-t border-white/10 pt-4">
+          <div className="mt-5 text-center border-t border-slate-100 pt-4">
             <button
               type="button"
-              className="text-xs font-bold text-slate-400 hover:text-white underline transition cursor-pointer"
+              className="text-xs font-bold text-slate-500 hover:text-[#0f7b4f] underline transition cursor-pointer"
               onClick={handleEditRegistration}
             >
               Not your vehicle? Search another registration

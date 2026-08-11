@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import FAQList from '../components/FAQList';
 import { faqs } from '../data/siteData';
+import SEO from '../components/Seo';
+import { getFaqPageSchema } from '../config/seo.config';
 
 const containerClass = 'mx-auto w-[calc(100%-36px)] max-w-[1180px]';
 const lightButtonClass =
@@ -15,8 +17,16 @@ export default function FAQPage() {
     `${question} ${answer}`.toLowerCase().includes(search.toLowerCase()),
   );
 
+  const faqSchema = getFaqPageSchema(faqs);
+
   return (
     <>
+      <SEO
+        title="Scrap Car FAQs | Frequently Asked Questions | MyAutoScrap"
+        description="Find answers to common questions about scrap car prices, free vehicle collection, MOT requirements, V5C documents and scrapping damaged cars across the UK."
+        canonical="/faqs"
+        schema={faqSchema}
+      />
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-[82px] text-white">
         <div className={containerClass}>
           <span className="mb-4 inline-block text-xs font-extrabold uppercase tracking-[0.16em] text-[#dff46b]">
@@ -66,7 +76,7 @@ export default function FAQPage() {
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
-            <Link className={lightButtonClass} to="/quote">
+            <Link className={lightButtonClass} to="/scrap-my-car">
               Get My Quote
             </Link>
             <a className={ghostButtonClass} href="tel:+447714423293">

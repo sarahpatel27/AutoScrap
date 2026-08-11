@@ -32,7 +32,7 @@ export default function UnlistedAreaCTA() {
 
                     <div className="grid w-full shrink-0 grid-cols-1 gap-3 min-[1100px]:flex min-[1100px]:w-auto min-[1100px]:flex-wrap">
                         <Link
-                            to="/quote"
+                            to="/scrap-my-car"
                             className={`${primaryButtonClass} w-full min-[1100px]:w-auto`}
                         >
                             Check My Vehicle

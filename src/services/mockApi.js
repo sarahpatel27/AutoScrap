@@ -29,35 +29,13 @@ export async function calculateQuote(data) {
   const pricePerTonne = config.pricePerTonne || 235;
 
   const baseValue = Math.round(((data.vehicle?.weightKg || 1200) / 1000) * pricePerTonne);
-  const bonuses = [];
-  const deductions = [];
-
-
-  if (data.condition?.isRunning === false) {
-    deductions.push({ name: 'Non-running vehicle', amount: config.nonRunningDeduction || 30 });
-  }
-
-  if (data.condition?.isComplete === false) {
-    deductions.push({ name: 'Incomplete vehicle', amount: config.incompleteDeduction || 45 });
-  }
-
-  if (data.condition?.hasCatalyticConverter === false) {
-    deductions.push({ name: 'Catalytic converter missing', amount: config.missingCatDeduction || 70 });
-  }
-
-  if (data.condition?.hasFourWheels === false) {
-    deductions.push({ name: 'Missing wheel(s)', amount: config.missingWheelDeduction || 35 });
-  }
-
-  const bonusSum = bonuses.reduce((a, b) => a + b.amount, 0);
-  const deductionSum = deductions.reduce((a, b) => a + b.amount, 0);
-  const finalValue = Math.max(config.minimumValue || 50, baseValue + bonusSum - deductionSum);
+  const finalValue = baseValue;
 
   return {
     pricePerTonne,
     baseValue,
-    bonuses,
-    deductions,
+    bonuses: [],
+    deductions: [],
     finalValue,
     validUntil: '7 days from today',
   };

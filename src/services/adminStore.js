@@ -200,11 +200,6 @@ const initialEnquiries = [
 
 const initialPricingConfig = {
   pricePerTonne: 235,
-  nonRunningDeduction: 30,
-  incompleteDeduction: 45,
-  missingCatDeduction: 70,
-  missingWheelDeduction: 35,
-  minimumValue: 50,
 };
 
 export function getEnquiries() {

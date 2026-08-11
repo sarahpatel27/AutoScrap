@@ -5,6 +5,8 @@ import CityQuickLinkCard from '../components/CityQuickLinkCard';
 import LocationCard from '../components/LocationCard';
 import CoverageMapSection from '../components/CoverageMapSection';
 import UnlistedAreaCTA from '../components/UnlistedAreaCTA';
+import SEO from '../components/Seo';
+import { getBreadcrumbSchema } from '../config/seo.config';
 
 const containerClass = 'mx-auto w-[calc(100%-36px)] max-w-[1180px]';
 const eyebrowClass =
@@ -20,8 +22,19 @@ const sectionTitleClass = 'mb-9 max-w-[700px]';
 const centeredSectionTitleClass = `${sectionTitleClass} mx-auto text-center`;
 
 export default function AreasPage() {
+    const breadcrumbSchema = getBreadcrumbSchema([
+        { name: 'Home', url: '/' },
+        { name: 'Areas We Cover', url: '/areas-we-cover' }
+    ]);
+
     return (
         <>
+            <SEO
+                title="Scrap Car Collection Areas UK | Nationwide Vehicle Recovery"
+                description="Check MyAutoScrap coverage across Doncaster, Leicester, Peterborough, London, Cambridge, Liverpool, Manchester and surrounding UK areas."
+                canonical="/areas-we-cover"
+                schema={breadcrumbSchema}
+            />
             {/* Hero Section with Postcode Search Form */}
             <section className="bg-linear-to-br from-emerald-950/95 to-[#0f704a]/90 py-16 text-white sm:py-[90px]">
                 <div
@@ -41,7 +54,7 @@ export default function AreasPage() {
                         </p>
 
                         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                            <Link to="/quote" className={primaryButtonClass}>
+                            <Link to="/scrap-my-car" className={primaryButtonClass}>
                                 Get My Quote
                             </Link>
 

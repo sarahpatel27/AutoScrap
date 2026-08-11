@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import SEO from '../components/Seo';
 
 const trustItems = [
   'Clear estimated price breakdowns',
@@ -143,6 +144,11 @@ function ChecklistPanel({ title, items }) {
 export default function AboutPage() {
   return (
     <>
+      <SEO
+        title="About Us | MyAutoScrap | Trusted UK Scrap Car Buyers"
+        description="Discover how MyAutoScrap simplifies vehicle disposal across the UK with transparent scrap estimates, fast collection, and responsible recycling."
+        canonical="/about-us"
+      />
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-[82px] text-white">
         <div className={containerClass}>
           <span className={lightEyebrowClass}>About MyAutoScrap</span>
@@ -292,7 +298,7 @@ export default function AboutPage() {
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
-            <Link className={lightButtonClass} to="/quote">
+            <Link className={lightButtonClass} to="/scrap-my-car">
               Get My Quote
             </Link>
             <a className={ghostButtonClass} href="tel:+447714423293">

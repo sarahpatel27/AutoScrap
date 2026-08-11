@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import SEO from '../components/Seo';
 
 const simpleSteps = [
   {
@@ -30,9 +31,28 @@ const primaryBtnClass =
 const ghostBtnClass =
   'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-7 py-4 font-black text-slate-900 transition hover:-translate-y-0.5 hover:bg-slate-50';
 
+const howToSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'HowTo',
+  name: 'How to Scrap Your Car in 3 Easy Steps',
+  description: 'A simple step-by-step guide to getting an instant scrap car estimate and arranging free vehicle collection across the UK with MyAutoScrap.',
+  step: simpleSteps.map((s) => ({
+    '@type': 'HowToStep',
+    position: s.number,
+    name: s.title,
+    text: s.description
+  }))
+};
+
 export default function HowItWorksPage() {
   return (
     <>
+      <SEO
+        title="How Scrapping Your Car Works | Step-by-Step Guide | MyAutoScrap"
+        description="Learn how MyAutoScrap works, from entering your vehicle registration for an instant quote to free collection and payment."
+        canonical="/how-it-works"
+        schema={howToSchema}
+      />
       {/* Header */}
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-16 text-center text-white sm:py-20">
         <div className={containerClass}>
@@ -86,7 +106,7 @@ export default function HowItWorksPage() {
             </p>
 
             <div className="flex flex-wrap justify-center gap-4">
-              <Link className={primaryBtnClass} to="/quote">
+              <Link className={primaryBtnClass} to="/scrap-my-car">
                 Get My Quote →
               </Link>
               <a className={ghostBtnClass} href="tel:+447714423293">

@@ -48,7 +48,7 @@ export default function LocationCard({ location }) {
 
             <div className="mt-6 grid gap-[11px] sm:grid-cols-2">
                 <Link
-                    to={`/quote?location=${encodeURIComponent(location.city)}`}
+                    to={`/scrap-my-car?location=${encodeURIComponent(location.city)}`}
                     className={`${primaryButtonClass} min-h-[46px] px-3.5 py-[11px] text-center`}
                 >
                     Scrap My Car in {location.city}

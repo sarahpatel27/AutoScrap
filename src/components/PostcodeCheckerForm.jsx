@@ -95,7 +95,7 @@ export default function PostcodeCheckerForm() {
             {resultType === 'success' && (
                 <Link
                     className={`${primaryButtonClass} mt-3.5 w-full`}
-                    to={`/quote?postcode=${encodeURIComponent(postcode.trim())}`}
+                    to={`/scrap-my-car?postcode=${encodeURIComponent(postcode.trim())}`}
                 >
                     Get a Quote for {postcode.trim()}
                 </Link>

@@ -72,8 +72,14 @@ export default function EnquiryDetailModal({ enquiry, onClose, onUpdateStatus, o
             <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
               <span className="text-xs font-extrabold uppercase tracking-wider text-gray-500">Vehicle Info</span>
               <div className="mt-3 flex items-center gap-3">
-                <div className="rounded-lg border border-[#d1aa16] bg-[#f8ce3d] px-3.5 py-1.5 font-mono text-lg font-black uppercase tracking-widest text-[#111] shadow-xs">
-                  {enquiry.vehicle?.registration}
+                <div className="inline-flex items-center overflow-hidden rounded-md border border-amber-300 bg-[#f6cf3c] font-mono text-base font-black text-black shadow-xs">
+                  <span className="bg-[#003399] px-2 py-1.5 text-[10px] font-bold text-white flex flex-col items-center leading-none select-none">
+                    <span className="text-yellow-300 text-[8px]">★</span>
+                    UK
+                  </span>
+                  <span className="px-3 py-1.5 tracking-[0.14em]">
+                    {enquiry.vehicle?.registration}
+                  </span>
                 </div>
                 <div>
                   <h4 className="text-base font-extrabold text-slate-900">
@@ -114,33 +120,6 @@ export default function EnquiryDetailModal({ enquiry, onClose, onUpdateStatus, o
             </div>
           </div>
 
-          {/* Condition Breakdown */}
-          <div className="rounded-2xl border border-gray-200 p-5">
-            <h4 className="mb-3 text-xs font-extrabold uppercase tracking-wider text-gray-500">Vehicle Condition Answers</h4>
-            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span>{enquiry.condition?.isRunning ? '✅' : '❌'}</span>
-                <span className="text-gray-700">Vehicle is running:</span>
-                <strong>{enquiry.condition?.isRunning ? 'Yes' : 'No'}</strong>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{enquiry.condition?.hasFourWheels ? '✅' : '❌'}</span>
-                <span className="text-gray-700">Has 4 wheels:</span>
-                <strong>{enquiry.condition?.hasFourWheels ? 'Yes' : 'No'}</strong>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{enquiry.condition?.isComplete ? '✅' : '❌'}</span>
-                <span className="text-gray-700">Is complete car:</span>
-                <strong>{enquiry.condition?.isComplete ? 'Yes' : 'No'}</strong>
-              </div>
-              <div className="flex items-center gap-2">
-                <span>{enquiry.condition?.hasCatalyticConverter ? '✅' : '❌'}</span>
-                <span className="text-gray-700">Catalytic converter present:</span>
-                <strong>{enquiry.condition?.hasCatalyticConverter ? 'Yes' : 'No'}</strong>
-              </div>
-            </div>
-          </div>
-
           {/* Quote Valuation Summary */}
           <div className="rounded-2xl border border-[#c9e8d8] bg-[#edf7f2] p-5 text-emerald-950">
             <div className="flex items-center justify-between">
@@ -153,25 +132,6 @@ export default function EnquiryDetailModal({ enquiry, onClose, onUpdateStatus, o
                 <div>Base Value: £{enquiry.quote?.baseValue}</div>
               </div>
             </div>
-
-            {/* Bonuses & Deductions */}
-            {((enquiry.quote?.bonuses && enquiry.quote.bonuses.length > 0) ||
-              (enquiry.quote?.deductions && enquiry.quote.deductions.length > 0)) && (
-              <div className="mt-3 border-t border-emerald-200/60 pt-3 text-xs space-y-1">
-                {enquiry.quote?.bonuses?.map((b) => (
-                  <div key={b.name} className="flex justify-between text-emerald-700">
-                    <span>+ Bonus ({b.name})</span>
-                    <strong>+£{b.amount}</strong>
-                  </div>
-                ))}
-                {enquiry.quote?.deductions?.map((d) => (
-                  <div key={d.name} className="flex justify-between text-red-700">
-                    <span>- Deduction ({d.name})</span>
-                    <strong>-£{d.amount}</strong>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Admin Status & Notes Editor */}

@@ -21,7 +21,7 @@ export const faqs = [
   ],
   [
     'Do you collect non-running cars?',
-    'Yes! We collect non-running, damaged, written-off, and MOT-failed vehicles. Simply answer the 5 quick condition questions during your quote calculation so we can prepare the right collection vehicle.',
+    'Yes! We collect non-running, damaged, written-off, and MOT-failed vehicles. Enter your registration to receive an instant, accurate scrap estimate.',
   ],
   [
     'Is collection free?',

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import SEO from '../components/Seo';
+import { getOrganizationSchema } from '../config/seo.config';
 
 const contactItems = [
   {
@@ -73,8 +75,17 @@ export default function ContactPage() {
     event.currentTarget.reset();
   };
 
+  const orgSchema = getOrganizationSchema();
+
   return (
     <>
+      <SEO
+        title="Contact Us | MyAutoScrap | Free Scrap Car Collection UK"
+        description="Contact the MyAutoScrap team via phone, WhatsApp or email for queries regarding instant scrap car estimates and free vehicle collection."
+        canonical="/contact-us"
+        schema={orgSchema}
+      />
+
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-[82px] text-white">
         <div className="mx-auto w-[calc(100%-36px)] max-w-[1180px]">
           <span className="mb-4 inline-block text-xs font-extrabold uppercase tracking-[0.16em] text-[#dff46b]">
@@ -105,19 +116,14 @@ export default function ContactPage() {
                 <input className={fieldClass} required />
               </Field>
               <Field label="Phone number *">
-                <div className="flex items-center rounded-[10px] border border-slate-200 bg-white overflow-hidden focus-within:border-[#0f7b4f] focus-within:shadow-[0_0_0_3px_rgba(15,123,79,0.1)]">
-                  <span className="flex items-center gap-1.5 bg-slate-100 px-3.5 py-[13px] text-sm font-bold text-slate-700 border-r border-slate-200 shrink-0 select-none">
-                    🇬🇧 +44
-                  </span>
-                  <input
-                    className="w-full bg-transparent px-3.5 py-[13px] outline-none text-slate-950 font-medium"
-                    type="tel"
-                    inputMode="numeric"
-                    required
-                    placeholder="7714 423293"
-                    maxLength={11}
-                  />
-                </div>
+                <input
+                  className={fieldClass}
+                  type="tel"
+                  inputMode="numeric"
+                  required
+                  placeholder="e.g. 07714 423293"
+                  maxLength={11}
+                />
               </Field>
               <Field label="Email *">
                 <input className={fieldClass} required type="email" />

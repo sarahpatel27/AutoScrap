@@ -6,12 +6,10 @@ import {
   submitEnquiry,
 } from '../services/mockApi';
 
-import { initial, questions, steps } from './quote-flow/constants';
+import { initial, steps } from './quote-flow/constants';
 import Step0VehicleLookup from './quote-flow/Step0VehicleLookup';
-import Step1ConditionForm from './quote-flow/Step1ConditionForm';
 import Step2QuoteDisplay from './quote-flow/Step2QuoteDisplay';
 import Step3ContactDetails from './quote-flow/Step3ContactDetails';
-import Step4BankDetails from './quote-flow/Step4BankDetails';
 import Step5SuccessConfirmation from './quote-flow/Step5SuccessConfirmation';
 
 export default function QuoteFlow({ compact = false }) {
@@ -50,12 +48,13 @@ export default function QuoteFlow({ compact = false }) {
         try {
           setLoading(true);
           const vehicle = await lookupVehicle(formattedReg);
+          const quote = await calculateQuote({ vehicle });
           setData((prev) => ({
             ...prev,
             registration: formattedReg,
             postcode: formattedPostcode,
             vehicle,
-            quote: null,
+            quote,
             enquiry: null,
           }));
           setStep(1);
@@ -98,16 +97,6 @@ export default function QuoteFlow({ compact = false }) {
     }));
   };
 
-  const updateCondition = (key, value) => {
-    setData((previousData) => ({
-      ...previousData,
-      condition: {
-        ...previousData.condition,
-        [key]: value,
-      },
-    }));
-  };
-
   const findVehicle = async (event) => {
     event?.preventDefault();
 
@@ -128,7 +117,7 @@ export default function QuoteFlow({ compact = false }) {
 
     if (compact) {
       navigate(
-        `/quote?reg=${encodeURIComponent(registration)}&postcode=${encodeURIComponent(postcode)}`,
+        `/scrap-my-car?reg=${encodeURIComponent(registration)}&postcode=${encodeURIComponent(postcode)}`,
       );
       return;
     }
@@ -137,13 +126,14 @@ export default function QuoteFlow({ compact = false }) {
       setLoading(true);
 
       const vehicle = await lookupVehicle(registration);
+      const quote = await calculateQuote({ vehicle });
 
       setData((previousData) => ({
         ...previousData,
         registration,
         postcode,
         vehicle,
-        quote: null,
+        quote,
         enquiry: null,
       }));
 
@@ -169,17 +159,6 @@ export default function QuoteFlow({ compact = false }) {
     setError('');
     setStep(0);
   };
-
-  const conditionValid = questions.every(
-    ([key]) => typeof data.condition[key] === 'boolean',
-  );
-
-  const isMileageValid =
-    !String(data.mileage).trim() ||
-    (/^\d{1,7}$/.test(String(data.mileage).trim()) &&
-      Number(data.mileage) >= 0);
-
-  const step2Valid = conditionValid && isMileageValid;
 
   const isFullNameValid = /^[A-Za-z\s'\-]{2,60}$/.test(
     data.customer.fullName.trim(),
@@ -220,36 +199,46 @@ export default function QuoteFlow({ compact = false }) {
   const bankValid =
     isAccountNameValid && isSortCodeValid && isAccountNumberValid;
 
-  const handleCalculateQuoteFromCondition = async () => {
+  const submitContactStep = async () => {
     setError('');
 
-    if (!step2Valid) {
-      setError('Please answer all 4 condition questions to calculate your quote.');
+    if (!customerValid) {
+      setError('Please complete all required contact details before continuing.');
       return;
     }
 
     try {
       setLoading(true);
 
-      const quote = await calculateQuote(data);
+      const formattedData = {
+        ...data,
+        customer: {
+          ...data.customer,
+          collectionPostcode: effectiveCollectionPostcode,
+          phone: data.customer.phone ? data.customer.phone.trim() : '',
+        },
+      };
+
+      const enquiry = await submitEnquiry(formattedData);
 
       setData((previousData) => ({
         ...previousData,
-        quote,
+        enquiry,
       }));
 
-      setStep(2);
+      // Go to Step 3: Thank You & Options page
+      setStep(3);
     } catch (err) {
       setError(
         err?.message ||
-          'We could not calculate your quote. Please try again.',
+          'We could not submit your enquiry. Please try again.',
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const submit = async () => {
+  const submitBankDetails = async () => {
     setError('');
 
     if (!bankValid) {
@@ -267,7 +256,7 @@ export default function QuoteFlow({ compact = false }) {
         customer: {
           ...data.customer,
           collectionPostcode: effectiveCollectionPostcode,
-          phone: data.customer.phone ? `+44 ${data.customer.phone.trim()}` : '',
+          phone: data.customer.phone ? data.customer.phone.trim() : '',
         },
       };
 
@@ -278,11 +267,12 @@ export default function QuoteFlow({ compact = false }) {
         enquiry,
       }));
 
-      setStep(5);
+      // Return to Step 3 (Thank You screen) with bank details saved
+      setStep(3);
     } catch (err) {
       setError(
         err?.message ||
-          'We could not submit your enquiry. Please try again.',
+          'We could not save your bank details. Please try again.',
       );
     } finally {
       setLoading(false);
@@ -338,22 +328,7 @@ export default function QuoteFlow({ compact = false }) {
           />
         )}
 
-        {step === 1 && data.vehicle && (
-          <Step1ConditionForm
-            data={data}
-            update={update}
-            updateCondition={updateCondition}
-            step2Valid={step2Valid}
-            loading={loading}
-            error={error}
-            setError={setError}
-            setStep={setStep}
-            handleCalculateQuoteFromCondition={handleCalculateQuoteFromCondition}
-            handleEditRegistration={handleEditRegistration}
-          />
-        )}
-
-        {step === 2 && data.quote && data.vehicle && (
+        {step === 1 && data.quote && data.vehicle && (
           <Step2QuoteDisplay
             data={data}
             error={error}
@@ -362,31 +337,30 @@ export default function QuoteFlow({ compact = false }) {
           />
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <Step3ContactDetails
             data={data}
             updateCustomer={updateCustomer}
             customerValid={customerValid}
+            loading={loading}
             error={error}
             setError={setError}
             setStep={setStep}
+            submitContactStep={submitContactStep}
           />
         )}
 
-        {step === 4 && (
-          <Step4BankDetails
+        {step === 3 && (
+          <Step5SuccessConfirmation
             data={data}
             updateBank={updateBank}
             bankValid={bankValid}
             loading={loading}
             error={error}
             setError={setError}
-            setStep={setStep}
-            submit={submit}
+            submitBankDetails={submitBankDetails}
           />
         )}
-
-        {step === 5 && <Step5SuccessConfirmation data={data} />}
       </div>
     </div>
   );

@@ -1,6 +1,8 @@
 import { Link } from 'react-router';
 import QuoteFlow from '../components/QuoteFlow';
 import { cities, reviews } from '../data/siteData';
+import SEO from '../components/Seo';
+import { getOrganizationSchema, getWebSiteSchema } from '../config/seo.config';
 
 const benefits = [
   ['£', 'Competitive estimates', 'Transparent pricing based on vehicle details, weight and condition.'],
@@ -11,7 +13,7 @@ const benefits = [
 
 const steps = [
   ['1', 'Enter your registration', 'We retrieve or mock the vehicle details.'],
-  ['2', 'Confirm the condition', 'Answer five straightforward questions.'],
+  ['2', 'View instant quote', 'Get an instant scrap estimate based on live UK market rates.'],
   ['3', 'Receive an estimate', 'Review the price breakdown and validity.'],
   ['4', 'Arrange collection', 'Submit the enquiry and our team contacts you.'],
 ];
@@ -49,12 +51,27 @@ function HomeSectionTitle({ eyebrow, title, text, light = false }) {
 }
 
 export default function HomePage() {
+  const organizationSchema = getOrganizationSchema();
+  const websiteSchema = getWebSiteSchema();
+
   return (
     <>
-      <section className="relative flex min-h-0 items-center overflow-hidden bg-linear-115 from-[#0c3d2a] from-0% via-[#0f6b47] via-60% to-[#1b8a5d] text-white lg:min-h-[690px]">
-        <div className="absolute -top-[100px] -right-40 h-[520px] w-[520px] rounded-full border-[90px] border-[#dff46b]/10" />
+      <SEO
+        title="Scrap My Car | Instant Scrap Car Quote & Free Collection | MyAutoScrap"
+        description="Get a competitive instant estimate for your scrap car with MyAutoScrap. Enter your reg and postcode to arrange free vehicle collection across the UK."
+        canonical="/"
+        schema={[organizationSchema, websiteSchema]}
+      />
+      <section className="relative flex min-h-0 items-center overflow-hidden bg-[#0c3d2a] text-white lg:min-h-[710px]">
+        {/* Cinematic Car Background Image with Overlay */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-100 mix-blend-luminosity scale-105 transition-transform duration-1000"
+          style={{ backgroundImage: `url('/hero-car-bg.jpg')` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#072418]/95 via-[#0c3d2a]/85 to-[#0c3d2a]/60" />
+        <div className="absolute -top-[100px] -right-40 h-[520px] w-[520px] rounded-full border-[90px] border-[#dff46b]/10 blur-xs" />
 
-        <div className={`${containerClass} relative z-10 grid items-center gap-7 py-[55px] text-center lg:grid-cols-[1.08fr_0.92fr] lg:gap-[70px] lg:py-[70px] lg:text-left`}>
+        <div className={`${containerClass} relative z-10 grid items-center gap-7 py-[55px] text-center lg:grid-cols-[1.08fr_0.92fr] lg:gap-[70px] lg:py-[75px] lg:text-left`}>
           <div className="order-2 min-w-0 lg:order-1">
             <span className={lightEyebrowClass}>Fast · Simple · No obligation</span>
 
@@ -170,7 +187,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="relative mb-3.5 text-[1.18rem]">{city.name}</h3>
                 <p className="relative text-slate-500">{city.areas}</p>
-                <Link className="relative font-extrabold text-[#0f7b4f]" to="/quote">
+                <Link className="relative font-extrabold text-[#0f7b4f]" to="/scrap-my-car">
                   Get a local quote →
                 </Link>
               </article>
@@ -247,11 +264,11 @@ export default function HomePage() {
               Get your scrap-car estimate today
             </h2>
             <p className="m-0 text-[#d8ebe2]">
-              Enter your registration and answer a few simple questions.
+              Enter your vehicle registration to calculate your instant scrap estimate.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
-            <Link className={lightButtonClass} to="/quote">
+            <Link className={lightButtonClass} to="/scrap-my-car">
               Get My Quote
             </Link>
             <a className={ghostButtonClass} href="tel:+447714423293">

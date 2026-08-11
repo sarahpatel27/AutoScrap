@@ -9,10 +9,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dotlottie/react-player": "^1.6.19",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-helmet-async": "^3.0.0",
     "react-router": "latest",
     "tailwindcss": "^4.3.3",
     "typescript": "latest",

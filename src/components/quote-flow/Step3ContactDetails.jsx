@@ -11,13 +11,15 @@ export default function Step3ContactDetails({
   data,
   updateCustomer,
   customerValid,
+  loading,
   error,
   setError,
   setStep,
+  submitContactStep,
 }) {
   return (
     <div>
-      <StepHeading number="4" title="Your contact details">
+      <StepHeading number="3" title="Your contact details">
         Accepting estimate for {data.vehicle ? `${data.vehicle.make} ${data.vehicle.model}` : 'your vehicle'} (£{data.quote?.finalValue}). Please enter your contact details below.
       </StepHeading>
 
@@ -57,27 +59,19 @@ export default function Step3ContactDetails({
 
         <label className={labelClass}>
           Phone number
-          <div className="flex items-center rounded-[10px] border border-slate-200 bg-white overflow-hidden focus-within:border-[#0f7b4f] focus-within:shadow-[0_0_0_3px_rgba(15,123,79,0.1)]">
-            <span className="flex items-center gap-1.5 bg-slate-100 px-3.5 py-[13px] text-sm font-bold text-slate-700 border-r border-slate-200 shrink-0 select-none">
-              🇬🇧 +44
-            </span>
-            <input
-              className="w-full bg-transparent px-3.5 py-[13px] outline-none text-slate-950 font-medium"
-              type="tel"
-              inputMode="numeric"
-              value={data.customer.phone}
-              onChange={(event) => {
-                let digits = event.target.value.replace(/\D/g, '');
-                if (digits.startsWith('0')) {
-                  digits = digits.slice(1);
-                }
-                updateCustomer('phone', digits.slice(0, 10));
-              }}
-              placeholder="7714 423293"
-              autoComplete="tel-national"
-              maxLength={11}
-            />
-          </div>
+          <input
+            className={inputClass}
+            type="tel"
+            inputMode="numeric"
+            value={data.customer.phone}
+            onChange={(event) => {
+              const digits = event.target.value.replace(/\D/g, '');
+              updateCustomer('phone', digits.slice(0, 11));
+            }}
+            placeholder="e.g. 07714 423293"
+            autoComplete="tel"
+            maxLength={11}
+          />
         </label>
 
         <label className={labelClass}>
@@ -158,7 +152,7 @@ export default function Step3ContactDetails({
           className={secondaryButtonClass}
           onClick={() => {
             setError('');
-            setStep(2);
+            setStep(1);
           }}
         >
           Back to quote
@@ -167,13 +161,10 @@ export default function Step3ContactDetails({
         <button
           type="button"
           className={`${primaryButtonClass} flex-1`}
-          disabled={!customerValid}
-          onClick={() => {
-            setError('');
-            setStep(4);
-          }}
+          disabled={!customerValid || loading}
+          onClick={submitContactStep}
         >
-          Continue to Bank Details →
+          {loading ? 'Submitting Details...' : 'Submit Details & Proceed →'}
         </button>
       </div>
     </div>

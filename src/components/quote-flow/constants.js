@@ -34,19 +34,12 @@ export const initial = {
   enquiry: null,
 };
 
-export const questions = [
-  ['isRunning', 'Is the vehicle running?'],
-  ['hasFourWheels', 'Does it have all four wheels?'],
-  ['isComplete', 'Is the vehicle complete?'],
-  ['hasCatalyticConverter', 'Is the catalytic converter present?'],
-];
+export const questions = [];
 
 export const steps = [
   'Vehicle',
-  'Condition',
   'Estimated Quote',
   'Your details',
-  'Bank details',
   'Success',
 ];
 
