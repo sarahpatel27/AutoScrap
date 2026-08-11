@@ -93,6 +93,37 @@ export default function Step3ContactDetails({
             autoComplete="email"
           />
         </label>
+
+        <label className={labelClass}>
+          Collection postcode *
+          <input
+            className={inputClass}
+            value={data.customer.collectionPostcode || data.postcode || ''}
+            onChange={(event) =>
+              updateCustomer(
+                'collectionPostcode',
+                event.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, ''),
+              )
+            }
+            placeholder="e.g. SW1A 1AA"
+            autoComplete="postal-code"
+            maxLength={10}
+          />
+        </label>
+
+        <label className={`${labelClass} sm:col-span-2`}>
+          Collection address *
+          <input
+            className={inputClass}
+            value={data.customer.collectionAddress}
+            onChange={(event) =>
+              updateCustomer('collectionAddress', event.target.value)
+            }
+            placeholder="House name/number, street name, town"
+            autoComplete="street-address"
+            maxLength={120}
+          />
+        </label>
       </div>
 
       <label className="my-2.5 flex cursor-pointer items-center gap-2 text-[#42534c]">

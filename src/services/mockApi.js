@@ -32,9 +32,6 @@ export async function calculateQuote(data) {
   const bonuses = [];
   const deductions = [];
 
-  if (data.condition?.hasAlloyWheels) {
-    bonuses.push({ name: 'Alloy wheels', amount: config.alloyWheelBonus || 25 });
-  }
 
   if (data.condition?.isRunning === false) {
     deductions.push({ name: 'Non-running vehicle', amount: config.nonRunningDeduction || 30 });

@@ -138,11 +138,6 @@ export default function EnquiryDetailModal({ enquiry, onClose, onUpdateStatus, o
                 <span className="text-gray-700">Catalytic converter present:</span>
                 <strong>{enquiry.condition?.hasCatalyticConverter ? 'Yes' : 'No'}</strong>
               </div>
-              <div className="flex items-center gap-2">
-                <span>{enquiry.condition?.hasAlloyWheels ? '✅' : '❌'}</span>
-                <span className="text-gray-700">Alloy wheels present:</span>
-                <strong>{enquiry.condition?.hasAlloyWheels ? 'Yes' : 'No'}</strong>
-              </div>
             </div>
           </div>
 

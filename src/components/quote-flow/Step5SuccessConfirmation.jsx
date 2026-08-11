@@ -67,6 +67,15 @@ export default function Step5SuccessConfirmation({ data }) {
         </div>
 
         <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
+          <span className="text-xs text-slate-500">Collection location</span>
+          <b className="truncate" title={data.customer.collectionAddress ? `${data.customer.collectionAddress}, ${data.customer.collectionPostcode || data.postcode}` : data.postcode}>
+            {data.customer.collectionAddress
+              ? `${data.customer.collectionAddress}, ${data.customer.collectionPostcode || data.postcode}`
+              : data.customer.collectionPostcode || data.postcode || 'Not available'}
+          </b>
+        </div>
+
+        <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-[18px]">
           <span className="text-xs text-slate-500">Preferred contact</span>
           <b>
             {data.customer.preferredContact

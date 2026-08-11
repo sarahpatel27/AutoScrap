@@ -6,7 +6,7 @@ import {
   submitEnquiry,
 } from '../services/mockApi';
 
-import { initial, steps } from './quote-flow/constants';
+import { initial, questions, steps } from './quote-flow/constants';
 import Step0VehicleLookup from './quote-flow/Step0VehicleLookup';
 import Step1ConditionForm from './quote-flow/Step1ConditionForm';
 import Step2QuoteDisplay from './quote-flow/Step2QuoteDisplay';
@@ -170,14 +170,14 @@ export default function QuoteFlow({ compact = false }) {
     setStep(0);
   };
 
-  const conditionValid = Object.values(data.condition).every(
-    (value) => typeof value === 'boolean',
+  const conditionValid = questions.every(
+    ([key]) => typeof data.condition[key] === 'boolean',
   );
 
   const isMileageValid =
-    String(data.mileage).trim() !== '' &&
-    /^\d{1,7}$/.test(data.mileage.trim()) &&
-    Number(data.mileage) >= 0;
+    !String(data.mileage).trim() ||
+    (/^\d{1,7}$/.test(String(data.mileage).trim()) &&
+      Number(data.mileage) >= 0);
 
   const step2Valid = conditionValid && isMileageValid;
 
@@ -191,10 +191,21 @@ export default function QuoteFlow({ compact = false }) {
     !data.customer.phone.trim() ||
     data.customer.phone.replace(/\D/g, '').length >= 9;
 
+  const effectiveCollectionPostcode =
+    data.customer.collectionPostcode.trim() || data.postcode.trim();
+
+  const isCollectionPostcodeValid =
+    /^[A-Z0-9\s]{4,10}$/i.test(effectiveCollectionPostcode);
+
+  const isCollectionAddressValid =
+    data.customer.collectionAddress.trim().length >= 3;
+
   const customerValid =
     isFullNameValid &&
     isEmailValid &&
     isPhoneValid &&
+    isCollectionPostcodeValid &&
+    isCollectionAddressValid &&
     data.customer.privacy &&
     data.customer.terms;
 
@@ -213,9 +224,7 @@ export default function QuoteFlow({ compact = false }) {
     setError('');
 
     if (!step2Valid) {
-      setError(
-        'Please answer all 5 condition questions and enter a valid numeric mileage.',
-      );
+      setError('Please answer all 4 condition questions to calculate your quote.');
       return;
     }
 
@@ -257,6 +266,7 @@ export default function QuoteFlow({ compact = false }) {
         ...data,
         customer: {
           ...data.customer,
+          collectionPostcode: effectiveCollectionPostcode,
           phone: data.customer.phone ? `+44 ${data.customer.phone.trim()}` : '',
         },
       };

@@ -9,13 +9,14 @@ export const initial = {
     hasFourWheels: null,
     isComplete: null,
     hasCatalyticConverter: null,
-    hasAlloyWheels: null,
   },
 
   customer: {
     fullName: '',
     phone: '',
     email: '',
+    collectionPostcode: '',
+    collectionAddress: '',
     preferredContact: 'phone',
     notes: '',
     privacy: false,
@@ -38,7 +39,6 @@ export const questions = [
   ['hasFourWheels', 'Does it have all four wheels?'],
   ['isComplete', 'Is the vehicle complete?'],
   ['hasCatalyticConverter', 'Is the catalytic converter present?'],
-  ['hasAlloyWheels', 'Does the vehicle have alloy wheels?'],
 ];
 
 export const steps = [

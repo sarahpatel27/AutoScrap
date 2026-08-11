@@ -70,7 +70,7 @@ export default function Step1ConditionForm({
             <label className="flex flex-col gap-1.5 text-sm font-bold text-slate-800">
               <span className="flex items-center justify-between">
                 <span>Vehicle Mileage</span>
-                <span className="text-xs font-semibold text-emerald-700">Required *</span>
+                <span className="text-xs font-medium text-slate-500">Optional</span>
               </span>
               <input
                 className={inputClass}

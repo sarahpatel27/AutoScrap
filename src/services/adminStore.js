@@ -23,7 +23,6 @@ const initialEnquiries = [
       hasFourWheels: true,
       isComplete: true,
       hasCatalyticConverter: true,
-      hasAlloyWheels: true,
     },
     customer: {
       fullName: 'Oliver Taylor',
@@ -35,9 +34,9 @@ const initialEnquiries = [
     quote: {
       pricePerTonne: 235,
       baseValue: 298,
-      bonuses: [{ name: 'Alloy wheels', amount: 25 }],
+      bonuses: [],
       deductions: [],
-      finalValue: 323,
+      finalValue: 298,
       validUntil: '7 days from quote',
     },
   },
@@ -62,7 +61,6 @@ const initialEnquiries = [
       hasFourWheels: true,
       isComplete: true,
       hasCatalyticConverter: true,
-      hasAlloyWheels: false,
     },
     customer: {
       fullName: 'Emma Watson',
@@ -101,21 +99,20 @@ const initialEnquiries = [
       hasFourWheels: true,
       isComplete: true,
       hasCatalyticConverter: true,
-      hasAlloyWheels: true,
     },
     customer: {
       fullName: 'Marcus Vance',
       phone: '07700 900789',
       email: 'marcus.v@example.co.uk',
       preferredContact: 'phone',
-      notes: 'Customer accepted £342 quote, collection booked for Wednesday 10 AM.',
+      notes: 'Customer accepted quote, collection booked for Wednesday 10 AM.',
     },
     quote: {
       pricePerTonne: 235,
       baseValue: 317,
-      bonuses: [{ name: 'Alloy wheels', amount: 25 }],
+      bonuses: [],
       deductions: [],
-      finalValue: 342,
+      finalValue: 317,
       validUntil: '7 days from quote',
     },
   },
@@ -140,7 +137,6 @@ const initialEnquiries = [
       hasFourWheels: true,
       isComplete: false,
       hasCatalyticConverter: false,
-      hasAlloyWheels: true,
     },
     customer: {
       fullName: 'Chloe Bennett',
@@ -152,13 +148,13 @@ const initialEnquiries = [
     quote: {
       pricePerTonne: 235,
       baseValue: 351,
-      bonuses: [{ name: 'Alloy wheels', amount: 25 }],
+      bonuses: [],
       deductions: [
         { name: 'Non-running vehicle', amount: 30 },
         { name: 'Incomplete vehicle', amount: 45 },
         { name: 'Catalytic converter missing', amount: 70 },
       ],
-      finalValue: 231,
+      finalValue: 206,
       validUntil: '7 days from quote',
     },
   },
@@ -183,7 +179,6 @@ const initialEnquiries = [
       hasFourWheels: true,
       isComplete: true,
       hasCatalyticConverter: true,
-      hasAlloyWheels: true,
     },
     customer: {
       fullName: 'Daniel Smith',
@@ -195,9 +190,9 @@ const initialEnquiries = [
     quote: {
       pricePerTonne: 235,
       baseValue: 296,
-      bonuses: [{ name: 'Alloy wheels', amount: 25 }],
+      bonuses: [],
       deductions: [],
-      finalValue: 321,
+      finalValue: 296,
       validUntil: '7 days from quote',
     },
   },
@@ -205,7 +200,6 @@ const initialEnquiries = [
 
 const initialPricingConfig = {
   pricePerTonne: 235,
-  alloyWheelBonus: 25,
   nonRunningDeduction: 30,
   incompleteDeduction: 45,
   missingCatDeduction: 70,

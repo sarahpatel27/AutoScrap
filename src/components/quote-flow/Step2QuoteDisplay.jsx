@@ -74,7 +74,7 @@ export default function Step2QuoteDisplay({
               {data.vehicle.weightKg} kg
             </DetailItem>
             <DetailItem label="Mileage">
-              {Number(data.mileage).toLocaleString()} miles
+              {data.mileage ? `${Number(data.mileage).toLocaleString()} miles` : 'Not provided'}
             </DetailItem>
           </div>
         </div>
