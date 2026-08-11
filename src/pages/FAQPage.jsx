@@ -69,7 +69,7 @@ export default function FAQPage() {
             <Link className={lightButtonClass} to="/quote">
               Get My Quote
             </Link>
-            <a className={ghostButtonClass} href="tel:08001234567">
+            <a className={ghostButtonClass} href="tel:+447714423293">
               Call Us
             </a>
           </div>

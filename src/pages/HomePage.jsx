@@ -1,7 +1,6 @@
 import { Link } from 'react-router';
 import QuoteFlow from '../components/QuoteFlow';
-import FAQList from '../components/FAQList';
-import { cities, faqs, reviews } from '../data/siteData';
+import { cities, reviews } from '../data/siteData';
 
 const benefits = [
   ['£', 'Competitive estimates', 'Transparent pricing based on vehicle details, weight and condition.'],
@@ -56,7 +55,7 @@ export default function HomePage() {
         <div className="absolute -top-[100px] -right-40 h-[520px] w-[520px] rounded-full border-[90px] border-[#dff46b]/10" />
 
         <div className={`${containerClass} relative z-10 grid items-center gap-7 py-[55px] text-center lg:grid-cols-[1.08fr_0.92fr] lg:gap-[70px] lg:py-[70px] lg:text-left`}>
-          <div className="min-w-0">
+          <div className="order-2 min-w-0 lg:order-1">
             <span className={lightEyebrowClass}>Fast · Simple · No obligation</span>
 
             <h1 className="mb-[18px] text-[3.1rem] leading-[1.05] tracking-[-0.055em] sm:text-[clamp(2.5rem,6vw,5.2rem)]">
@@ -64,8 +63,7 @@ export default function HomePage() {
             </h1>
 
             <p className="mx-auto max-w-[610px] text-[1.16rem] leading-[1.7] text-[#dcece5] lg:mx-0">
-              Get an estimated value in minutes. Enter your registration,
-              confirm your car and arrange convenient collection.
+              Get an instant estimated scrap value for your car. Free collection available across our service areas.
             </p>
 
             <div className="my-6 flex flex-wrap justify-center gap-2.5 text-sm font-bold sm:gap-[22px] sm:text-base lg:justify-start">
@@ -83,16 +81,18 @@ export default function HomePage() {
             </div>
           </div>
 
-          <QuoteFlow compact />
+          <div className="order-1 w-full lg:order-2">
+            <QuoteFlow compact />
+          </div>
         </div>
       </section>
 
       <section className="border-b border-slate-200 bg-[#f5f8f5]">
         <div className={`${containerClass} grid gap-5 py-[19px] text-center text-sm font-extrabold text-[#355146] sm:grid-cols-2 lg:grid-cols-4`}>
-          <span>✓ No hidden enquiry fee</span>
-          <span>✓ Non-running cars accepted</span>
-          <span>✓ Secure customer details</span>
-          <span>✓ Friendly UK support</span>
+          <span>✓ Instant Estimate</span>
+          <span>✓ Competitive scrap prices</span>
+          <span>✓ Free collection</span>
+          <span>✓ Fast Payment</span>
         </div>
       </section>
 
@@ -223,24 +223,21 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className={`${sectionClass} bg-[#f7f8f3]`}>
-        <div className={`${containerClass} max-w-[820px]`}>
-          <HomeSectionTitle
-            eyebrow="Questions answered"
-            title="Frequently asked questions"
-          />
-          <FAQList items={faqs.slice(0, 5)} />
-
-          <div className="mt-8 flex justify-center">
-            <Link className={`${secondaryButtonClass} w-full text-center sm:w-auto`} to="/faqs">
-              View all FAQs
-            </Link>
+          <div className="mt-7 text-center">
+            <a
+              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-white hover:text-slate-900"
+              href="https://share.google/lppdUTbhDohi0FX8O"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span>📍 View our Google Business Profile & Reviews</span>
+              <span>↗</span>
+            </a>
           </div>
         </div>
       </section>
+
 
       <section className="bg-[#0f7b4f] py-[62px] text-white">
         <div className={`${containerClass} flex flex-col items-center justify-between gap-10 text-center lg:flex-row lg:text-left`}>
@@ -257,7 +254,7 @@ export default function HomePage() {
             <Link className={lightButtonClass} to="/quote">
               Get My Quote
             </Link>
-            <a className={ghostButtonClass} href="tel:08001234567">
+            <a className={ghostButtonClass} href="tel:+447714423293">
               Call Us
             </a>
           </div>

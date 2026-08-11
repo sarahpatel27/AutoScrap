@@ -5,6 +5,7 @@ const links = [
   ['/', 'Home'],
   ['/quote', 'Get a Quote'],
   ['/how-it-works', 'How It Works'],
+  ['/faqs', 'FAQs'],
   ['/areas-we-cover', 'Areas We Cover'],
   ['/about-us', 'About Us'],
   ['/contact-us', 'Contact Us'],
@@ -36,7 +37,7 @@ export default function Layout() {
     <>
       <div className="flex justify-between bg-[#0b2e21] px-[4%] py-[7px] text-[0.78rem] text-[#c8ded4] max-[720px]:justify-center">
         <span>Licensed & responsible vehicle recycling</span>
-        <span className="max-[720px]:hidden">Mon–Sat: 8:00–18:00</span>
+        <span className="max-[720px]:hidden">Mon–Sat: 9:00 AM to 6:00 PM</span>
       </div>
 
       <header className="sticky top-0 z-50 h-[78px] border-b border-slate-200 bg-white max-[720px]:h-[68px]">
@@ -72,13 +73,13 @@ export default function Layout() {
             ))}
             <a
               className={`${actionButtonClass} border border-[#0f7b4f] bg-white text-[#0f7b4f]`}
-              href="tel:08001234567"
+              href="tel:+447714423293"
             >
-              ☎ 0800 123 4567
+              ☎ +44 7714423293
             </a>
             <a
               className={`${actionButtonClass} bg-[#25d366] text-[#082d1c]`}
-              href="https://wa.me/447700900000"
+              href="https://wa.me/447714423293"
             >
               WhatsApp
             </a>
@@ -93,7 +94,7 @@ export default function Layout() {
       <a
         aria-label="WhatsApp"
         className="fixed bottom-5 right-5 z-30 grid h-[54px] w-[54px] place-items-center rounded-full bg-[#25d366] font-black text-[#083d24] shadow-[0_18px_50px_rgba(13,52,37,0.11)]"
-        href="https://wa.me/447700900000"
+        href="https://wa.me/447714423293"
       >
         WA
       </a>
@@ -137,17 +138,25 @@ export default function Layout() {
             <Link className={footerLinkClass} to="/areas-we-cover">
               Areas We Cover
             </Link>
+            <a
+              className={footerLinkClass}
+              href="https://share.google/lppdUTbhDohi0FX8O"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Google Business Profile
+            </a>
           </div>
 
           <div className={footerColumnClass}>
             <h4 className="mb-3.5 text-[#dff46b]">Contact</h4>
-            <a className={footerLinkClass} href="tel:08001234567">
-              0800 123 4567
+            <a className={footerLinkClass} href="tel:+447714423293">
+              +44 7714423293
             </a>
-            <a className={footerLinkClass} href="mailto:hello@myautoscrap.co.uk">
-              hello@myautoscrap.co.uk
+            <a className={footerLinkClass} href="mailto:info@myautoscrap.co.uk">
+              info@myautoscrap.co.uk
             </a>
-            <span className="text-[#a9beb5]">Mon–Sat, 8:00–18:00</span>
+            <span className="text-[#a9beb5]">Mon–Sat, 9:00 AM to 6:00 PM</span>
           </div>
         </div>
 

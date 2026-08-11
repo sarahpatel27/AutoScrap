@@ -11,50 +11,59 @@ import FAQPage from './pages/FAQPage';
 import LegalPage from './pages/LegalPage';
 import NotFoundPage from './pages/NotFoundPage';
 
+// Admin & Auth Components
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/admin/ProtectedRoute';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+
 export default function App() {
     return (
-        <Routes>
-            <Route element={<Layout />}>
-                <Route path="/" element={<HomePage />} />
+        <AuthProvider>
+            <Routes>
+                {/* Admin Auth Route (Public to allow login) */}
+                <Route path="/admin/login" element={<AdminLoginPage />} />
 
-                <Route path="/quote" element={<QuotePage />} />
-
+                {/* Protected Admin Routes (Requires authentication) */}
                 <Route
-                    path="/how-it-works"
-                    element={<HowItWorksPage />}
-                />
-
-                <Route
-                    path="/areas-we-cover"
-                    element={<AreasPage />}
-                />
-
-                <Route
-                    path="/about-us"
-                    element={<AboutPage />}
-                />
-
-                <Route
-                    path="/contact-us"
-                    element={<ContactPage />}
-                />
-
-                <Route path="/faqs" element={<FAQPage />} />
-
-                <Route
-                    path="/privacy-policy"
-                    element={<LegalPage type="Privacy Policy" />}
-                />
-
-                <Route
-                    path="/terms-and-conditions"
+                    path="/admin/dashboard"
                     element={
-                        <LegalPage type="Terms and Conditions" />
+                        <ProtectedRoute>
+                            <AdminDashboardPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/*"
+                    element={
+                        <ProtectedRoute>
+                            <AdminDashboardPage />
+                        </ProtectedRoute>
                     }
                 />
 
-                <Route path="*" element={<NotFoundPage />} />
-            </Route>
-        </Routes>
+                {/* Main Website Layout & Public Routes */}
+                <Route element={<Layout />}>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/quote" element={<QuotePage />} />
+                    <Route path="/how-it-works" element={<HowItWorksPage />} />
+                    <Route path="/areas-we-cover" element={<AreasPage />} />
+                    <Route path="/about-us" element={<AboutPage />} />
+                    <Route path="/contact-us" element={<ContactPage />} />
+                    <Route path="/faqs" element={<FAQPage />} />
+                    <Route
+                        path="/privacy-policy"
+                        element={<LegalPage type="Privacy Policy" />}
+                    />
+                    <Route
+                        path="/terms-and-conditions"
+                        element={
+                            <LegalPage type="Terms and Conditions" />
+                        }
+                    />
+                    <Route path="*" element={<NotFoundPage />} />
+                </Route>
+            </Routes>
+        </AuthProvider>
     );
 }

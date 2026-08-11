@@ -141,7 +141,7 @@ Search the project for these placeholders:
 ```text
 0800 123 4567
 447700900000
-hello@myautoscrap.co.uk
+info@myautoscrap.co.uk
 Add your registered UK address here
 ```
 

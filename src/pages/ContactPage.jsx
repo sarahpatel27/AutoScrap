@@ -3,18 +3,24 @@ import { useState } from 'react';
 const contactItems = [
   {
     label: 'Phone',
-    value: '0800 123 4567',
-    href: 'tel:08001234567',
+    value: '+44 7714423293',
+    href: 'tel:+447714423293',
   },
   {
     label: 'WhatsApp',
-    value: 'Message the team',
-    href: 'https://wa.me/447700900000',
+    value: '+44 7714423293',
+    href: 'https://wa.me/447714423293',
   },
   {
     label: 'Email',
-    value: 'hello@myautoscrap.co.uk',
-    href: 'mailto:hello@myautoscrap.co.uk',
+    value: 'info@myautoscrap.co.uk',
+    href: 'mailto:info@myautoscrap.co.uk',
+  },
+  {
+    label: 'Google Business Profile',
+    value: 'View on Google Maps & Reviews',
+    href: 'https://share.google/lppdUTbhDohi0FX8O',
+    external: true,
   },
 ];
 
@@ -31,11 +37,14 @@ function Field({ children, className = '', label }) {
   );
 }
 
-function ContactRow({ href, label, value }) {
+function ContactRow({ href, label, value, external = false }) {
   const content = (
     <>
       <small className="text-[#a8c0b6]">{label}</small>
-      <b className="text-[1.02rem] text-white">{value}</b>
+      <b className="text-[1.02rem] text-white flex items-center justify-between gap-2">
+        <span>{value}</span>
+        {external && <span className="text-xs text-[#dff46b]">↗</span>}
+      </b>
     </>
   );
 
@@ -44,6 +53,8 @@ function ContactRow({ href, label, value }) {
       <a
         className="flex flex-col border-b border-white/10 py-[17px] transition hover:text-[#dff46b]"
         href={href}
+        target={external ? '_blank' : undefined}
+        rel={external ? 'noreferrer' : undefined}
       >
         {content}
       </a>
@@ -94,7 +105,19 @@ export default function ContactPage() {
                 <input className={fieldClass} required />
               </Field>
               <Field label="Phone number *">
-                <input className={fieldClass} required />
+                <div className="flex items-center rounded-[10px] border border-slate-200 bg-white overflow-hidden focus-within:border-[#0f7b4f] focus-within:shadow-[0_0_0_3px_rgba(15,123,79,0.1)]">
+                  <span className="flex items-center gap-1.5 bg-slate-100 px-3.5 py-[13px] text-sm font-bold text-slate-700 border-r border-slate-200 shrink-0 select-none">
+                    🇬🇧 +44
+                  </span>
+                  <input
+                    className="w-full bg-transparent px-3.5 py-[13px] outline-none text-slate-950 font-medium"
+                    type="tel"
+                    inputMode="numeric"
+                    required
+                    placeholder="7714 423293"
+                    maxLength={11}
+                  />
+                </div>
               </Field>
               <Field label="Email *">
                 <input className={fieldClass} required type="email" />
@@ -133,11 +156,29 @@ export default function ContactPage() {
               <ContactRow key={item.label} {...item} />
             ))}
 
-            <ContactRow label="Business hours" value="Monday-Saturday 8:00-18:00" />
+            <ContactRow label="Business hours" value="Monday-Saturday 9:00 AM to 6:00 PM" />
             <ContactRow
               label="Business address"
-              value="Add your registered UK address here"
+              value=" Carrington's Drove, Peterborough PE60GA, United Kingdom"
             />
+
+            <div className="mt-4 rounded-xl border border-[#dff46b]/30 bg-white/10 p-4">
+              <span className="block text-xs font-black uppercase text-[#dff46b] tracking-wider mb-1">
+                Google Business Profile
+              </span>
+              <p className="text-xs text-[#d7e9e1] mb-3 leading-relaxed">
+                Visit our official Google profile to view business locations, opening hours, customer reviews & directions.
+              </p>
+              <a
+                href="https://share.google/lppdUTbhDohi0FX8O"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-white px-4 py-2.5 font-extrabold text-slate-900 transition hover:bg-[#dff46b]"
+              >
+                <span>📍 View on Google Maps</span>
+                <span className="text-xs">↗</span>
+              </a>
+            </div>
           </aside>
         </div>
       </section>
