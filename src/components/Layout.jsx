@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router';
+import { useState, useEffect } from 'react';
+import { Link, NavLink, Outlet, useLocation } from 'react-router';
 
 const links = [
   ['/', 'Home'],
@@ -24,6 +24,11 @@ const footerLinkClass = 'text-[#d8e4df] transition hover:text-[#dff46b]';
 
 export default function Layout() {
   const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   const navClass = [
     'items-center gap-[22px]',
