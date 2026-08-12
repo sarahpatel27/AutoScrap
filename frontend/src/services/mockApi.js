@@ -40,7 +40,8 @@ export async function calculateQuote(data) {
 
   const kerbWeightKg = data.vehicle?.weightKg || 1200;
   const tonnes = kerbWeightKg / 1000;
-  const baseValue = Math.round(tonnes * pricePerTonne);
+  const exactAmount = tonnes * pricePerTonne;
+  const baseValue = Number(exactAmount.toFixed(2));
   const finalValue = baseValue;
 
   return {

@@ -8,40 +8,46 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
 
   const [selectedCity, setSelectedCity] = useState(user?.assignedCity || 'London');
   const [cityRates, setCityRates] = useState({ ...(pricing?.cityRates || {}) });
-  const [currentRate, setCurrentRate] = useState(
-    pricing?.cityRates?.[user?.assignedCity || 'London'] || 235,
+  
+  // Keep rateInput as a string so user can clear the field completely and type freely
+  const [rateInput, setRateInput] = useState(
+    String(pricing?.cityRates?.[user?.assignedCity || 'London'] ?? 235),
   );
   const [savedMessage, setSavedMessage] = useState(false);
 
   useEffect(() => {
     const activeCity = user?.assignedCity || selectedCity;
-    setCurrentRate(cityRates[activeCity] || 235);
+    setRateInput(String(cityRates[activeCity] ?? 235));
   }, [selectedCity, user, cityRates]);
 
   const handleCityChange = (city) => {
     setSelectedCity(city);
-    setCurrentRate(cityRates[city] || 235);
+    setRateInput(String(cityRates[city] ?? 235));
     setSavedMessage(false);
   };
 
-  const handleRateChange = (val) => {
-    const num = Number(val) || 0;
-    setCurrentRate(num);
-    const activeCity = user?.assignedCity || selectedCity;
-    setCityRates((prev) => ({
-      ...prev,
-      [activeCity]: num,
-    }));
+  const handleRateInputChange = (val) => {
+    setRateInput(val);
     setSavedMessage(false);
+    
+    // Update cityRates state in real time if input is a valid number
+    if (val !== '' && !isNaN(val)) {
+      const activeCity = user?.assignedCity || selectedCity;
+      setCityRates((prev) => ({
+        ...prev,
+        [activeCity]: Number(val),
+      }));
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const activeCity = user?.assignedCity || selectedCity;
+    const numericRate = rateInput === '' ? 235 : Number(rateInput);
 
     const updatedRates = {
       ...cityRates,
-      [activeCity]: currentRate,
+      [activeCity]: numericRate,
     };
 
     onSavePricing({
@@ -57,15 +63,16 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
     const res = onResetPricing();
     setCityRates({ ...(res.cityRates || {}) });
     const activeCity = user?.assignedCity || selectedCity;
-    setCurrentRate(res.cityRates?.[activeCity] || 235);
+    setRateInput(String(res.cityRates?.[activeCity] ?? 235));
     setSavedMessage(false);
   };
 
   const activeCityName = user?.assignedCity || selectedCity;
+  const currentNumericRate = rateInput === '' ? 0 : Number(rateInput);
 
-  // Calculation Preview
+  // Live Calculation Preview based on 1,300 kg sample vehicle
   const sampleWeight = 1300;
-  const sampleBase = Math.round((sampleWeight / 1000) * currentRate);
+  const sampleBase = ((sampleWeight / 1000) * currentNumericRate).toFixed(2);
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -116,7 +123,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                📍 {city} (£{cityRates[city] || 235}/t)
+                📍 {city} (£{cityRates[city] ?? 235}/t)
               </button>
             ))}
           </div>
@@ -124,7 +131,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
 
         {savedMessage && (
           <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800">
-            ✅ Scrap rate for <strong>{activeCityName}</strong> updated to £{currentRate}/tonne!
+            ✅ Scrap rate for <strong>{activeCityName}</strong> updated to £{currentNumericRate}/tonne!
           </div>
         )}
 
@@ -144,15 +151,15 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
               <span className="text-2xl font-black text-[#0b2e21]">£</span>
               <input
                 type="number"
-                min="50"
-                max="1000"
-                value={currentRate}
-                onChange={(e) => handleRateChange(e.target.value)}
+                step="any"
+                placeholder="e.g. 250"
+                value={rateInput}
+                onChange={(e) => handleRateInputChange(e.target.value)}
                 className="w-full rounded-xl border border-emerald-300 bg-white px-4 py-3 text-2xl font-black text-slate-900 outline-none focus:border-[#0f7b4f]"
               />
             </div>
             <p className="mt-2 text-xs text-emerald-800">
-              Quotes for vehicles collected in <strong>{activeCityName}</strong> will calculate as: <code className="font-mono bg-emerald-100/80 px-1 py-0.5 rounded text-emerald-950 font-bold">(KerbWeightKg / 1000) × £{currentRate}</code>.
+              Quotes for vehicles collected in <strong>{activeCityName}</strong> will calculate as: <code className="font-mono bg-emerald-100/80 px-1 py-0.5 rounded text-emerald-950 font-bold">(KerbWeightKg / 1000) × £{rateInput || 0}</code>.
             </p>
           </div>
         </div>
@@ -191,10 +198,10 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
           </div>
           <div className="flex justify-between border-b border-gray-200 pb-2 text-gray-600">
             <span>Active Rate:</span>
-            <strong className="text-slate-900">£{currentRate} / tonne</strong>
+            <strong className="text-slate-900">£{rateInput || 0} / tonne</strong>
           </div>
           <div className="flex justify-between border-b border-gray-200 pb-2 text-gray-600">
-            <span>Calculation (1.3t × £{currentRate}):</span>
+            <span>Calculation (1.3t × £{rateInput || 0}):</span>
             <strong className="text-slate-900">£{sampleBase}</strong>
           </div>
         </div>
