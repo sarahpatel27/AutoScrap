@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 
-const AUTH_STORAGE_KEY = 'autoscrap_admin_auth';
+const TOKEN_STORAGE_KEY = 'autoscrap_admin_token';
+const USER_STORAGE_KEY = 'autoscrap_admin_user';
 
 const AuthContext = createContext(null);
 
@@ -9,70 +10,67 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (storedAuth) {
-      try {
-        const parsed = JSON.parse(storedAuth);
-        setUser(parsed);
-      } catch (e) {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
+    const initAuth = async () => {
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+
+      if (token && storedUser) {
+        try {
+          setUser(JSON.parse(storedUser));
+          // Validate token with backend /api/auth/me
+          const res = await fetch('/api/auth/me', {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            setUser(data.user);
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+          } else {
+            // Token expired or invalid
+            logout();
+          }
+        } catch (err) {
+          console.warn('Auth token validation warning:', err);
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    initAuth();
   }, []);
 
   const login = async (email, password, city = null) => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
     if (!email || !password) {
       throw new Error('Please enter both email and password.');
     }
 
-    if (password.length < 4) {
-      throw new Error('Password must be at least 4 characters long.');
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, city }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || 'Authentication failed.');
     }
 
-    const cleanEmail = email.toLowerCase().trim();
-    let role = 'Super Admin';
-    let assignedCity = city;
-
-    // Detect city dealer from email if city not passed
-    if (!assignedCity) {
-      if (cleanEmail.includes('london')) assignedCity = 'London';
-      else if (cleanEmail.includes('manchester')) assignedCity = 'Manchester';
-      else if (cleanEmail.includes('doncaster')) assignedCity = 'Doncaster';
-      else if (cleanEmail.includes('leicester')) assignedCity = 'Leicester';
-      else if (cleanEmail.includes('peterborough')) assignedCity = 'Peterborough';
-      else if (cleanEmail.includes('cambridge')) assignedCity = 'Cambridge';
-      else if (cleanEmail.includes('liverpool')) assignedCity = 'Liverpool';
-    }
-
-    if (assignedCity) {
-      role = 'City Dealer';
-    }
-
-    const userData = {
-      id: `dealer_${assignedCity || 'super'}`,
-      name: assignedCity ? `${assignedCity} Dealer` : 'Super Administrator',
-      email: cleanEmail,
-      role,
-      assignedCity,
-      avatar: assignedCity ? '📍' : '🛡️',
-      loggedInAt: new Date().toISOString(),
-    };
-
-    setUser(userData);
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userData));
-    return userData;
+    localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    localStorage.removeItem(USER_STORAGE_KEY);
   };
 
   const value = {
     user,
+    token: localStorage.getItem(TOKEN_STORAGE_KEY),
     isAuthenticated: !!user,
     loading,
     login,

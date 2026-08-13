@@ -3,6 +3,8 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import DashboardStats from '../../components/admin/DashboardStats';
 import EnquiriesTable from '../../components/admin/EnquiriesTable';
 import PricingConfigurator from '../../components/admin/PricingConfigurator';
+import UserManagementSection from '../../components/admin/UserManagementSection';
+import AccountSettingsSection from '../../components/admin/AccountSettingsSection';
 import {
   fetchEnquiries,
   fetchPastEnquiries,
@@ -96,11 +98,17 @@ export default function AdminDashboardPage() {
               {activeTab === 'overview' && 'Dashboard Overview'}
               {activeTab === 'enquiries' && 'Scrap Car Enquiries'}
               {activeTab === 'past' && 'Past Enquiries (Archived / Deleted)'}
+              {activeTab === 'users' && 'Dealer Accounts Manager'}
+              {activeTab === 'settings' && 'Account Settings'}
               {activeTab === 'pricing' && 'Scrap Valuation Rules'}
             </h1>
             <p className="text-[11px] sm:text-xs text-gray-500 font-medium">
               {activeTab === 'past'
                 ? 'Read-only record repository of soft-deleted and historical scrap car enquiries.'
+                : activeTab === 'users'
+                ? 'Manage city dealer login credentials and territory permissions.'
+                : activeTab === 'settings'
+                ? 'Manage your portal security credentials and password.'
                 : 'Live management portal for MyAutoScrap UK collections & pricing.'}
             </p>
           </div>
@@ -159,6 +167,14 @@ export default function AdminDashboardPage() {
               readOnly={true}
             />
           </div>
+        )}
+
+        {activeTab === 'users' && (
+          <UserManagementSection />
+        )}
+
+        {activeTab === 'settings' && (
+          <AccountSettingsSection />
         )}
 
         {activeTab === 'pricing' && (

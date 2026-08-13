@@ -1,5 +1,16 @@
 import { getCityFromPostcode } from '../utils/cityHelper';
 
+const TOKEN_STORAGE_KEY = 'autoscrap_admin_token';
+
+function getAuthHeaders(extraHeaders = {}) {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  const headers = { ...extraHeaders };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 let cachedPricing = {
   defaultPricePerTonne: 235,
   cityRates: {
@@ -18,7 +29,9 @@ let cachedPastEnquiries = [];
 
 export async function fetchPricingConfig() {
   try {
-    const res = await fetch('/api/pricing');
+    const res = await fetch('/api/pricing', {
+      headers: getAuthHeaders(),
+    });
     if (res.ok) {
       const data = await res.json();
       cachedPricing = data;
@@ -44,7 +57,9 @@ export function getCityPricePerTonne(city) {
 
 export async function fetchEnquiries() {
   try {
-    const res = await fetch('/api/enquiries');
+    const res = await fetch('/api/enquiries', {
+      headers: getAuthHeaders(),
+    });
     if (res.ok) {
       const data = await res.json();
       cachedEnquiries = data;
@@ -58,7 +73,9 @@ export async function fetchEnquiries() {
 
 export async function fetchPastEnquiries() {
   try {
-    const res = await fetch('/api/enquiries/past');
+    const res = await fetch('/api/enquiries/past', {
+      headers: getAuthHeaders(),
+    });
     if (res.ok) {
       const data = await res.json();
       cachedPastEnquiries = data;
@@ -79,7 +96,7 @@ export async function saveEnquiry(enquiryData) {
   try {
     const res = await fetch('/api/enquiries', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(enquiryData),
     });
     if (res.ok) {
@@ -114,7 +131,7 @@ export async function updateEnquiryStatus(id, newStatus, notes) {
   try {
     const res = await fetch(`/api/enquiries/${id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ status: newStatus, notes }),
     });
     if (res.ok) {
@@ -146,7 +163,7 @@ export async function updateBulkEnquiryStatus(ids, newStatus) {
   try {
     const res = await fetch('/api/enquiries/bulk-status', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ids, status: newStatus }),
     });
     if (res.ok) {
@@ -180,6 +197,7 @@ export async function deleteEnquiry(id) {
   try {
     const res = await fetch(`/api/enquiries/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     if (res.ok) {
       const updatedList = await res.json();
@@ -207,7 +225,7 @@ export async function deleteBulkEnquiries(ids) {
   try {
     const res = await fetch('/api/enquiries/bulk-delete', {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ids }),
     });
     if (res.ok) {
@@ -227,7 +245,7 @@ export async function savePricingConfig(config) {
   try {
     const res = await fetch('/api/pricing', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(config),
     });
     if (res.ok) {
@@ -257,4 +275,56 @@ export function resetPricingConfig() {
     },
   });
   return cachedPricing;
+}
+
+export async function fetchUsers() {
+  try {
+    const res = await fetch('/api/auth/users', {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('Error fetching users:', err);
+  }
+  return [];
+}
+
+export async function createDealerUser(userData) {
+  const res = await fetch('/api/auth/users', {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(userData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to create user account.');
+  }
+  return data;
+}
+
+export async function deleteDealerUser(id) {
+  const res = await fetch(`/api/auth/users/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to delete user account.');
+  }
+  return data;
+}
+
+export async function changeUserPassword(currentPassword, newPassword) {
+  const res = await fetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update password.');
+  }
+  return data;
 }

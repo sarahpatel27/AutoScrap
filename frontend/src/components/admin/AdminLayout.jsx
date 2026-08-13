@@ -6,11 +6,15 @@ export default function AdminLayout({ activeTab, setActiveTab, children }) {
   const { user, logout } = useAuth();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
+  const isSuperAdmin = user?.role === 'Super Admin';
+
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: '📊' },
     { id: 'enquiries', label: 'Vehicle Enquiries', icon: '🚗' },
     { id: 'past', label: 'Past Enquiries', icon: '📁' },
     { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️' },
+    ...(isSuperAdmin ? [{ id: 'users', label: 'Dealer Accounts', icon: '👤' }] : []),
+    { id: 'settings', label: 'Account Settings', icon: '🔒' },
   ];
 
   return (

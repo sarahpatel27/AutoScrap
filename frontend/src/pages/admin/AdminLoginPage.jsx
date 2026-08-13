@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
-import { TARGET_CITIES } from '../../utils/cityHelper';
 
 export default function AdminLoginPage() {
   const { isAuthenticated, login } = useAuth();
@@ -37,23 +36,6 @@ export default function AdminLoginPage() {
     }
   };
 
-  const handleQuickLogin = async (type, city = null) => {
-    setError('');
-    setLoading(true);
-    try {
-      if (type === 'super') {
-        await login('admin@myautoscrap.co.uk', 'admin123', null);
-      } else {
-        await login(`${city.toLowerCase()}@autoscrap.co.uk`, 'dealer123', city);
-      }
-      navigate(from, { replace: true });
-    } catch (err) {
-      setError(err.message || 'Login failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="flex min-h-screen flex-col justify-between bg-linear-to-br from-[#0b241b] via-[#0b2e21] to-[#0a3827] px-3 py-6 sm:px-4 sm:py-8 text-white font-['DM_Sans',sans-serif]">
       {/* Header logo link */}
@@ -78,7 +60,7 @@ export default function AdminLoginPage() {
             Sign in to Dashboard
           </h1>
           <p className="mt-1 text-xs text-gray-500">
-            Sign in as Super Admin or select a specific City Dealer portal.
+            Enter your account credentials to access your administration portal.
           </p>
         </div>
 
@@ -127,35 +109,6 @@ export default function AdminLoginPage() {
             {loading ? 'Authenticating...' : 'Sign In to Dashboard'}
           </button>
         </form>
-
-        {/* City Dealer Quick Selector */}
-        <div className="mt-5 border-t border-gray-200 pt-4 text-center">
-          <p className="text-xs font-bold text-gray-700 mb-2">⚡ Quick 1-Click Dealer Login:</p>
-
-          <div className="mb-2.5">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('super')}
-              className="w-full rounded-xl border border-slate-300 bg-slate-100 py-2 px-2 text-xs font-black text-slate-900 hover:bg-slate-200 cursor-pointer transition"
-            >
-              🛡️ Super Administrator (All Cities)
-            </button>
-          </div>
-
-          <span className="block text-[11px] font-semibold text-gray-500 mb-2">City Dealer Accounts:</span>
-          <div className="grid grid-cols-1 xs:grid-cols-2 gap-1.5 sm:gap-2">
-            {TARGET_CITIES.map((city) => (
-              <button
-                key={city}
-                type="button"
-                onClick={() => handleQuickLogin('dealer', city)}
-                className="rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-2 text-xs font-extrabold text-[#0f7b4f] hover:bg-emerald-100 transition cursor-pointer text-center"
-              >
-                📍 {city} Dealer
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* Footer link */}
