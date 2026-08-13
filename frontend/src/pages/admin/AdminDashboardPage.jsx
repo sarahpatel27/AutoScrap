@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router';
 import AdminLayout from '../../components/admin/AdminLayout';
 import DashboardStats from '../../components/admin/DashboardStats';
 import EnquiriesTable from '../../components/admin/EnquiriesTable';
@@ -18,7 +19,27 @@ import {
 } from '../../services/adminStore';
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+
+  const getTabFromPath = (path) => {
+    switch (path) {
+      case '/admin/enquiries':
+        return 'enquiries';
+      case '/admin/past-enquiries':
+        return 'past';
+      case '/admin/scrap-rates':
+        return 'pricing';
+      case '/admin/dealer-accounts':
+        return 'users';
+      case '/admin/account-settings':
+        return 'settings';
+      case '/admin/dashboard':
+      default:
+        return 'overview';
+    }
+  };
+
+  const activeTab = getTabFromPath(location.pathname);
   const [enquiries, setEnquiries] = useState([]);
   const [pastEnquiries, setPastEnquiries] = useState([]);
   const [pricing, setPricing] = useState({
@@ -89,7 +110,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <AdminLayout activeTab={activeTab} setActiveTab={setActiveTab}>
+    <AdminLayout activeTab={activeTab}>
       <div className="space-y-6">
         {/* Page Title Header */}
         <div className="flex flex-row items-center justify-between gap-3 bg-white/80 backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-200/80 shadow-xs">

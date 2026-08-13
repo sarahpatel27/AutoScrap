@@ -1,21 +1,24 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
 
-export default function AdminLayout({ activeTab, setActiveTab, children }) {
+export default function AdminLayout({ activeTab, children }) {
   const { user, logout } = useAuth();
+  const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const isSuperAdmin = user?.role === 'Super Admin';
 
   const navItems = [
-    { id: 'overview', label: 'Dashboard Overview', icon: '📊' },
-    { id: 'enquiries', label: 'Vehicle Enquiries', icon: '🚗' },
-    { id: 'past', label: 'Past Enquiries', icon: '📁' },
-    { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️' },
-    ...(isSuperAdmin ? [{ id: 'users', label: 'Dealer Accounts', icon: '👤' }] : []),
-    { id: 'settings', label: 'Account Settings', icon: '🔒' },
+    { id: 'overview', label: 'Dashboard Overview', icon: '📊', path: '/admin/dashboard' },
+    { id: 'enquiries', label: 'Vehicle Enquiries', icon: '🚗', path: '/admin/enquiries' },
+    { id: 'past', label: 'Past Enquiries', icon: '📁', path: '/admin/past-enquiries' },
+    { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️', path: '/admin/scrap-rates' },
+    ...(isSuperAdmin ? [{ id: 'users', label: 'Dealer Accounts', icon: '👤', path: '/admin/dealer-accounts' }] : []),
+    { id: 'settings', label: 'Account Settings', icon: '🔒', path: '/admin/account-settings' },
   ];
+
+  const currentTab = activeTab || navItems.find((item) => item.path === location.pathname)?.id || 'overview';
 
   return (
     <div className="min-h-screen bg-gray-100 text-slate-900 font-['DM_Sans',sans-serif]">
@@ -110,24 +113,24 @@ export default function AdminLayout({ activeTab, setActiveTab, children }) {
               </button>
             </div>
 
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMobileNavOpen(false);
-                }}
-                className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-extrabold transition text-left cursor-pointer ${
-                  activeTab === item.id
-                    ? 'bg-[#0f7b4f] text-white shadow-md'
-                    : 'text-[#c8ded4] hover:bg-white/10 lg:text-slate-700 lg:hover:bg-gray-200'
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                <span>{item.label}</span>
-              </button>
-            ))}
+            {navItems.map((item) => {
+              const isActive = currentTab === item.id || location.pathname === item.path;
+              return (
+                <Link
+                  key={item.id}
+                  to={item.path}
+                  onClick={() => setMobileNavOpen(false)}
+                  className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-extrabold transition text-left cursor-pointer ${
+                    isActive
+                      ? 'bg-[#0f7b4f] text-white shadow-md'
+                      : 'text-[#c8ded4] hover:bg-white/10 lg:text-slate-700 lg:hover:bg-gray-200'
+                  }`}
+                >
+                  <span className="text-lg">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
 
             <hr className="my-3 border-white/10 lg:border-gray-200" />
 
