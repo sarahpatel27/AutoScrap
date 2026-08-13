@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const vrmRoutes = require('./routes/vrmRoutes');
 const pricingRoutes = require('./routes/pricingRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
+const contactRoutes = require('./routes/contactRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -28,6 +29,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/vrm-lookup', vrmRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/enquiries', enquiryRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Start Server
 app.listen(PORT, () => {

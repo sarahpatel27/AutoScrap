@@ -6,6 +6,7 @@ import EnquiriesTable from '../../components/admin/EnquiriesTable';
 import PricingConfigurator from '../../components/admin/PricingConfigurator';
 import UserManagementSection from '../../components/admin/UserManagementSection';
 import AccountSettingsSection from '../../components/admin/AccountSettingsSection';
+import ContactSubmissionsSection from '../../components/admin/ContactSubmissionsSection';
 import {
   fetchEnquiries,
   fetchPastEnquiries,
@@ -29,6 +30,8 @@ export default function AdminDashboardPage() {
         return 'past';
       case '/admin/scrap-rates':
         return 'pricing';
+      case '/admin/contact-messages':
+        return 'contacts';
       case '/admin/dealer-accounts':
         return 'users';
       case '/admin/account-settings':
@@ -119,6 +122,7 @@ export default function AdminDashboardPage() {
               {activeTab === 'overview' && 'Dashboard Overview'}
               {activeTab === 'enquiries' && 'Scrap Car Enquiries'}
               {activeTab === 'past' && 'Past Enquiries (Archived / Deleted)'}
+              {activeTab === 'contacts' && 'Website Contact Messages (Super Admin Only)'}
               {activeTab === 'users' && 'Dealer Accounts Manager'}
               {activeTab === 'settings' && 'Account Settings'}
               {activeTab === 'pricing' && 'Scrap Valuation Rules'}
@@ -126,6 +130,8 @@ export default function AdminDashboardPage() {
             <p className="text-[11px] sm:text-xs text-gray-500 font-medium">
               {activeTab === 'past'
                 ? 'Read-only record repository of soft-deleted and historical scrap car enquiries.'
+                : activeTab === 'contacts'
+                ? 'Exclusive Super Admin view of public inquiries submitted through the Contact Us page.'
                 : activeTab === 'users'
                 ? 'Manage city dealer login credentials and territory permissions.'
                 : activeTab === 'settings'
@@ -138,12 +144,23 @@ export default function AdminDashboardPage() {
             type="button"
             onClick={reloadData}
             disabled={loading}
-            className="inline-flex items-center gap-2 rounded-xl sm:rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-3 py-2 sm:px-4 sm:py-2.5 text-xs font-black text-[#0f7b4f] shadow-xs transition-all hover:bg-emerald-100 hover:scale-102 active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
+            title="Refresh Data"
+            aria-label="Refresh Dashboard Data"
+            className="grid h-10 w-10 place-items-center rounded-xl sm:rounded-2xl border border-emerald-200/80 bg-emerald-50/90 text-[#0f7b4f] shadow-xs transition-all hover:bg-emerald-100 hover:scale-105 active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
           >
-            <span className={`text-sm transition-transform duration-700 ${loading ? 'animate-spin' : ''}`}>
-              🔄
-            </span>
-            <span className="hidden xs:inline">{loading ? 'Updating...' : 'Refresh'}</span>
+            <svg
+              className={`h-4 w-4 transition-transform duration-700 ${loading ? 'animate-spin' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2.5}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
           </button>
         </div>
 
@@ -188,6 +205,10 @@ export default function AdminDashboardPage() {
               readOnly={true}
             />
           </div>
+        )}
+
+        {activeTab === 'contacts' && (
+          <ContactSubmissionsSection />
         )}
 
         {activeTab === 'users' && (

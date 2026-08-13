@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Step4BankDetails from './Step4BankDetails';
+import { showToast } from '../admin/ToastContainer';
 import {
   primaryButtonClass,
   secondaryButtonClass,
@@ -31,11 +32,13 @@ export default function Step5SuccessConfirmation({
       setBankAdded(true);
       setShowBankModal(false);
       setJourneyCompleted(true);
+      showToast('Payment & Bank details added successfully! Your scrap payout is registered.', 'success');
     }
   };
 
   const handleSkipAndFinish = () => {
     setJourneyCompleted(true);
+    showToast('Your quote journey is complete! Our recovery driver will confirm payout during pickup.', 'success');
   };
 
   return (

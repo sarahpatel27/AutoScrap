@@ -41,3 +41,15 @@ model Enquiry {
 
   @@map("enquiries")
 }
+
+model ContactSubmission {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  phone     String   @db.VarChar(30)
+  email     String   @db.VarChar(100)
+  subject   String   @db.VarChar(150)
+  message   String   @db.Text
+  date      DateTime @default(now()) @db.Timestamptz
+
+  @@map("contact_submissions")
+}

@@ -328,3 +328,44 @@ export async function changeUserPassword(currentPassword, newPassword) {
   }
   return data;
 }
+
+export async function submitContactMessage(contactData) {
+  const res = await fetch('/api/contact/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(contactData),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to submit contact message.');
+  }
+  return data;
+}
+
+export async function fetchContactSubmissions() {
+  try {
+    const res = await fetch('/api/contact', {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend fetch error for contacts:', err);
+  }
+  return [];
+}
+
+export async function deleteContactSubmission(id) {
+  const res = await fetch(`/api/contact/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to delete contact message.');
+  }
+  return data;
+}

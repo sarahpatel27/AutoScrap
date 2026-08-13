@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import SEO from '../components/Seo';
 import { getOrganizationSchema } from '../config/seo.config';
+import { submitContactMessage } from '../services/adminStore';
+import { showToast } from '../components/admin/ToastContainer';
 
 const contactItems = [
   {
@@ -67,12 +69,45 @@ function ContactRow({ href, label, value, external = false }) {
 }
 
 export default function ContactPage() {
-  const [sent, setSent] = useState(false);
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
 
-  const submit = (event) => {
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    setSent(true);
-    event.currentTarget.reset();
+    setError('');
+    setLoading(true);
+
+    try {
+      await submitContactMessage({
+        name,
+        phone,
+        email,
+        subject,
+        message,
+      });
+
+      setSent(true);
+      showToast('Message submitted successfully! Our team will get back to you shortly.', 'success');
+
+      // Reset form
+      setName('');
+      setPhone('');
+      setEmail('');
+      setSubject('');
+      setMessage('');
+    } catch (err) {
+      setError(err.message || 'Failed to submit contact message.');
+      showToast(err.message || 'Failed to submit message.', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const orgSchema = getOrganizationSchema();
@@ -105,15 +140,27 @@ export default function ContactPage() {
         <div className="mx-auto grid w-[calc(100%-36px)] max-w-[1180px] gap-[30px] lg:grid-cols-[1.25fr_0.75fr]">
           <form
             className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-[0_8px_30px_rgba(30,70,50,0.05)] sm:p-8"
-            onSubmit={submit}
+            onSubmit={handleSubmit}
           >
             <h2 className="mb-6 text-[clamp(1.8rem,3vw,2.35rem)] leading-tight">
               Send us a message
             </h2>
 
+            {error && (
+              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-800">
+                ⚠️ {error}
+              </div>
+            )}
+
             <div className="grid gap-x-[18px] gap-y-[15px] md:grid-cols-2">
               <Field label="Name *">
-                <input className={fieldClass} required />
+                <input
+                  className={fieldClass}
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your full name"
+                />
               </Field>
               <Field label="Phone number *">
                 <input
@@ -122,31 +169,54 @@ export default function ContactPage() {
                   inputMode="numeric"
                   required
                   placeholder="e.g. 07714 423293"
-                  maxLength={11}
+                  maxLength={15}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                 />
               </Field>
               <Field label="Email *">
-                <input className={fieldClass} required type="email" />
+                <input
+                  className={fieldClass}
+                  required
+                  type="email"
+                  placeholder="your.email@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </Field>
               <Field label="Subject *">
-                <input className={fieldClass} required />
+                <input
+                  className={fieldClass}
+                  required
+                  placeholder="Enquiry subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                />
               </Field>
               <Field className="md:col-span-2" label="Message *">
-                <textarea className={`${fieldClass} min-h-[156px] resize-y`} required rows="6" />
+                <textarea
+                  className={`${fieldClass} min-h-[156px] resize-y`}
+                  required
+                  rows="6"
+                  placeholder="How can we help you?"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
               </Field>
             </div>
 
             {sent && (
               <div className="mt-5 rounded-xl border border-[#c9e8d8] bg-[#edf7f2] px-4 py-3 font-bold text-[#175c40]">
-                Thanks - your message has been recorded in this frontend demo.
+                ✅ Thank you - your message has been sent to our team!
               </div>
             )}
 
             <button
-              className="mt-6 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-[#0f7b4f] px-[22px] py-3.5 font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[#075b3a]"
+              disabled={loading}
+              className="mt-6 inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-[#0f7b4f] px-[22px] py-3.5 font-extrabold text-white transition hover:-translate-y-0.5 hover:bg-[#075b3a] disabled:opacity-50"
               type="submit"
             >
-              Submit message
+              {loading ? 'Submitting message...' : 'Submit message'}
             </button>
           </form>
 

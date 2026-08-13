@@ -221,9 +221,24 @@ export default function UserManagementSection() {
               type="button"
               onClick={loadUsers}
               disabled={loading}
-              className="text-xs font-extrabold text-[#0f7b4f] hover:underline cursor-pointer"
+              title="Refresh List"
+              aria-label="Refresh Dealer Accounts List"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-extrabold text-[#0f7b4f] hover:bg-emerald-100 transition cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'Refreshing...' : '🔄 Refresh List'}
+              <svg
+                className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              <span>{loading ? 'Refreshing...' : 'Refresh List'}</span>
             </button>
           </div>
 

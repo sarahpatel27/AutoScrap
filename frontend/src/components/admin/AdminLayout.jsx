@@ -14,7 +14,12 @@ export default function AdminLayout({ activeTab, children }) {
     { id: 'enquiries', label: 'Vehicle Enquiries', icon: '🚗', path: '/admin/enquiries' },
     { id: 'past', label: 'Past Enquiries', icon: '📁', path: '/admin/past-enquiries' },
     { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️', path: '/admin/scrap-rates' },
-    ...(isSuperAdmin ? [{ id: 'users', label: 'Dealer Accounts', icon: '👤', path: '/admin/dealer-accounts' }] : []),
+    ...(isSuperAdmin
+      ? [
+          { id: 'contacts', label: 'Contact Messages', icon: '📬', path: '/admin/contact-messages' },
+          { id: 'users', label: 'Dealer Accounts', icon: '👤', path: '/admin/dealer-accounts' },
+        ]
+      : []),
     { id: 'settings', label: 'Account Settings', icon: '🔒', path: '/admin/account-settings' },
   ];
 

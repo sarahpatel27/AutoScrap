@@ -50,7 +50,7 @@ export default function AccountSettingsSection() {
   };
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="space-y-6">
       {/* Account Info Banner */}
       <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-5 shadow-xs flex items-center gap-4">
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-emerald-100 text-2xl shrink-0">
