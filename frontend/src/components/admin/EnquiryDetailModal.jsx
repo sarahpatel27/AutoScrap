@@ -15,6 +15,7 @@ export default function EnquiryDetailModal({
   onClose,
   onUpdateStatus,
   onDelete,
+  readOnly = false,
 }) {
   const [status, setStatus] = useState(enquiry?.status || 'Pending');
   const [notes, setNotes] = useState(enquiry?.customer?.notes || '');
@@ -402,13 +403,14 @@ export default function EnquiryDetailModal({
                   <button
                     ref={statusButtonRef}
                     type="button"
-                    aria-haspopup="listbox"
-                    aria-expanded={statusOpen}
+                    disabled={readOnly}
                     onClick={openStatusDropdown}
-                    className={`flex w-full items-center justify-between rounded-xl border bg-gray-50 px-3 py-2 text-left text-xs font-bold outline-none transition hover:bg-white ${
-                      statusOpen
-                        ? 'border-[#0f7b4f] bg-white ring-2 ring-[#0f7b4f]/10'
-                        : 'border-gray-300'
+                    className={`flex w-full items-center justify-between rounded-xl border bg-gray-50 px-3.5 py-2.5 text-xs font-extrabold text-slate-800 transition outline-none ${
+                      readOnly
+                        ? 'opacity-80 cursor-not-allowed bg-gray-100'
+                        : statusOpen
+                        ? 'border-[#0f7b4f] bg-white ring-2 ring-[#0f7b4f]/10 cursor-pointer'
+                        : 'border-gray-300 hover:border-gray-400 cursor-pointer'
                     }`}
                   >
                     <span className="flex items-center gap-2">
@@ -418,21 +420,23 @@ export default function EnquiryDetailModal({
                       {selectedStatus.value}
                     </span>
 
-                    <svg
-                      viewBox="0 0 20 20"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className={`h-4 w-4 text-gray-500 transition-transform ${
-                        statusOpen ? 'rotate-180' : ''
-                      }`}
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 7.5 10 12.5 15 7.5"
-                      />
-                    </svg>
+                    {!readOnly && (
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        className={`h-4 w-4 text-gray-500 transition-transform ${
+                          statusOpen ? 'rotate-180' : ''
+                        }`}
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M5 7.5 10 12.5 15 7.5"
+                        />
+                      </svg>
+                    )}
                   </button>
                 </div>
 
@@ -444,9 +448,12 @@ export default function EnquiryDetailModal({
                   <textarea
                     rows="2"
                     value={notes}
+                    disabled={readOnly}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Notes on collection time, driver details, price agreement..."
-                    className="w-full resize-none rounded-xl border border-gray-300 bg-gray-50 p-2.5 text-xs font-medium outline-none transition focus:border-[#0f7b4f] focus:bg-white"
+                    placeholder={readOnly ? 'No internal remarks recorded.' : 'Notes on collection time, driver details, price agreement...'}
+                    className={`w-full resize-none rounded-xl border border-gray-300 p-2.5 text-xs font-medium outline-none transition ${
+                      readOnly ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : 'bg-gray-50 focus:border-[#0f7b4f] focus:bg-white'
+                    }`}
                   />
                 </div>
               </div>
@@ -455,13 +462,19 @@ export default function EnquiryDetailModal({
 
           {/* Footer */}
           <div className="flex shrink-0 items-center justify-between gap-3 border-t border-gray-200 bg-white p-4">
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="cursor-pointer rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-extrabold text-red-700 transition hover:bg-red-100 active:scale-95"
-            >
-              🗑️ Delete
-            </button>
+            {readOnly ? (
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+                <span>🔒</span> Read-Only Archived Record
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="cursor-pointer rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-extrabold text-red-700 transition hover:bg-red-100 active:scale-95"
+              >
+                🗑️ Delete
+              </button>
+            )}
 
             <div className="flex items-center gap-2">
               <button
@@ -469,17 +482,19 @@ export default function EnquiryDetailModal({
                 onClick={onClose}
                 className="cursor-pointer rounded-xl border border-gray-300 bg-gray-100 px-4 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-200 active:scale-95"
               >
-                Cancel
+                {readOnly ? 'Close' : 'Cancel'}
               </button>
 
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="cursor-pointer rounded-xl bg-[#0f7b4f] px-5 py-2.5 text-xs font-black text-white shadow-md transition hover:bg-[#075b3a] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Status'}
-              </button>
+              {!readOnly && (
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="cursor-pointer rounded-xl bg-[#0f7b4f] px-5 py-2.5 text-xs font-black text-white shadow-md transition hover:bg-[#075b3a] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Status'}
+                </button>
+              )}
             </div>
           </div>
         </div>

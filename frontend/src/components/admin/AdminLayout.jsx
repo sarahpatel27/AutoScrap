@@ -9,6 +9,7 @@ export default function AdminLayout({ activeTab, setActiveTab, children }) {
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: '📊' },
     { id: 'enquiries', label: 'Vehicle Enquiries', icon: '🚗' },
+    { id: 'past', label: 'Past Enquiries', icon: '📁' },
     { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️' },
   ];
 
@@ -78,7 +79,7 @@ export default function AdminLayout({ activeTab, setActiveTab, children }) {
       </header>
 
       {/* Main Container */}
-      <div className="mx-auto flex max-w-[1440px] px-3 py-4 sm:px-6 sm:py-6">
+      <div className=" flex  px-3 py-4 sm:px-6 sm:py-6">
         {/* Left Sidebar (Desktop & Mobile Drawer) */}
         <aside
           className={`fixed inset-y-0 left-0 z-50 w-72 sm:w-64 bg-[#0b241b] p-5 text-white transition-transform duration-300 lg:static lg:z-auto lg:block lg:translate-x-0 lg:bg-transparent lg:p-0 ${

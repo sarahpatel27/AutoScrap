@@ -1,13 +1,23 @@
-const { pool } = require('../config/db');
+const { prisma } = require('../config/db');
 const { getCityFromPostcode } = require('../utils/postcodeHelper');
 
 async function getEnquiries(req, res) {
   try {
-    const result = await pool.query('SELECT * FROM enquiries ORDER BY date DESC');
-    const enquiries = result.rows.map((row) => ({
+    const rows = await prisma.enquiry.findMany({
+      where: {
+        status: {
+          notIn: ['archived', 'deleted'],
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+
+    const enquiries = rows.map((row) => ({
       id: String(row.id),
       reference: row.reference,
-      date: row.date ? new Date(row.date).toISOString() : new Date().toISOString(),
+      date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'Pending',
       postcode: row.postcode,
       city: row.city || getCityFromPostcode(row.postcode, row.customer?.collectionAddress),
@@ -25,6 +35,40 @@ async function getEnquiries(req, res) {
   }
 }
 
+async function getPastEnquiries(req, res) {
+  try {
+    const rows = await prisma.enquiry.findMany({
+      where: {
+        status: {
+          in: ['archived', 'deleted'],
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+
+    const enquiries = rows.map((row) => ({
+      id: String(row.id),
+      reference: row.reference,
+      date: row.date ? row.date.toISOString() : new Date().toISOString(),
+      status: row.status || 'archived',
+      postcode: row.postcode,
+      city: row.city || getCityFromPostcode(row.postcode, row.customer?.collectionAddress),
+      vehicle: row.vehicle,
+      condition: row.condition,
+      customer: row.customer,
+      bank: row.bank,
+      quote: row.quote,
+    }));
+
+    res.json(enquiries);
+  } catch (err) {
+    console.error('Get Past Enquiries Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 async function createEnquiry(req, res) {
   try {
     const enquiryData = req.body;
@@ -34,77 +78,70 @@ async function createEnquiry(req, res) {
     const address = enquiryData.customer?.collectionAddress || '';
     const city = getCityFromPostcode(postcode, address);
 
-    // If existing enquiry ID provided (e.g. updating bank details), perform UPDATE
+    // If existing enquiry ID provided, perform UPDATE using prisma.enquiry.update
     if (existingId) {
-      const updateResult = await pool.query(
-        `UPDATE enquiries
-         SET bank = $1, customer = $2, condition = $3, vehicle = $4, quote = $5, postcode = $6, city = $7
-         WHERE id = $8 RETURNING *`,
-        [
-          JSON.stringify(enquiryData.bank || {}),
-          JSON.stringify(enquiryData.customer || {}),
-          JSON.stringify(enquiryData.condition || {}),
-          JSON.stringify(enquiryData.vehicle || {}),
-          JSON.stringify(enquiryData.quote || {}),
-          postcode,
-          city,
-          existingId,
-        ],
-      );
+      const numericId = parseInt(existingId, 10);
+      if (!isNaN(numericId)) {
+        const updatedRow = await prisma.enquiry.update({
+          where: { id: numericId },
+          data: {
+            bank: enquiryData.bank || {},
+            customer: enquiryData.customer || {},
+            condition: enquiryData.condition || {},
+            vehicle: enquiryData.vehicle || {},
+            quote: enquiryData.quote || {},
+            postcode,
+            city,
+          },
+        });
 
-      if (updateResult.rows.length > 0) {
-        const row = updateResult.rows[0];
         return res.json({
-          id: String(row.id),
-          reference: row.reference,
-          date: row.date,
-          status: row.status,
-          postcode: row.postcode,
-          city: row.city,
-          vehicle: row.vehicle,
-          condition: row.condition,
-          customer: row.customer,
-          bank: row.bank,
-          quote: row.quote,
+          id: String(updatedRow.id),
+          reference: updatedRow.reference,
+          date: updatedRow.date,
+          status: updatedRow.status,
+          postcode: updatedRow.postcode,
+          city: updatedRow.city,
+          vehicle: updatedRow.vehicle,
+          condition: updatedRow.condition,
+          customer: updatedRow.customer,
+          bank: updatedRow.bank,
+          quote: updatedRow.quote,
         });
       }
     }
 
-    // Insert new enquiry
+    // Insert new enquiry using prisma.enquiry.create
     const reference =
       enquiryData.reference ||
       `MAS-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
 
-    const result = await pool.query(
-      `INSERT INTO enquiries (reference, status, postcode, city, vehicle, condition, customer, bank, quote)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING *`,
-      [
+    const createdRow = await prisma.enquiry.create({
+      data: {
         reference,
-        'Pending',
+        status: 'Pending',
         postcode,
         city,
-        JSON.stringify(enquiryData.vehicle || {}),
-        JSON.stringify(enquiryData.condition || {}),
-        JSON.stringify(enquiryData.customer || {}),
-        JSON.stringify(enquiryData.bank || {}),
-        JSON.stringify(enquiryData.quote || {}),
-      ],
-    );
+        vehicle: enquiryData.vehicle || {},
+        condition: enquiryData.condition || {},
+        customer: enquiryData.customer || {},
+        bank: enquiryData.bank || {},
+        quote: enquiryData.quote || {},
+      },
+    });
 
-    const row = result.rows[0];
     res.status(201).json({
-      id: String(row.id),
-      reference: row.reference,
-      date: row.date,
-      status: row.status,
-      postcode: row.postcode,
-      city: row.city,
-      vehicle: row.vehicle,
-      condition: row.condition,
-      customer: row.customer,
-      bank: row.bank,
-      quote: row.quote,
+      id: String(createdRow.id),
+      reference: createdRow.reference,
+      date: createdRow.date,
+      status: createdRow.status,
+      postcode: createdRow.postcode,
+      city: createdRow.city,
+      vehicle: createdRow.vehicle,
+      condition: createdRow.condition,
+      customer: createdRow.customer,
+      bank: createdRow.bank,
+      quote: createdRow.quote,
     });
   } catch (err) {
     console.error('Create/Update Enquiry Error:', err);
@@ -116,25 +153,41 @@ async function updateEnquiryStatus(req, res) {
   try {
     const { id } = req.params;
     const { status, notes } = req.body;
+    const numericId = parseInt(id, 10);
 
-    const findResult = await pool.query('SELECT * FROM enquiries WHERE id = $1', [id]);
-    if (findResult.rows.length === 0) {
+    const targetEnquiry = await prisma.enquiry.findUnique({
+      where: { id: numericId },
+    });
+
+    if (!targetEnquiry) {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
-    const currentCustomer = findResult.rows[0].customer || {};
+    const currentCustomer = targetEnquiry.customer || {};
     if (notes !== undefined) {
       currentCustomer.notes = notes;
     }
 
-    await pool.query(
-      'UPDATE enquiries SET status = $1, customer = $2 WHERE id = $3',
-      [status || findResult.rows[0].status, JSON.stringify(currentCustomer), id],
-    );
+    // Update single record using prisma.enquiry.update
+    await prisma.enquiry.update({
+      where: { id: numericId },
+      data: {
+        status: status || targetEnquiry.status,
+        customer: currentCustomer,
+      },
+    });
 
-    const all = await pool.query('SELECT * FROM enquiries ORDER BY date DESC');
+    const all = await prisma.enquiry.findMany({
+      where: {
+        status: {
+          notIn: ['archived', 'deleted'],
+        },
+      },
+      orderBy: { date: 'desc' },
+    });
+
     res.json(
-      all.rows.map((row) => ({
+      all.map((row) => ({
         id: String(row.id),
         reference: row.reference,
         date: row.date,
@@ -154,14 +207,80 @@ async function updateEnquiryStatus(req, res) {
   }
 }
 
+async function updateBulkEnquiryStatus(req, res) {
+  try {
+    const { ids, status } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0 || !status) {
+      return res.status(400).json({ error: 'ids array and status are required' });
+    }
+
+    const numericIds = ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
+
+    // Update multiple records using Prisma ORM method updateMany
+    await prisma.enquiry.updateMany({
+      where: {
+        id: {
+          in: numericIds,
+        },
+      },
+      data: {
+        status,
+      },
+    });
+
+    const all = await prisma.enquiry.findMany({
+      where: {
+        status: {
+          notIn: ['archived', 'deleted'],
+        },
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    res.json(
+      all.map((row) => ({
+        id: String(row.id),
+        reference: row.reference,
+        date: row.date,
+        status: row.status,
+        postcode: row.postcode,
+        city: row.city,
+        vehicle: row.vehicle,
+        condition: row.condition,
+        customer: row.customer,
+        bank: row.bank,
+        quote: row.quote,
+      })),
+    );
+  } catch (err) {
+    console.error('Bulk Update Enquiry Status Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 async function deleteEnquiry(req, res) {
   try {
     const { id } = req.params;
-    await pool.query('DELETE FROM enquiries WHERE id = $1', [id]);
+    const numericId = parseInt(id, 10);
 
-    const all = await pool.query('SELECT * FROM enquiries ORDER BY date DESC');
+    // Soft delete: update status to 'archived' instead of permanently deleting record
+    await prisma.enquiry.update({
+      where: { id: numericId },
+      data: { status: 'archived' },
+    });
+
+    const all = await prisma.enquiry.findMany({
+      where: {
+        status: {
+          notIn: ['archived', 'deleted'],
+        },
+      },
+      orderBy: { date: 'desc' },
+    });
+
     res.json(
-      all.rows.map((row) => ({
+      all.map((row) => ({
         id: String(row.id),
         reference: row.reference,
         date: row.date,
@@ -181,9 +300,64 @@ async function deleteEnquiry(req, res) {
   }
 }
 
+async function deleteManyEnquiries(req, res) {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required' });
+    }
+
+    const numericIds = ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
+
+    // Soft delete multiple records by updating status to 'archived'
+    await prisma.enquiry.updateMany({
+      where: {
+        id: {
+          in: numericIds,
+        },
+      },
+      data: {
+        status: 'archived',
+      },
+    });
+
+    const all = await prisma.enquiry.findMany({
+      where: { 
+        status: {
+          notIn: ['archived', 'deleted'],
+        },
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    res.json(
+      all.map((row) => ({
+        id: String(row.id),
+        reference: row.reference,
+        date: row.date,
+        status: row.status,
+        postcode: row.postcode,
+        city: row.city,
+        vehicle: row.vehicle,
+        condition: row.condition,
+        customer: row.customer,
+        bank: row.bank,
+        quote: row.quote,
+      })),
+    );
+  } catch (err) {
+    console.error('Delete Many Enquiries Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 module.exports = {
   getEnquiries,
+  getPastEnquiries,
   createEnquiry,
   updateEnquiryStatus,
+  updateBulkEnquiryStatus,
   deleteEnquiry,
+  deleteManyEnquiries,
 };

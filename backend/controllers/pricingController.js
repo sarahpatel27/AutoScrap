@@ -1,16 +1,16 @@
-const { pool } = require('../config/db');
+const { prisma } = require('../config/db');
 
 async function getPricing(req, res) {
   try {
-    const result = await pool.query('SELECT city, price_per_tonne FROM city_pricing');
+    const rows = await prisma.cityPricing.findMany();
     const cityRates = {};
     let defaultRate = 235;
 
-    for (const row of result.rows) {
+    for (const row of rows) {
       if (row.city === 'Default') {
-        defaultRate = row.price_per_tonne;
+        defaultRate = row.pricePerTonne;
       } else {
-        cityRates[row.city] = row.price_per_tonne;
+        cityRates[row.city] = row.pricePerTonne;
       }
     }
 
@@ -30,29 +30,29 @@ async function updatePricing(req, res) {
 
     if (cityRates && typeof cityRates === 'object') {
       for (const [city, rate] of Object.entries(cityRates)) {
-        await pool.query(
-          `INSERT INTO city_pricing (city, price_per_tonne) VALUES ($1, $2)
-           ON CONFLICT (city) DO UPDATE SET price_per_tonne = EXCLUDED.price_per_tonne`,
-          [city, Number(rate) || 235],
-        );
+        await prisma.cityPricing.upsert({
+          where: { city },
+          update: { pricePerTonne: Number(rate) || 235 },
+          create: { city, pricePerTonne: Number(rate) || 235 },
+        });
       }
     }
 
     if (defaultPricePerTonne) {
-      await pool.query(
-        `INSERT INTO city_pricing (city, price_per_tonne) VALUES ('Default', $1)
-         ON CONFLICT (city) DO UPDATE SET price_per_tonne = EXCLUDED.price_per_tonne`,
-        [Number(defaultPricePerTonne) || 235],
-      );
+      await prisma.cityPricing.upsert({
+        where: { city: 'Default' },
+        update: { pricePerTonne: Number(defaultPricePerTonne) || 235 },
+        create: { city: 'Default', pricePerTonne: Number(defaultPricePerTonne) || 235 },
+      });
     }
 
-    const result = await pool.query('SELECT city, price_per_tonne FROM city_pricing');
+    const rows = await prisma.cityPricing.findMany();
     const updatedRates = {};
     let defRate = 235;
 
-    for (const row of result.rows) {
-      if (row.city === 'Default') defRate = row.price_per_tonne;
-      else updatedRates[row.city] = row.price_per_tonne;
+    for (const row of rows) {
+      if (row.city === 'Default') defRate = row.pricePerTonne;
+      else updatedRates[row.city] = row.pricePerTonne;
     }
 
     res.json({

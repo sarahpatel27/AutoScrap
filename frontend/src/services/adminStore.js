@@ -14,6 +14,7 @@ let cachedPricing = {
 };
 
 let cachedEnquiries = [];
+let cachedPastEnquiries = [];
 
 export async function fetchPricingConfig() {
   try {
@@ -53,6 +54,20 @@ export async function fetchEnquiries() {
     console.warn('Backend fetch error, using cached enquiries:', err);
   }
   return cachedEnquiries;
+}
+
+export async function fetchPastEnquiries() {
+  try {
+    const res = await fetch('/api/enquiries/past');
+    if (res.ok) {
+      const data = await res.json();
+      cachedPastEnquiries = data;
+      return data;
+    }
+  } catch (err) {
+    console.warn('Backend fetch error for past enquiries:', err);
+  }
+  return cachedPastEnquiries;
 }
 
 export function getEnquiries() {
@@ -112,7 +127,7 @@ export async function updateEnquiryStatus(id, newStatus, notes) {
   }
 
   cachedEnquiries = cachedEnquiries.map((item) => {
-    if (item.id === id) {
+    if (String(item.id) === String(id)) {
       return {
         ...item,
         status: newStatus,
@@ -127,7 +142,41 @@ export async function updateEnquiryStatus(id, newStatus, notes) {
   return cachedEnquiries;
 }
 
+export async function updateBulkEnquiryStatus(ids, newStatus) {
+  try {
+    const res = await fetch('/api/enquiries/bulk-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids, status: newStatus }),
+    });
+    if (res.ok) {
+      const updatedList = await res.json();
+      cachedEnquiries = updatedList;
+      return updatedList;
+    }
+  } catch (err) {
+    console.error('Error bulk updating status on backend:', err);
+  }
+
+  const idSet = new Set(ids.map(String));
+  cachedEnquiries = cachedEnquiries.map((item) => {
+    if (idSet.has(String(item.id))) {
+      return {
+        ...item,
+        status: newStatus,
+      };
+    }
+    return item;
+  });
+  return cachedEnquiries;
+}
+
 export async function deleteEnquiry(id) {
+  const deletedItem = cachedEnquiries.find((item) => String(item.id) === String(id));
+  if (deletedItem) {
+    cachedPastEnquiries = [{ ...deletedItem, status: 'archived' }, ...cachedPastEnquiries];
+  }
+
   try {
     const res = await fetch(`/api/enquiries/${id}`, {
       method: 'DELETE',
@@ -141,7 +190,36 @@ export async function deleteEnquiry(id) {
     console.error('Error deleting enquiry from backend:', err);
   }
 
-  cachedEnquiries = cachedEnquiries.filter((item) => item.id !== id);
+  cachedEnquiries = cachedEnquiries.filter((item) => String(item.id) !== String(id));
+  return cachedEnquiries;
+}
+
+export async function deleteBulkEnquiries(ids) {
+  const idSet = new Set(ids.map(String));
+  const deletedItems = cachedEnquiries.filter((item) => idSet.has(String(item.id)));
+  if (deletedItems.length > 0) {
+    cachedPastEnquiries = [
+      ...deletedItems.map((item) => ({ ...item, status: 'archived' })),
+      ...cachedPastEnquiries,
+    ];
+  }
+
+  try {
+    const res = await fetch('/api/enquiries/bulk-delete', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    if (res.ok) {
+      const updatedList = await res.json();
+      cachedEnquiries = updatedList;
+      return updatedList;
+    }
+  } catch (err) {
+    console.error('Error bulk deleting enquiries from backend:', err);
+  }
+
+  cachedEnquiries = cachedEnquiries.filter((item) => !idSet.has(String(item.id)));
   return cachedEnquiries;
 }
 

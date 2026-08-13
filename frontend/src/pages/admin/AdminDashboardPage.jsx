@@ -5,9 +5,12 @@ import EnquiriesTable from '../../components/admin/EnquiriesTable';
 import PricingConfigurator from '../../components/admin/PricingConfigurator';
 import {
   fetchEnquiries,
+  fetchPastEnquiries,
   fetchPricingConfig,
   updateEnquiryStatus,
+  updateBulkEnquiryStatus,
   deleteEnquiry,
+  deleteBulkEnquiries,
   savePricingConfig,
   resetPricingConfig,
 } from '../../services/adminStore';
@@ -15,6 +18,7 @@ import {
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [enquiries, setEnquiries] = useState([]);
+  const [pastEnquiries, setPastEnquiries] = useState([]);
   const [pricing, setPricing] = useState({
     defaultPricePerTonne: 235,
     cityRates: {},
@@ -24,11 +28,13 @@ export default function AdminDashboardPage() {
   const reloadData = async () => {
     setLoading(true);
     try {
-      const [fetchedEnquiries, fetchedPricing] = await Promise.all([
+      const [fetchedEnquiries, fetchedPast, fetchedPricing] = await Promise.all([
         fetchEnquiries(),
+        fetchPastEnquiries(),
         fetchPricingConfig(),
       ]);
       setEnquiries(fetchedEnquiries || []);
+      setPastEnquiries(fetchedPast || []);
       if (fetchedPricing) setPricing(fetchedPricing);
     } catch (err) {
       console.error('Error reloading admin dashboard data:', err);
@@ -44,11 +50,29 @@ export default function AdminDashboardPage() {
   const handleUpdateStatus = async (id, newStatus, notes) => {
     const updated = await updateEnquiryStatus(id, newStatus, notes);
     setEnquiries(updated);
+    const updatedPast = await fetchPastEnquiries();
+    setPastEnquiries(updatedPast || []);
+  };
+
+  const handleUpdateBulkStatus = async (ids, newStatus) => {
+    const updated = await updateBulkEnquiryStatus(ids, newStatus);
+    setEnquiries(updated);
+    const updatedPast = await fetchPastEnquiries();
+    setPastEnquiries(updatedPast || []);
   };
 
   const handleDeleteEnquiry = async (id) => {
     const updated = await deleteEnquiry(id);
     setEnquiries(updated);
+    const updatedPast = await fetchPastEnquiries();
+    setPastEnquiries(updatedPast || []);
+  };
+
+  const handleDeleteBulkEnquiries = async (ids) => {
+    const updated = await deleteBulkEnquiries(ids);
+    setEnquiries(updated);
+    const updatedPast = await fetchPastEnquiries();
+    setPastEnquiries(updatedPast || []);
   };
 
   const handleSavePricing = async (newConfig) => {
@@ -71,10 +95,13 @@ export default function AdminDashboardPage() {
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-['Manrope'] tracking-tight">
               {activeTab === 'overview' && 'Dashboard Overview'}
               {activeTab === 'enquiries' && 'Scrap Car Enquiries'}
+              {activeTab === 'past' && 'Past Enquiries (Archived / Deleted)'}
               {activeTab === 'pricing' && 'Scrap Valuation Rules'}
             </h1>
             <p className="text-[11px] sm:text-xs text-gray-500 font-medium">
-              Live management portal for MyAutoScrap UK collections & pricing.
+              {activeTab === 'past'
+                ? 'Read-only record repository of soft-deleted and historical scrap car enquiries.'
+                : 'Live management portal for MyAutoScrap UK collections & pricing.'}
             </p>
           </div>
 
@@ -98,7 +125,9 @@ export default function AdminDashboardPage() {
             <EnquiriesTable
               enquiries={enquiries}
               onUpdateStatus={handleUpdateStatus}
+              onUpdateBulkStatus={handleUpdateBulkStatus}
               onDelete={handleDeleteEnquiry}
+              onDeleteBulk={handleDeleteBulkEnquiries}
             />
           </div>
         )}
@@ -107,8 +136,29 @@ export default function AdminDashboardPage() {
           <EnquiriesTable
             enquiries={enquiries}
             onUpdateStatus={handleUpdateStatus}
+            onUpdateBulkStatus={handleUpdateBulkStatus}
             onDelete={handleDeleteEnquiry}
+            onDeleteBulk={handleDeleteBulkEnquiries}
           />
+        )}
+
+        {activeTab === 'past' && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-amber-300/80 bg-amber-50/80 p-4 text-amber-900 flex items-center gap-3">
+              <span className="text-xl">📁</span>
+              <div className="text-xs">
+                <span className="font-extrabold uppercase tracking-wide">Read-Only Past Enquiries View</span>
+                <p className="font-medium text-amber-800">
+                  These records have been deleted from active operations. All enquiry data is permanently stored for audit & history. No actions can be taken.
+                </p>
+              </div>
+            </div>
+
+            <EnquiriesTable
+              enquiries={pastEnquiries}
+              readOnly={true}
+            />
+          </div>
         )}
 
         {activeTab === 'pricing' && (

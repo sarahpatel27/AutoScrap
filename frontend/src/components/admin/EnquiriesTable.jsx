@@ -3,7 +3,7 @@ import EnquiryDetailModal from './EnquiryDetailModal';
 import { TARGET_CITIES, getCityFromPostcode } from '../../utils/cityHelper';
 import { useAuth } from '../../context/AuthContext';
 
-export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) {
+export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
   const isDealer = !!user?.assignedCity;
 
@@ -11,6 +11,10 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
   const [statusFilter, setStatusFilter] = useState('All');
   const [cityFilter, setCityFilter] = useState(user?.assignedCity || 'All');
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState('Contacted');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   useEffect(() => {
     if (user?.assignedCity) {
@@ -21,7 +25,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
   const statuses = ['All', 'Pending', 'Contacted', 'Accepted', 'Collected', 'Cancelled'];
   const cities = ['All', ...TARGET_CITIES];
 
-  const filteredEnquiries = enquiries.filter((e) => {
+  const baseEnquiries = enquiries.filter((e) => {
     const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
 
     // Dealer scope constraint
@@ -29,11 +33,10 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
       return false;
     }
 
-    const matchesStatus = statusFilter === 'All' || e.status === statusFilter;
     const matchesCity = cityFilter === 'All' || itemCity === cityFilter;
 
     const term = searchTerm.toLowerCase().trim();
-    if (!term) return matchesStatus && matchesCity;
+    if (!term) return matchesCity;
 
     const matchesSearch =
       (e.reference && e.reference.toLowerCase().includes(term)) ||
@@ -44,8 +47,58 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
       (e.postcode && e.postcode.toLowerCase().includes(term)) ||
       itemCity.toLowerCase().includes(term);
 
-    return matchesStatus && matchesCity && matchesSearch;
+    return matchesCity && matchesSearch;
   });
+
+  const filteredEnquiries = baseEnquiries.filter((e) => {
+    return statusFilter === 'All' || e.status === statusFilter;
+  });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredEnquiries.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredEnquiries.map((item) => String(item.id)));
+    }
+  };
+
+  const toggleSelectId = (id) => {
+    const stringId = String(id);
+    setSelectedIds((prev) =>
+      prev.includes(stringId) ? prev.filter((i) => i !== stringId) : [...prev, stringId],
+    );
+  };
+
+  const handleApplyBulkStatus = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkUpdating(true);
+    if (onUpdateBulkStatus) {
+      await onUpdateBulkStatus(selectedIds, bulkStatus);
+    } else {
+      for (const id of selectedIds) {
+        await onUpdateStatus(id, bulkStatus);
+      }
+    }
+    setSelectedIds([]);
+    setBulkUpdating(false);
+  };
+
+  const handleApplyBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} selected enquiries permanently?`)) {
+      return;
+    }
+    setBulkDeleting(true);
+    if (onDeleteBulk) {
+      await onDeleteBulk(selectedIds);
+    } else {
+      for (const id of selectedIds) {
+        await onDelete(id);
+      }
+    }
+    setSelectedIds([]);
+    setBulkDeleting(false);
+  };
 
   const getBadgeClass = (status) => {
     switch (status) {
@@ -86,7 +139,61 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
   };
 
   return (
-    <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white shadow-xs overflow-hidden">
+    <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white shadow-xs overflow-hidden relative">
+      {/* Bulk Action Sticky Floating Toolbar */}
+      {!readOnly && selectedIds.length > 0 && (
+        <div className="bg-[#0b2e21] text-white px-4 py-3 flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-top duration-200 border-b border-emerald-800">
+          <div className="flex items-center gap-2">
+            <span className="rounded-xl bg-[#0f7b4f] px-2.5 py-1 text-xs font-black text-white">
+              {selectedIds.length} Selected
+            </span>
+            <span className="text-xs font-medium text-[#c8ded4]">
+              Simultaneous Batch Actions
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value)}
+              className="rounded-xl border border-emerald-600 bg-[#082218] px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[#dff46b]"
+            >
+              <option value="Pending">⏳ Set to Pending</option>
+              <option value="Contacted">📞 Set to Contacted</option>
+              <option value="Accepted">🤝 Set to Accepted</option>
+              <option value="Collected">🚚 Set to Collected</option>
+              <option value="Cancelled">❌ Set to Cancelled</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={handleApplyBulkStatus}
+              disabled={bulkUpdating || bulkDeleting}
+              className="rounded-xl bg-[#0f7b4f] px-3.5 py-1.5 text-xs font-black text-white hover:bg-emerald-600 transition cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              {bulkUpdating ? 'Updating...' : `Update Status (${selectedIds.length})`}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleApplyBulkDelete}
+              disabled={bulkUpdating || bulkDeleting}
+              className="rounded-xl bg-red-600/90 border border-red-500/30 px-3.5 py-1.5 text-xs font-black text-white hover:bg-red-700 transition cursor-pointer active:scale-95 disabled:opacity-50"
+            >
+              {bulkDeleting ? 'Deleting...' : `🗑️ Delete (${selectedIds.length})`}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-[#c8ded4] hover:text-white px-2 py-1 cursor-pointer font-bold"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header controls */}
       <div className="flex flex-col gap-3 sm:gap-4 border-b border-gray-200 p-3.5 sm:p-5">
         {/* City Filter Bar / Dealer Notice */}
@@ -149,37 +256,39 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
         )}
 
         {/* Status Tabs & Search */}
-        <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 lg:flex-row lg:items-center lg:justify-between">
-          {/* Status Filter Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            {statuses.map((s) => {
-              const count =
-                s === 'All'
-                  ? filteredEnquiries.length
-                  : filteredEnquiries.filter((item) => item.status === s).length;
-              return (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setStatusFilter(s)}
-                  className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-3 py-1.5 text-xs font-extrabold transition cursor-pointer whitespace-nowrap shrink-0 ${
-                    statusFilter === s
-                      ? 'bg-[#0f7b4f] text-white shadow-xs'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  <span>{s}</span>
-                  <span
-                    className={`rounded-full px-1.5 py-0.2 text-[10px] ${
-                      statusFilter === s ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
+        <div className={`flex flex-col gap-3 pt-2 border-t border-gray-100 lg:flex-row lg:items-center ${readOnly ? 'lg:justify-end' : 'lg:justify-between'}`}>
+          {/* Status Filter Tabs (Only shown when readOnly is false) */}
+          {!readOnly && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              {statuses.map((s) => {
+                const count =
+                  s === 'All'
+                    ? baseEnquiries.length
+                    : baseEnquiries.filter((item) => item.status === s).length;
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setStatusFilter(s)}
+                    className={`flex items-center gap-1.5 sm:gap-2 rounded-xl px-3 py-1.5 text-xs font-extrabold transition cursor-pointer whitespace-nowrap shrink-0 ${
+                      statusFilter === s
+                        ? 'bg-[#0f7b4f] text-white shadow-xs'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+                    <span>{s}</span>
+                    <span
+                      className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                        statusFilter === s ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
+                      }`}
+                    >
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           {/* Search Input */}
           <div className="relative w-full lg:w-72">
@@ -203,8 +312,25 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
         </div>
       </div>
 
-      {/* MOBILE CARD VIEW (Distinct Standalone Individual Card Widgets) */}
+      {/* MOBILE CARD VIEW (Distinct Standalone Individual Card Widgets with Selection) */}
       <div className="block md:hidden p-3 space-y-3.5 bg-slate-100/70">
+        {!readOnly && filteredEnquiries.length > 0 && (
+          <div className="flex items-center justify-between px-1 text-xs text-slate-600 font-bold">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === filteredEnquiries.length && filteredEnquiries.length > 0}
+                onChange={toggleSelectAll}
+                className="h-4 w-4 rounded border-gray-300 text-[#0f7b4f] focus:ring-[#0f7b4f] cursor-pointer"
+              />
+              <span>Select All ({filteredEnquiries.length})</span>
+            </label>
+            {selectedIds.length > 0 && (
+              <span className="text-[#0f7b4f] font-black">{selectedIds.length} Selected</span>
+            )}
+          </div>
+        )}
+
         {filteredEnquiries.length === 0 ? (
           <div className="p-8 text-center text-gray-500 bg-white rounded-2xl border border-gray-200 shadow-xs">
             <span className="text-3xl block mb-2">🔍</span>
@@ -218,23 +344,37 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
         ) : (
           filteredEnquiries.map((e) => {
             const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+            const isSelected = selectedIds.includes(String(e.id));
+
             return (
               <div
                 key={e.id}
                 onClick={() => setSelectedEnquiry(e)}
-                className="rounded-2xl border border-gray-200/90 bg-white p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.99] cursor-pointer space-y-3 relative overflow-hidden"
+                className={`rounded-2xl border bg-white p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.99] cursor-pointer space-y-3 relative overflow-hidden ${
+                  !readOnly && isSelected ? 'border-[#0f7b4f] ring-2 ring-[#0f7b4f]/15' : 'border-gray-200/90'
+                }`}
               >
                 {/* Accent top stripe per status */}
                 <div className={`absolute top-0 left-0 right-0 h-1 ${
                   e.status === 'Pending' ? 'bg-amber-400' :
                   e.status === 'Contacted' ? 'bg-blue-400' :
                   e.status === 'Accepted' ? 'bg-emerald-500' :
-                  e.status === 'Collected' ? 'bg-purple-500' : 'bg-red-400'
+                  e.status === 'Collected' ? 'bg-purple-500' :
+                  ['archived', 'deleted'].includes(e.status) ? 'bg-slate-400' : 'bg-red-400'
                 }`} />
 
-                {/* Card Header: Reg Plate, Ref, & Status Badge */}
+                {/* Card Header: Checkbox, Reg Plate, Ref, & Status Badge */}
                 <div className="flex items-center justify-between pt-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
+                    {!readOnly && (
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onClick={(ev) => ev.stopPropagation()}
+                        onChange={() => toggleSelectId(e.id)}
+                        className="h-4 w-4 rounded border-gray-300 text-[#0f7b4f] focus:ring-[#0f7b4f] cursor-pointer shrink-0"
+                      />
+                    )}
                     <span className="inline-flex items-center rounded-lg border border-amber-400/90 bg-[#f8ce3d] px-2.5 py-0.5 font-mono font-black text-xs text-slate-950 uppercase shadow-xs">
                       {e.vehicle?.registration}
                     </span>
@@ -301,6 +441,16 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
         <table className="w-full text-left text-xs">
           <thead className="border-b border-gray-200 bg-gray-50/80 font-extrabold uppercase tracking-wider text-gray-500">
             <tr>
+              {!readOnly && (
+                <th className="px-4 py-3.5 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.length === filteredEnquiries.length && filteredEnquiries.length > 0}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 rounded border-gray-300 text-[#0f7b4f] focus:ring-[#0f7b4f] cursor-pointer"
+                  />
+                </th>
+              )}
               <th className="px-5 py-3.5">Reference</th>
               <th className="px-5 py-3.5">Date</th>
               <th className="px-5 py-3.5">Customer</th>
@@ -315,7 +465,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
           <tbody className="divide-y divide-gray-100 font-medium">
             {filteredEnquiries.length === 0 ? (
               <tr>
-                <td colSpan="8" className="px-5 py-12 text-center text-gray-500">
+                <td colSpan={readOnly ? 8 : 9} className="px-5 py-12 text-center text-gray-500">
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-3xl">🔍</span>
                     <p className="font-extrabold text-gray-700">No enquiries found</p>
@@ -330,13 +480,25 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
             ) : (
               filteredEnquiries.map((e) => {
                 const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+                const isSelected = selectedIds.includes(String(e.id));
 
                 return (
                   <tr
                     key={e.id}
-                    className="transition hover:bg-emerald-50/40 cursor-pointer"
+                    className={`transition hover:bg-emerald-50/40 cursor-pointer ${!readOnly && isSelected ? 'bg-emerald-50/60' : ''}`}
                     onClick={() => setSelectedEnquiry(e)}
                   >
+                    {!readOnly && (
+                      <td className="px-4 py-4 text-center" onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectId(e.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-[#0f7b4f] focus:ring-[#0f7b4f] cursor-pointer"
+                        />
+                      </td>
+                    )}
+
                     <td className="px-5 py-4">
                       <span className="font-mono font-black text-slate-900">{e.reference}</span>
                     </td>
@@ -414,6 +576,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onDelete }) 
           onClose={() => setSelectedEnquiry(null)}
           onUpdateStatus={onUpdateStatus}
           onDelete={onDelete}
+          readOnly={readOnly}
         />
       )}
     </div>

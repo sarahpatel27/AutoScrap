@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model CityPricing {
+  city           String @id @db.VarChar(50)
+  pricePerTonne  Int    @default(235) @map("price_per_tonne")
+
+  @@map("city_pricing")
+}
+
+model Enquiry {
+  id        Int      @id @default(autoincrement())
+  reference String   @unique @db.VarChar(50)
+  date      DateTime @default(now()) @db.Timestamptz
+  status    String   @default("Pending") @db.VarChar(30)
+  postcode  String?  @db.VarChar(20)
+  city      String?  @db.VarChar(50)
+  vehicle   Json?
+  condition Json?
+  customer  Json?
+  bank      Json?
+  quote     Json?
+
+  @@map("enquiries")
+}
