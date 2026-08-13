@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { TARGET_CITIES } from '../../utils/cityHelper';
+import { showToast } from './ToastContainer';
 
 export default function PricingConfigurator({ pricing, onSavePricing, onResetPricing }) {
   const { user } = useAuth();
@@ -55,6 +56,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
       cityRates: updatedRates,
     });
 
+    showToast(`Scrap rate for ${activeCity} updated to £${numericRate}/tonne!`, 'success');
     setSavedMessage(true);
     setTimeout(() => setSavedMessage(false), 3000);
   };
@@ -126,12 +128,6 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
                 📍 {city} (£{cityRates[city] ?? 235}/t)
               </button>
             ))}
-          </div>
-        )}
-
-        {savedMessage && (
-          <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-xs font-bold text-emerald-800">
-            ✅ Scrap rate for <strong>{activeCityName}</strong> updated to £{currentNumericRate}/tonne!
           </div>
         )}
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { TARGET_CITIES } from '../../utils/cityHelper';
 import { fetchUsers, createDealerUser, deleteDealerUser } from '../../services/adminStore';
+import { showToast } from './ToastContainer';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 export default function UserManagementSection() {
   const [users, setUsers] = useState([]);
@@ -8,6 +10,10 @@ export default function UserManagementSection() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Delete modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
 
   // Form states
   const [email, setEmail] = useState('');
@@ -46,7 +52,9 @@ export default function UserManagementSection() {
       });
 
       setUsers(updatedList);
-      setSuccess(`Account successfully created for ${assignedCity ? `${assignedCity} Dealer` : email}!`);
+      const msg = `Dealer account successfully created for ${assignedCity ? `${assignedCity} Dealer` : email}!`;
+      setSuccess(msg);
+      showToast(msg, 'success');
 
       // Reset form
       setEmail('');
@@ -55,24 +63,33 @@ export default function UserManagementSection() {
       setAssignedCity('');
     } catch (err) {
       setError(err.message || 'Failed to create user account.');
+      showToast(err.message || 'Failed to create account.', 'error');
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteAccount = async (userId, userEmail) => {
-    if (!window.confirm(`Are you sure you want to delete the account for ${userEmail}?`)) {
-      return;
-    }
+  const openDeleteModal = (user) => {
+    setUserToDelete(user);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteUser = async () => {
+    if (!userToDelete) return;
 
     setError('');
     setSuccess('');
     try {
-      const updatedList = await deleteDealerUser(userId);
+      const updatedList = await deleteDealerUser(userToDelete.id);
       setUsers(updatedList);
-      setSuccess(`Account ${userEmail} deleted successfully.`);
+      const msg = `Account for ${userToDelete.email} has been permanently deleted.`;
+      setSuccess(msg);
+      showToast(msg, 'success');
     } catch (err) {
       setError(err.message || 'Failed to delete account.');
+      showToast(err.message || 'Failed to delete account.', 'error');
+    } finally {
+      setUserToDelete(null);
     }
   };
 
@@ -101,12 +118,6 @@ export default function UserManagementSection() {
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-800">
           ⚠️ {error}
-        </div>
-      )}
-
-      {success && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800">
-          ✅ {success}
         </div>
       )}
 
@@ -257,7 +268,7 @@ export default function UserManagementSection() {
                         {u.role !== 'Super Admin' ? (
                           <button
                             type="button"
-                            onClick={() => handleDeleteAccount(u.id, u.email)}
+                            onClick={() => openDeleteModal(u)}
                             className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-extrabold text-red-700 hover:bg-red-100 transition cursor-pointer"
                           >
                             🗑️ Delete
@@ -274,6 +285,20 @@ export default function UserManagementSection() {
           </div>
         </div>
       </div>
+
+      {/* Account Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        title={`Delete Dealer Account?`}
+        subtitle="Account Revocation Confirmation"
+        warningText={
+          userToDelete
+            ? `The dealer login account for ${userToDelete.name} (${userToDelete.email}) will be permanently revoked from the database.`
+            : 'This dealer account will be permanently revoked.'
+        }
+        onConfirm={handleConfirmDeleteUser}
+      />
     </div>
   );
 }

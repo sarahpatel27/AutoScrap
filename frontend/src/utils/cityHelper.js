@@ -8,6 +8,14 @@ export const TARGET_CITIES = [
   'Manchester',
 ];
 
+export const STATUS_OPTIONS = [
+  { value: 'Pending', label: 'Pending', icon: '⏳' },
+  { value: 'Contacted', label: 'Contacted', icon: '📞' },
+  { value: 'Accepted', label: 'Accepted', icon: '🤝' },
+  { value: 'Collected', label: 'Collected', icon: '🚚' },
+  { value: 'Cancelled', label: 'Cancelled', icon: '❌' },
+];
+
 export function getCityFromPostcode(postcode = '', address = '') {
   if (!postcode && !address) return 'Unassigned';
 

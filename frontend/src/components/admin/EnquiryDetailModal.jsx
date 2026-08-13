@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getCityFromPostcode } from '../../utils/cityHelper';
+import { showToast } from './ToastContainer';
 
 const STATUS_OPTIONS = [
   { value: 'Pending', icon: '⏳' },
@@ -140,20 +141,15 @@ export default function EnquiryDetailModal({
     try {
       setSaving(true);
       await onUpdateStatus(enquiry.id, status, notes);
+      showToast(`Enquiry #${enquiry.reference} status updated to "${status}"!`, 'success');
       onClose();
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete enquiry ${enquiry.reference}?`
-    );
-
-    if (!confirmed) return;
-
-    await onDelete(enquiry.id);
+  const handleDelete = () => {
+    onDelete(enquiry.id);
     onClose();
   };
 

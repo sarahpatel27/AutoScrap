@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { changeUserPassword } from '../../services/adminStore';
+import { showToast } from './ToastContainer';
 
 export default function AccountSettingsSection() {
   const { user } = useAuth();
@@ -9,37 +10,40 @@ export default function AccountSettingsSection() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
 
     if (!currentPassword) {
       setError('Please enter your current password.');
+      showToast('Please enter your current password.', 'error');
       return;
     }
 
     if (!newPassword || newPassword.length < 4) {
       setError('New password must be at least 4 characters long.');
+      showToast('New password must be at least 4 characters long.', 'error');
       return;
     }
 
     if (newPassword !== confirmPassword) {
       setError('New password and confirm password do not match.');
+      showToast('New password and confirm password do not match.', 'error');
       return;
     }
 
     setSubmitting(true);
     try {
       await changeUserPassword(currentPassword, newPassword);
-      setSuccess('Your password has been successfully updated!');
+      showToast('Your password has been successfully updated!', 'success');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      setError(err.message || 'Failed to update password.');
+      const msg = err.message || 'Failed to update password.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -81,17 +85,6 @@ export default function AccountSettingsSection() {
           </p>
         </div>
 
-        {error && (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-800">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-bold text-emerald-800">
-            ✅ {success}
-          </div>
-        )}
 
         <form onSubmit={handlePasswordChange} className="space-y-4">
           <div>

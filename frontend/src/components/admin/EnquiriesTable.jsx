@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import EnquiryDetailModal from './EnquiryDetailModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
+import BulkStatusModal from './BulkStatusModal';
+import { showToast } from './ToastContainer';
 import { TARGET_CITIES, getCityFromPostcode } from '../../utils/cityHelper';
 import { useAuth } from '../../context/AuthContext';
 
@@ -15,6 +18,11 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   const [bulkStatus, setBulkStatus] = useState('Contacted');
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Modal controls
+  const [bulkStatusModalOpen, setBulkStatusModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [targetDeleteId, setTargetDeleteId] = useState(null); // single delete ID or null for bulk
 
   useEffect(() => {
     if (user?.assignedCity) {
@@ -69,34 +77,50 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
     );
   };
 
-  const handleApplyBulkStatus = async () => {
+  const handleConfirmBulkStatus = async (statusToApply) => {
     if (selectedIds.length === 0) return;
     setBulkUpdating(true);
     if (onUpdateBulkStatus) {
-      await onUpdateBulkStatus(selectedIds, bulkStatus);
+      await onUpdateBulkStatus(selectedIds, statusToApply);
     } else {
       for (const id of selectedIds) {
-        await onUpdateStatus(id, bulkStatus);
+        await onUpdateStatus(id, statusToApply);
       }
     }
+    showToast(`Updated status to "${statusToApply}" for ${selectedIds.length} records!`, 'success');
     setSelectedIds([]);
     setBulkUpdating(false);
   };
 
-  const handleApplyBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${selectedIds.length} selected enquiries permanently?`)) {
-      return;
-    }
+  const openSingleDeleteModal = (id) => {
+    setTargetDeleteId(id);
+    setDeleteModalOpen(true);
+  };
+
+  const openBulkDeleteModal = () => {
+    setTargetDeleteId(null);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
     setBulkDeleting(true);
-    if (onDeleteBulk) {
-      await onDeleteBulk(selectedIds);
+    if (targetDeleteId) {
+      // Single delete
+      await onDelete(targetDeleteId);
+      showToast(`Enquiry deleted & archived to Past Enquiries!`, 'success');
     } else {
-      for (const id of selectedIds) {
-        await onDelete(id);
+      // Bulk delete
+      const count = selectedIds.length;
+      if (onDeleteBulk) {
+        await onDeleteBulk(selectedIds);
+      } else {
+        for (const id of selectedIds) {
+          await onDelete(id);
+        }
       }
+      showToast(`${count} enquiries deleted & archived to Past Enquiries!`, 'success');
+      setSelectedIds([]);
     }
-    setSelectedIds([]);
     setBulkDeleting(false);
   };
 
@@ -153,34 +177,22 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={bulkStatus}
-              onChange={(e) => setBulkStatus(e.target.value)}
-              className="rounded-xl border border-emerald-600 bg-[#082218] px-3 py-1.5 text-xs font-bold text-white outline-none focus:border-[#dff46b]"
-            >
-              <option value="Pending">⏳ Set to Pending</option>
-              <option value="Contacted">📞 Set to Contacted</option>
-              <option value="Accepted">🤝 Set to Accepted</option>
-              <option value="Collected">🚚 Set to Collected</option>
-              <option value="Cancelled">❌ Set to Cancelled</option>
-            </select>
-
             <button
               type="button"
-              onClick={handleApplyBulkStatus}
+              onClick={() => setBulkStatusModalOpen(true)}
               disabled={bulkUpdating || bulkDeleting}
               className="rounded-xl bg-[#0f7b4f] px-3.5 py-1.5 text-xs font-black text-white hover:bg-emerald-600 transition cursor-pointer active:scale-95 disabled:opacity-50"
             >
-              {bulkUpdating ? 'Updating...' : `Update Status (${selectedIds.length})`}
+              🔄 Batch Update Status ({selectedIds.length})
             </button>
 
             <button
               type="button"
-              onClick={handleApplyBulkDelete}
+              onClick={openBulkDeleteModal}
               disabled={bulkUpdating || bulkDeleting}
               className="rounded-xl bg-red-600/90 border border-red-500/30 px-3.5 py-1.5 text-xs font-black text-white hover:bg-red-700 transition cursor-pointer active:scale-95 disabled:opacity-50"
             >
-              {bulkDeleting ? 'Deleting...' : `🗑️ Delete (${selectedIds.length})`}
+              🗑️ Delete Selected ({selectedIds.length})
             </button>
 
             <button
@@ -569,16 +581,32 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
         </table>
       </div>
 
-      {/* Modal View */}
+      {/* Detail Modal View */}
       {selectedEnquiry && (
         <EnquiryDetailModal
           enquiry={selectedEnquiry}
           onClose={() => setSelectedEnquiry(null)}
           onUpdateStatus={onUpdateStatus}
-          onDelete={onDelete}
+          onDelete={openSingleDeleteModal}
           readOnly={readOnly}
         />
       )}
+
+      {/* Bulk Status Update Modal */}
+      <BulkStatusModal
+        isOpen={bulkStatusModalOpen}
+        onClose={() => setBulkStatusModalOpen(false)}
+        selectedCount={selectedIds.length}
+        onConfirm={handleConfirmBulkStatus}
+      />
+
+      {/* Delete Confirmation Modal (Single or Bulk) */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        count={targetDeleteId ? 1 : selectedIds.length}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 }

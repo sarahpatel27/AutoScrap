@@ -17,10 +17,12 @@ import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import ToastContainer from './components/admin/ToastContainer';
 
 export default function App() {
     return (
         <AuthProvider>
+            <ToastContainer />
             <Routes>
                 {/* Admin Auth Route (Public to allow login) */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />
