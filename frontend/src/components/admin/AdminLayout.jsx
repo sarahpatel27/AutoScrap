@@ -26,26 +26,28 @@ export default function AdminLayout({ activeTab, setActiveTab, children }) {
             {/* Mobile Nav Toggle */}
             <button
               onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white lg:hidden cursor-pointer hover:bg-white/20 active:scale-95 transition"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white lg:hidden cursor-pointer hover:bg-white/20 active:scale-95 transition shrink-0"
               type="button"
               aria-label="Toggle navigation menu"
             >
               ☰
             </button>
 
-            {/* Brand & City Badge */}
-            <Link to="/admin/dashboard" className="flex items-center gap-2 font-['Manrope'] text-base sm:text-lg font-black text-white">
-              <span className="grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-lg bg-[#0f7b4f] font-black text-[#dff46b] text-xs sm:text-base shrink-0">
+            {/* Brand Logo & Role Badge */}
+            <Link to="/admin/dashboard" className="flex items-center gap-2 font-['Manrope'] text-base sm:text-lg font-black text-white shrink-0">
+              <span className="grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-xl bg-[#0f7b4f] font-black text-[#dff46b] text-base sm:text-lg shadow-sm shrink-0">
                 M
               </span>
-              <span className="flex items-center gap-1.5 sm:gap-2">
-                <span className="truncate max-w-[100px] xs:max-w-none">MyAuto<span className="text-[#0f7b4f]">Scrap</span></span>
+              <span className="flex items-center gap-2">
+                <span className="font-extrabold tracking-tight text-white whitespace-nowrap">
+                  MyAuto<span className="text-[#0f7b4f]">Scrap</span>
+                </span>
                 {user?.assignedCity ? (
-                  <span className="rounded-md bg-amber-400 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black text-slate-950 uppercase shadow-xs shrink-0">
+                  <span className="rounded-md bg-amber-400 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-slate-950 uppercase shadow-xs shrink-0 whitespace-nowrap">
                     📍 {user.assignedCity}
                   </span>
                 ) : (
-                  <span className="rounded-md bg-[#dff46b] px-1.5 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-[#082d1c] shrink-0">
+                  <span className="rounded-md bg-[#dff46b] px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-[#082d1c] shrink-0 whitespace-nowrap">
                     Super Admin
                   </span>
                 )}
@@ -58,25 +60,29 @@ export default function AdminLayout({ activeTab, setActiveTab, children }) {
             <Link
               to="/"
               target="_blank"
-              className="hidden items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#c8ded4] transition hover:bg-white/10 sm:flex"
+              className="hidden items-center gap-1.5 rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-[#c8ded4] transition hover:bg-white/10 md:flex shrink-0"
             >
               <span>🌐</span> Public Site
             </Link>
 
-            <div className="flex items-center gap-1.5 sm:gap-2.5 rounded-xl border border-white/10 bg-white/5 py-1 px-2 sm:px-3">
-              <span className="text-base sm:text-xl">{user?.avatar || '🛡️'}</span>
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 py-1 px-2 sm:px-3 shrink-0">
+              <span className="text-base sm:text-lg">{user?.avatar || '🛡️'}</span>
               <div className="hidden text-left sm:block">
-                <div className="text-xs font-extrabold text-white">{user?.name || 'Admin'}</div>
-                <div className="text-[10px] text-[#c8ded4]">{user?.email}</div>
+                <div className="text-xs font-extrabold text-white leading-tight">{user?.name || 'Admin'}</div>
+                <div className="text-[10px] text-[#c8ded4] leading-tight">{user?.email}</div>
               </div>
             </div>
 
             <button
               onClick={logout}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-red-500/30 bg-red-600/80 px-2.5 sm:px-3.5 py-1.5 text-xs font-extrabold text-white transition hover:bg-red-700 cursor-pointer active:scale-95"
+              title="Logout"
+              aria-label="Logout of Admin Panel"
+              className="grid h-9 w-9 place-items-center rounded-xl border border-red-500/20 bg-red-500/10 text-red-300 transition-all hover:border-red-500/40 hover:bg-red-600 hover:text-white shadow-xs cursor-pointer active:scale-95 shrink-0"
               type="button"
             >
-              <span>🚪</span> <span className="hidden sm:inline">Logout</span>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
           </div>
         </div>
