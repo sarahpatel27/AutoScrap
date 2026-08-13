@@ -66,14 +66,14 @@ export default function AdminDashboardPage() {
     <AdminLayout activeTab={activeTab} setActiveTab={setActiveTab}>
       <div className="space-y-6">
         {/* Page Title Header */}
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-row items-center justify-between gap-3 bg-white/80 backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-gray-200/80 shadow-xs">
           <div>
-            <h1 className="text-2xl font-black text-slate-900 font-['Manrope']">
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-['Manrope'] tracking-tight">
               {activeTab === 'overview' && 'Dashboard Overview'}
               {activeTab === 'enquiries' && 'Scrap Car Enquiries'}
               {activeTab === 'pricing' && 'Scrap Valuation Rules'}
             </h1>
-            <p className="text-xs text-gray-500">
+            <p className="text-[11px] sm:text-xs text-gray-500 font-medium">
               Live management portal for MyAutoScrap UK collections & pricing.
             </p>
           </div>
@@ -82,9 +82,12 @@ export default function AdminDashboardPage() {
             type="button"
             onClick={reloadData}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 self-start rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-xs font-extrabold text-gray-700 shadow-xs transition hover:bg-gray-50 cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-xl sm:rounded-2xl border border-emerald-200/80 bg-emerald-50/90 px-3 py-2 sm:px-4 sm:py-2.5 text-xs font-black text-[#0f7b4f] shadow-xs transition-all hover:bg-emerald-100 hover:scale-102 active:scale-95 cursor-pointer shrink-0 disabled:opacity-50"
           >
-            🔄 {loading ? 'Loading...' : 'Refresh Data'}
+            <span className={`text-sm transition-transform duration-700 ${loading ? 'animate-spin' : ''}`}>
+              🔄
+            </span>
+            <span className="hidden xs:inline">{loading ? 'Updating...' : 'Refresh'}</span>
           </button>
         </div>
 

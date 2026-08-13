@@ -65,22 +65,24 @@ export default function DashboardStats({ enquiries, pricing }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-      {stats.map((stat) => (
+    <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-5">
+      {stats.map((stat, idx) => (
         <div
           key={stat.title}
-          className={`flex flex-col justify-between rounded-2xl border p-5 shadow-xs transition hover:-translate-y-0.5 ${stat.color}`}
+          className={`flex flex-col justify-between rounded-xl sm:rounded-2xl border p-3.5 sm:p-5 shadow-xs transition hover:-translate-y-0.5 ${stat.color} ${
+            idx === stats.length - 1 ? 'col-span-2 sm:col-span-1 lg:col-span-1' : ''
+          }`}
         >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold uppercase tracking-wider opacity-75">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-wider opacity-75 truncate">
               {stat.title}
             </span>
-            <span className="text-2xl">{stat.icon}</span>
+            <span className="text-xl sm:text-2xl shrink-0">{stat.icon}</span>
           </div>
 
-          <div className="mt-3">
-            <span className="text-3xl font-black">{stat.value}</span>
-            <p className="mt-1 text-xs font-medium opacity-80">{stat.subtext}</p>
+          <div className="mt-2 sm:mt-3">
+            <span className="text-xl sm:text-3xl font-black tracking-tight">{stat.value}</span>
+            <p className="mt-0.5 sm:mt-1 text-[11px] sm:text-xs font-medium opacity-80 leading-tight">{stat.subtext}</p>
           </div>
         </div>
       ))}
