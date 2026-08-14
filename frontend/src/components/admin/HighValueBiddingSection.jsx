@@ -1,0 +1,256 @@
+import { useState } from 'react';
+import HighValueEnquiryDetailModal from './HighValueEnquiryDetailModal';
+
+export default function HighValueBiddingSection({ enquiries = [], onWinnerSelected }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+
+  const filteredEnquiries = enquiries.filter((item) => {
+    const matchesSearch =
+      !searchTerm ||
+      item.registration?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.make?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'PENDING':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">⏳ Pending</span>;
+      case 'BIDDING':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800"><span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" /> Bidding Active</span>;
+      case 'BIDDING_ENDED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800">🏁 Bidding Ended</span>;
+      case 'DEALER_SELECTED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800">🤝 Dealer Selected</span>;
+      case 'PURCHASED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-800">✅ Purchased</span>;
+      case 'CANCELLED':
+        return <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800">❌ Cancelled</span>;
+      default:
+        return <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">{status}</span>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header Banner */}
+      <div className="rounded-2xl border border-amber-200/90 bg-gradient-to-r from-amber-500/10 via-amber-50 to-emerald-50 p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500 text-white font-black text-xl shadow-sm">
+              ⭐
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-slate-900 font-['Manrope']">
+                High Value Vehicle Bidding Portal
+              </h2>
+              <p className="text-xs text-slate-600 font-medium">
+                Vehicles newer than 2015 routed into dealer bidding valuation flow.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-xl bg-white/80 px-3.5 py-2 text-xs font-bold text-slate-700 border border-slate-200/80 shadow-2xs">
+            <span>Total Enquiries:</span>
+            <span className="rounded-md bg-amber-500 px-2 py-0.5 text-white font-black">{enquiries.length}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs">
+        <div className="relative w-full sm:w-80">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search reg, make, model, customer..."
+            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/20 font-medium"
+          />
+          <span className="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+        </div>
+
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Filter Status:</span>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full sm:w-auto rounded-xl border border-gray-300 bg-white py-2 px-3 text-xs font-bold text-slate-800 outline-none focus:border-[#0f7b4f]"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING">Pending Review</option>
+            <option value="BIDDING">Bidding Active</option>
+            <option value="BIDDING_ENDED">Bidding Ended</option>
+            <option value="DEALER_SELECTED">Dealer Selected</option>
+            <option value="PURCHASED">Purchased / Collected</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Enquiries Table */}
+      <div className="overflow-hidden rounded-2xl border border-gray-200/80 bg-white shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs text-slate-700">
+            <thead className="bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500 border-b border-gray-200">
+              <tr>
+                <th className="py-3.5 px-4">Vehicle</th>
+                <th className="py-3.5 px-4">Year & Mileage</th>
+                <th className="py-3.5 px-4">Condition</th>
+                <th className="py-3.5 px-4">Location</th>
+                <th className="py-3.5 px-4 bg-amber-50/50">Valuation Comparison</th>
+                <th className="py-3.5 px-4">Bids & Timer</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredEnquiries.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
+                    No high-value vehicle enquiries found.
+                  </td>
+                </tr>
+              ) : (
+                filteredEnquiries.map((item) => {
+                  const acceptedEstimate = item.valuePreference === 'ESTIMATED_VALUE';
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                      {/* Vehicle & Reg */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="font-extrabold text-slate-900 text-sm">
+                            {item.make} {item.model}
+                          </span>
+                          <div className="inline-flex items-center gap-1.5">
+                            <span className="rounded-md border border-amber-300 bg-[#f6cf3c] px-2 py-0.5 font-mono text-[11px] font-black text-black">
+                              {item.registration}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-mono">
+                              #{item.reference}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Year & Mileage */}
+                      <td className="py-3.5 px-4 font-medium">
+                        <div>📅 <strong className="text-slate-900">{item.year}</strong></div>
+                        <div className="text-slate-500 text-[11px]">
+                          {item.mileage ? `${Number(item.mileage).toLocaleString('en-GB')} mi` : 'N/A'}
+                        </div>
+                      </td>
+
+                      {/* Condition */}
+                      <td className="py-3.5 px-4">
+                        <span className="rounded-md bg-slate-100 px-2 py-1 font-bold text-slate-800 text-[11px]">
+                          {item.condition || 'Good'}
+                        </span>
+                      </td>
+
+                      {/* Location */}
+                      <td className="py-3.5 px-4 font-medium">
+                        <div className="font-bold text-slate-900">{item.city || item.area || 'UK'}</div>
+                        <div className="text-gray-400 text-[11px] font-mono">{item.postcode}</div>
+                      </td>
+
+                      {/* Three Distinct Values Clearly Visualized */}
+                      <td className="py-3.5 px-4 bg-amber-50/30">
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="text-slate-500 font-medium">System estimate:</span>
+                            <strong className="text-[#0f7b4f] font-black">
+                              £{Number(item.estimatedValue || 0).toLocaleString('en-GB')}
+                            </strong>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 text-[11px]">
+                            <span className="text-slate-600 font-bold">Customer expectation:</span>
+                            <strong className="text-amber-950 font-black">
+                              £{Number(item.customerExpectedValue || 0).toLocaleString('en-GB')}
+                            </strong>
+                          </div>
+
+                          <div className="flex items-center justify-between gap-2 text-[11px] pt-0.5 border-t border-amber-200/80">
+                            <span className="text-slate-700 font-extrabold">
+                              {['DEALER_SELECTED', 'PURCHASED'].includes(item.status) ? 'Winning offer:' : 'Highest dealer bid:'}
+                            </span>
+                            <strong className="text-emerald-700 font-black">
+                              £{Number(item.highestBid || 0).toLocaleString('en-GB')}
+                            </strong>
+                          </div>
+
+                          <div className="pt-0.5">
+                            {acceptedEstimate ? (
+                              <span className="inline-block rounded-md bg-emerald-100/80 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                                ✓ Accepted estimate
+                              </span>
+                            ) : (
+                              <span className="inline-block rounded-md bg-amber-100/80 px-2 py-0.5 text-[10px] font-bold text-amber-900">
+                                ✍️ Customer entered own value
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Bids & Timer */}
+                      <td className="py-3.5 px-4">
+                        <div className="space-y-1">
+                          <div className="font-bold text-slate-900">
+                            Bids: <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{item.bidCount || 0}</span>
+                          </div>
+                          <div className="text-[11px] text-emerald-700 font-bold">
+                            High: £{Number(item.highestBid || 0).toLocaleString('en-GB')}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-medium">
+                            ⏱️ {item.timeRemaining || 'N/A'}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4">
+                        {getStatusBadge(item.status)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEnquiry(item)}
+                          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-extrabold text-slate-900 hover:border-[#0f7b4f] hover:bg-emerald-50 hover:text-[#0f7b4f] transition shadow-2xs cursor-pointer"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Detail Modal Component */}
+      {selectedEnquiry && (
+        <HighValueEnquiryDetailModal
+          enquiry={selectedEnquiry}
+          onClose={() => setSelectedEnquiry(null)}
+          onWinnerSelected={() => {
+            setSelectedEnquiry(null);
+            if (onWinnerSelected) onWinnerSelected();
+          }}
+        />
+      )}
+    </div>
+  );
+}

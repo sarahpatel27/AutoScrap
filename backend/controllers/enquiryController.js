@@ -1,5 +1,7 @@
 const { prisma } = require('../config/db');
 const { getCityFromPostcode } = require('../utils/postcodeHelper');
+const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
+const { anonymizeEnquiryForDealer } = require('../utils/dealerAnonymizer');
 
 async function getEnquiries(req, res) {
   try {
@@ -31,6 +33,43 @@ async function getEnquiries(req, res) {
     res.json(enquiries);
   } catch (err) {
     console.error('Get Enquiries Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function getHighValueEnquiries(req, res) {
+  try {
+    const user = req.user;
+    const rows = await prisma.highValueEnquiry.findMany({
+      include: {
+        bids: {
+          include: {
+            dealer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                assignedCity: true,
+              },
+            },
+          },
+          orderBy: { amount: 'desc' },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    // Backend territory filtering: Super Admin gets all, City Dealers only see eligible territory enquiries
+    const eligibleRows = rows.filter((row) => isDealerEligibleForEnquiry(user, row));
+
+    // Server-side Anonymization: Strips customer name/email/phone and competing dealer identities for non-winning dealers
+    const items = eligibleRows.map((row) => anonymizeEnquiryForDealer(row, user));
+
+    res.json(items);
+  } catch (err) {
+    console.error('Get High Value Enquiries Error:', err);
     res.status(500).json({ error: err.message });
   }
 }
@@ -78,40 +117,133 @@ async function createEnquiry(req, res) {
     const address = enquiryData.customer?.collectionAddress || '';
     const city = getCityFromPostcode(postcode, address);
 
-    // If existing enquiry ID provided, perform UPDATE using prisma.enquiry.update
+    const isHighValueReq = enquiryData.isHighValue || (enquiryData.vehicle?.year && Number(enquiryData.vehicle.year) > 2015);
+
+    // If existing enquiry ID provided, try updating HighValueEnquiry or Enquiry accordingly
     if (existingId) {
       const numericId = parseInt(existingId, 10);
       if (!isNaN(numericId)) {
-        const updatedRow = await prisma.enquiry.update({
-          where: { id: numericId },
-          data: {
-            bank: enquiryData.bank || {},
-            customer: enquiryData.customer || {},
-            condition: enquiryData.condition || {},
-            vehicle: enquiryData.vehicle || {},
-            quote: enquiryData.quote || {},
-            postcode,
-            city,
-          },
-        });
+        // First check if this ID exists in HighValueEnquiry table
+        const existingHV = await prisma.highValueEnquiry.findUnique({ where: { id: numericId } });
+        if (existingHV) {
+          const updatedHV = await prisma.highValueEnquiry.update({
+            where: { id: numericId },
+            data: {
+              customerName: enquiryData.customer?.fullName || existingHV.customerName,
+              customerEmail: enquiryData.customer?.email || existingHV.customerEmail,
+              customerPhone: enquiryData.customer?.phone || existingHV.customerPhone,
+              bank: enquiryData.bank || existingHV.bank || {},
+              postcode: postcode || existingHV.postcode,
+              city: city || existingHV.city,
+            },
+          });
+          return res.json({
+            id: String(updatedHV.id),
+            reference: updatedHV.reference,
+            isHighValue: true,
+            date: updatedHV.createdAt,
+            status: updatedHV.status,
+            postcode: updatedHV.postcode,
+            city: updatedHV.city,
+            vehicle: enquiryData.vehicle,
+            customer: enquiryData.customer,
+            bank: updatedHV.bank,
+            estimatedValue: Number(updatedHV.estimatedValue),
+            customerExpectedValue: Number(updatedHV.customerExpectedValue),
+            valuePreference: updatedHV.valuePreference,
+          });
+        }
 
-        return res.json({
-          id: String(updatedRow.id),
-          reference: updatedRow.reference,
-          date: updatedRow.date,
-          status: updatedRow.status,
-          postcode: updatedRow.postcode,
-          city: updatedRow.city,
-          vehicle: updatedRow.vehicle,
-          condition: updatedRow.condition,
-          customer: updatedRow.customer,
-          bank: updatedRow.bank,
-          quote: updatedRow.quote,
-        });
+        // Check standard Enquiry table
+        const existingStd = await prisma.enquiry.findUnique({ where: { id: numericId } });
+        if (existingStd) {
+          const updatedRow = await prisma.enquiry.update({
+            where: { id: numericId },
+            data: {
+              bank: enquiryData.bank || {},
+              customer: enquiryData.customer || {},
+              condition: enquiryData.condition || {},
+              vehicle: enquiryData.vehicle || {},
+              quote: enquiryData.quote || {},
+              postcode,
+              city,
+            },
+          });
+
+          return res.json({
+            id: String(updatedRow.id),
+            reference: updatedRow.reference,
+            date: updatedRow.date,
+            status: updatedRow.status,
+            postcode: updatedRow.postcode,
+            city: updatedRow.city,
+            vehicle: updatedRow.vehicle,
+            condition: updatedRow.condition,
+            customer: updatedRow.customer,
+            bank: updatedRow.bank,
+            quote: updatedRow.quote,
+          });
+        }
       }
     }
 
-    // Insert new enquiry using prisma.enquiry.create
+    // Check if this is a High-Value Enquiry (>2015)
+    if (isHighValueReq) {
+      const reference =
+        enquiryData.reference ||
+        `MAS-HV-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
+
+      const estimatedValue = Number(enquiryData.estimatedValue || enquiryData.quote?.finalValue || 1250);
+      const customerExpectedValue = enquiryData.valuePreference === 'CUSTOM_VALUE'
+        ? Number(enquiryData.customerExpectedValue || estimatedValue)
+        : estimatedValue;
+      const valuePreference = enquiryData.valuePreference || 'ESTIMATED_VALUE';
+
+      const highValueRecord = await prisma.highValueEnquiry.create({
+        data: {
+          reference,
+          customerName: enquiryData.customer?.fullName || 'Anonymous Customer',
+          customerEmail: enquiryData.customer?.email || 'no-email@autoscrap.co.uk',
+          customerPhone: enquiryData.customer?.phone || '',
+          registration: enquiryData.registration || enquiryData.vehicle?.registration || '',
+          make: enquiryData.vehicle?.make || 'Unknown Make',
+          model: enquiryData.vehicle?.model || 'Unknown Model',
+          year: Number(enquiryData.vehicle?.year || new Date().getFullYear()),
+          mileage: enquiryData.mileage ? Number(enquiryData.mileage) : null,
+          condition: enquiryData.vehicleCondition || 'Good',
+          photos: enquiryData.photos || [],
+          postcode,
+          city,
+          area: city,
+          estimatedValue,
+          customerExpectedValue,
+          valuePreference,
+          bank: enquiryData.bank || {},
+          status: 'PENDING',
+        },
+      });
+
+      return res.status(201).json({
+        id: String(highValueRecord.id),
+        reference: highValueRecord.reference,
+        isHighValue: true,
+        date: highValueRecord.createdAt,
+        status: highValueRecord.status,
+        postcode: highValueRecord.postcode,
+        city: highValueRecord.city,
+        vehicle: enquiryData.vehicle,
+        customer: enquiryData.customer,
+        estimatedValue: Number(highValueRecord.estimatedValue),
+        customerExpectedValue: Number(highValueRecord.customerExpectedValue),
+        valuePreference: highValueRecord.valuePreference,
+        biddingStartAt: highValueRecord.biddingStartAt,
+        biddingEndsAt: highValueRecord.biddingEndsAt,
+        winningDealerId: highValueRecord.winningDealerId,
+        winningBidId: highValueRecord.winningBidId,
+      });
+    }
+
+    // Standard Scrap Enquiry Insert using prisma.enquiry.create
     const reference =
       enquiryData.reference ||
       `MAS-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
@@ -352,10 +484,271 @@ async function deleteManyEnquiries(req, res) {
   }
 }
 
+async function placeDealerBid(req, res) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required to place a bid.' });
+    }
+
+    const { enquiryId, amount } = req.body;
+    const numericEnquiryId = parseInt(enquiryId, 10);
+
+    if (isNaN(numericEnquiryId)) {
+      return res.status(400).json({ error: 'Valid high-value enquiry ID is required.' });
+    }
+
+    // Server-side money validation
+    const { validateBidAmount } = require('../utils/bidValidation');
+    const validation = validateBidAmount(amount);
+    if (!validation.isValid) {
+      return res.status(400).json({ error: validation.error });
+    }
+
+    // Retrieve HighValueEnquiry from database
+    const enquiry = await prisma.highValueEnquiry.findUnique({
+      where: { id: numericEnquiryId },
+    });
+
+    if (!enquiry) {
+      return res.status(404).json({ error: 'High-value enquiry not found.' });
+    }
+
+    // Check completion status
+    if (['PURCHASED', 'CANCELLED', 'DEALER_SELECTED', 'BIDDING_ENDED'].includes(enquiry.status)) {
+      return res.status(400).json({ error: `Cannot place bid on an enquiry that is already ${enquiry.status}.` });
+    }
+
+    // Authoritative Server-Side Deadline Check using central biddingConfig
+    const { isBiddingExpired, calculateBiddingDeadline } = require('../config/biddingConfig');
+
+    if (isBiddingExpired(enquiry.biddingEndsAt)) {
+      // Automatically transition enquiry status to BIDDING_ENDED in DB
+      await prisma.highValueEnquiry.update({
+        where: { id: numericEnquiryId },
+        data: { status: 'BIDDING_ENDED' },
+      });
+      return res.status(400).json({ error: 'Bidding period for this vehicle has ended.' });
+    }
+
+    // Server-side territory eligibility validation
+    const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
+    if (!isDealerEligibleForEnquiry(user, enquiry)) {
+      return res.status(403).json({ error: 'You are not eligible to bid on enquiries outside your assigned territory.' });
+    }
+
+    // Perform upsert on DealerBid table (updates existing dealer bid or creates new)
+    const bid = await prisma.dealerBid.upsert({
+      where: {
+        highValueEnquiryId_dealerId: {
+          highValueEnquiryId: numericEnquiryId,
+          dealerId: user.id,
+        },
+      },
+      update: {
+        amount: validation.numericAmount,
+        status: 'ACTIVE',
+        updatedAt: new Date(),
+      },
+      create: {
+        highValueEnquiryId: numericEnquiryId,
+        dealerId: user.id,
+        amount: validation.numericAmount,
+        status: 'ACTIVE',
+      },
+    });
+
+    // If enquiry status was PENDING, update to BIDDING and initialize biddingStartAt & biddingEndsAt from central config
+    if (enquiry.status === 'PENDING' || !enquiry.biddingEndsAt) {
+      const startDate = enquiry.biddingStartAt || new Date();
+      const endDate = calculateBiddingDeadline(startDate);
+
+      await prisma.highValueEnquiry.update({
+        where: { id: numericEnquiryId },
+        data: {
+          status: 'BIDDING',
+          biddingStartAt: startDate,
+          biddingEndsAt: endDate,
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Your bid of £${validation.numericAmount.toLocaleString('en-GB')} has been submitted successfully.`,
+      bid: {
+        id: String(bid.id),
+        enquiryId: String(bid.highValueEnquiryId),
+        dealerId: String(bid.dealerId),
+        amount: Number(bid.amount),
+        status: bid.status,
+      },
+    });
+  } catch (err) {
+    console.error('Place Dealer Bid Error:', err);
+    res.status(500).json({ error: err.message || 'Internal server error while submitting bid.' });
+  }
+}
+
+async function selectWinningDealer(req, res) {
+  try {
+    const user = req.user;
+    if (!user || user.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Only Super Admin can select a winning dealer.' });
+    }
+
+    const { enquiryId, bidId } = req.body;
+    const numericEnquiryId = parseInt(enquiryId, 10);
+    const numericBidId = parseInt(bidId, 10);
+
+    if (isNaN(numericEnquiryId) || isNaN(numericBidId)) {
+      return res.status(400).json({ error: 'Valid enquiry ID and bid ID are required.' });
+    }
+
+    // Transaction-Safe Winner Selection: Guarantees single winner under concurrency
+    const result = await prisma.$transaction(async (tx) => {
+      const enquiry = await tx.highValueEnquiry.findUnique({
+        where: { id: numericEnquiryId },
+      });
+
+      if (!enquiry) {
+        throw new Error('High-value enquiry not found.');
+      }
+
+      if (enquiry.status === 'PURCHASED' || enquiry.status === 'CANCELLED') {
+        throw new Error(`Enquiry is already ${enquiry.status}.`);
+      }
+
+      if (enquiry.winningDealerId || enquiry.winningBidId) {
+        throw new Error('A winning dealer has already been selected for this enquiry.');
+      }
+
+      const targetBid = await tx.dealerBid.findUnique({
+        where: { id: numericBidId },
+        include: { dealer: true },
+      });
+
+      if (!targetBid || targetBid.highValueEnquiryId !== numericEnquiryId) {
+        throw new Error('Target bid not found for this enquiry.');
+      }
+
+      const now = new Date();
+
+      // 1. Update target bid status to WINNING
+      const updatedBid = await tx.dealerBid.update({
+        where: { id: numericBidId },
+        data: { status: 'WINNING' },
+      });
+
+      // 2. Mark all other bids for this enquiry as REJECTED
+      await tx.dealerBid.updateMany({
+        where: {
+          highValueEnquiryId: numericEnquiryId,
+          id: { not: numericBidId },
+        },
+        data: { status: 'REJECTED' },
+      });
+
+      // 3. Update HighValueEnquiry record
+      const updatedEnquiry = await tx.highValueEnquiry.update({
+        where: { id: numericEnquiryId },
+        data: {
+          status: 'DEALER_SELECTED',
+          winningDealerId: targetBid.dealerId,
+          winningBidId: targetBid.id,
+          winnerSelectedAt: now,
+        },
+      });
+
+      return {
+        enquiry: updatedEnquiry,
+        bid: updatedBid,
+        dealer: targetBid.dealer,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Dealer '${result.dealer?.name || 'Selected Dealer'}' has been selected as the winner for £${Number(result.bid.amount).toLocaleString('en-GB')}.`,
+      data: {
+        enquiryId: String(result.enquiry.id),
+        winningDealerId: String(result.enquiry.winningDealerId),
+        winningBidId: String(result.enquiry.winningBidId),
+        winnerSelectedAt: result.enquiry.winnerSelectedAt.toISOString(),
+        status: result.enquiry.status,
+      },
+    });
+  } catch (err) {
+    console.error('Select Winning Dealer Error:', err);
+    res.status(400).json({ error: err.message || 'Failed to select winning dealer.' });
+  }
+}
+
+async function markEnquiryPurchased(req, res) {
+  try {
+    const user = req.user;
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required.' });
+    }
+
+    const { enquiryId } = req.body;
+    const numericEnquiryId = parseInt(enquiryId, 10);
+
+    if (isNaN(numericEnquiryId)) {
+      return res.status(400).json({ error: 'Valid high-value enquiry ID is required.' });
+    }
+
+    const enquiry = await prisma.highValueEnquiry.findUnique({
+      where: { id: numericEnquiryId },
+    });
+
+    if (!enquiry) {
+      return res.status(404).json({ error: 'High-value enquiry not found.' });
+    }
+
+    const isSuperAdmin = user.role === 'Super Admin';
+    const isWinningDealer = Number(enquiry.winningDealerId) === Number(user.id);
+
+    if (!isSuperAdmin && !isWinningDealer) {
+      return res.status(403).json({ error: 'Only the winning dealer or an admin can mark this transaction complete.' });
+    }
+
+    if (enquiry.status === 'PURCHASED') {
+      return res.status(400).json({ error: 'Enquiry has already been marked as PURCHASED.' });
+    }
+
+    const now = new Date();
+    const updated = await prisma.highValueEnquiry.update({
+      where: { id: numericEnquiryId },
+      data: {
+        status: 'PURCHASED',
+        purchasedAt: now,
+      },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Transaction completed successfully! Vehicle marked as PURCHASED.',
+      data: {
+        id: String(updated.id),
+        status: updated.status,
+        purchasedAt: updated.purchasedAt.toISOString(),
+      },
+    });
+  } catch (err) {
+    console.error('Mark Enquiry Purchased Error:', err);
+    res.status(500).json({ error: err.message || 'Failed to complete transaction.' });
+  }
+}
+
 module.exports = {
   getEnquiries,
+  getHighValueEnquiries,
   getPastEnquiries,
   createEnquiry,
+  placeDealerBid,
+  selectWinningDealer,
+  markEnquiryPurchased,
   updateEnquiryStatus,
   updateBulkEnquiryStatus,
   deleteEnquiry,

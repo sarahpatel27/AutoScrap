@@ -5,9 +5,11 @@ import {
   lookupVehicle,
   submitEnquiry,
 } from '../services/mockApi';
+import { isHighValueVehicle } from '../utils/vehicleEligibility';
 
 import { initial, steps } from './quote-flow/constants';
 import Step0VehicleLookup from './quote-flow/Step0VehicleLookup';
+import Step1HighValueForm from './quote-flow/Step1HighValueForm';
 import Step2QuoteDisplay from './quote-flow/Step2QuoteDisplay';
 import Step3ContactDetails from './quote-flow/Step3ContactDetails';
 import Step5SuccessConfirmation from './quote-flow/Step5SuccessConfirmation';
@@ -48,16 +50,35 @@ export default function QuoteFlow({ compact = false }) {
         try {
           setLoading(true);
           const vehicle = await lookupVehicle(formattedReg);
+          const highValue = isHighValueVehicle(vehicle?.year);
+
           const quote = await calculateQuote({ vehicle, postcode: formattedPostcode });
-          setData((prev) => ({
-            ...prev,
-            registration: formattedReg,
-            postcode: formattedPostcode,
-            vehicle,
-            quote,
-            enquiry: null,
-          }));
-          setStep(1);
+
+          if (highValue) {
+            setData((prev) => ({
+              ...prev,
+              registration: formattedReg,
+              postcode: formattedPostcode,
+              vehicle,
+              isHighValue: true,
+              quote,
+              estimatedValue: quote.finalValue,
+              enquiry: null,
+            }));
+            setStep(1);
+          } else {
+            const quote = await calculateQuote({ vehicle, postcode: formattedPostcode });
+            setData((prev) => ({
+              ...prev,
+              registration: formattedReg,
+              postcode: formattedPostcode,
+              vehicle,
+              isHighValue: false,
+              quote,
+              enquiry: null,
+            }));
+            setStep(1);
+          }
         } catch (err) {
           setError(
             err?.message ||
@@ -126,18 +147,37 @@ export default function QuoteFlow({ compact = false }) {
       setLoading(true);
 
       const vehicle = await lookupVehicle(registration);
+      const highValue = isHighValueVehicle(vehicle?.year);
+
       const quote = await calculateQuote({ vehicle, postcode });
 
-      setData((previousData) => ({
-        ...previousData,
-        registration,
-        postcode,
-        vehicle,
-        quote,
-        enquiry: null,
-      }));
-
-      setStep(1);
+      if (highValue) {
+        // High-Value Vehicle (> 2015): Route into separate high-value form with pre-calculated quote
+        setData((previousData) => ({
+          ...previousData,
+          registration,
+          postcode,
+          vehicle,
+          isHighValue: true,
+          quote,
+          estimatedValue: quote.finalValue,
+          enquiry: null,
+        }));
+        setStep(1);
+      } else {
+        // Standard Scrap Vehicle (<= 2015): Continue existing instant quote flow
+        const quote = await calculateQuote({ vehicle, postcode });
+        setData((previousData) => ({
+          ...previousData,
+          registration,
+          postcode,
+          vehicle,
+          isHighValue: false,
+          quote,
+          enquiry: null,
+        }));
+        setStep(1);
+      }
     } catch (err) {
       setError(
         err?.message ||
@@ -154,6 +194,7 @@ export default function QuoteFlow({ compact = false }) {
       vehicle: null,
       quote: null,
       enquiry: null,
+      isHighValue: false,
     }));
 
     setError('');
@@ -199,6 +240,57 @@ export default function QuoteFlow({ compact = false }) {
   const bankValid =
     isAccountNameValid && isSortCodeValid && isAccountNumberValid;
 
+  const submitHighValueRequest = async (formDataPayload = {}) => {
+    setError('');
+
+    try {
+      setLoading(true);
+
+      const estimatedQuote = data.quote || (await calculateQuote({ vehicle: data.vehicle, postcode: formDataPayload.postcode || data.postcode }));
+      const estimatedVal = Number(formDataPayload.estimatedValue || estimatedQuote.finalValue || 1250);
+      const expectedVal = Number(formDataPayload.customerExpectedValue || estimatedVal);
+      const pref = formDataPayload.valuePreference || 'ESTIMATED_VALUE';
+
+      const formattedData = {
+        ...data,
+        isHighValue: true,
+        mileage: formDataPayload.mileage || data.mileage,
+        vehicleCondition: formDataPayload.vehicleCondition || data.vehicleCondition || 'Good',
+        photos: formDataPayload.photos || data.photos || [],
+        postcode: formDataPayload.postcode || data.postcode,
+        estimatedValue: estimatedVal,
+        customerExpectedValue: expectedVal,
+        valuePreference: pref,
+        quote: {
+          ...estimatedQuote,
+          finalValue: expectedVal,
+        },
+        customer: {
+          ...data.customer,
+          collectionPostcode: formDataPayload.postcode || data.customer.collectionPostcode || data.postcode,
+        },
+      };
+
+      const enquiry = await submitEnquiry(formattedData);
+
+      setData((previousData) => ({
+        ...previousData,
+        ...formattedData,
+        enquiry,
+      }));
+
+      // Advance to success confirmation screen
+      setStep(3);
+    } catch (err) {
+      setError(
+        err?.message ||
+          'We could not submit your high-value vehicle request. Please try again.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const submitContactStep = async () => {
     setError('');
 
@@ -226,12 +318,11 @@ export default function QuoteFlow({ compact = false }) {
         enquiry,
       }));
 
-      // Go to Step 3: Thank You & Options page
       setStep(3);
     } catch (err) {
       setError(
         err?.message ||
-          'We could not submit your enquiry. Please try again.',
+          'We could not save your request. Please try again.',
       );
     } finally {
       setLoading(false);
@@ -242,9 +333,7 @@ export default function QuoteFlow({ compact = false }) {
     setError('');
 
     if (!bankValid) {
-      setError(
-        'Please provide a valid Account Holder Name (letters only), 6-digit Sort Code, and exactly 8-digit Account Number (numbers only) for your scrap payment.',
-      );
+      setError('Please enter a valid Account Name, 6-digit Sort Code, and 8-digit Account Number.');
       return;
     }
 
@@ -253,11 +342,11 @@ export default function QuoteFlow({ compact = false }) {
 
       const formattedData = {
         ...data,
-        id: data.enquiry?.id,
-        customer: {
-          ...data.customer,
-          collectionPostcode: effectiveCollectionPostcode,
-          phone: data.customer.phone ? data.customer.phone.trim() : '',
+        bank: {
+          accountName: data.bank.accountName.trim(),
+          sortCode: data.bank.sortCode.replace(/\D/g, ''),
+          accountNumber: data.bank.accountNumber.replace(/\D/g, ''),
+          bankName: data.bank.bankName.trim(),
         },
       };
 
@@ -268,7 +357,6 @@ export default function QuoteFlow({ compact = false }) {
         enquiry,
       }));
 
-      // Return to Step 3 (Thank You screen) with bank details saved
       setStep(3);
     } catch (err) {
       setError(
@@ -329,7 +417,21 @@ export default function QuoteFlow({ compact = false }) {
           />
         )}
 
-        {step === 1 && data.quote && data.vehicle && (
+        {/* STEP 1: High-Value vehicle form route if year > 2015 */}
+        {step === 1 && data.isHighValue && data.vehicle && (
+          <Step1HighValueForm
+            data={data}
+            updateCustomer={updateCustomer}
+            update={update}
+            onBack={handleEditRegistration}
+            onSubmitHighValueEnquiry={submitHighValueRequest}
+            loading={loading}
+            error={error}
+          />
+        )}
+
+        {/* STEP 1: Normal Instant Scrap Quote route if year <= 2015 */}
+        {step === 1 && !data.isHighValue && data.quote && data.vehicle && (
           <Step2QuoteDisplay
             data={data}
             error={error}

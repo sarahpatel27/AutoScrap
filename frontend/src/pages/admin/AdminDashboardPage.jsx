@@ -7,8 +7,12 @@ import PricingConfigurator from '../../components/admin/PricingConfigurator';
 import UserManagementSection from '../../components/admin/UserManagementSection';
 import AccountSettingsSection from '../../components/admin/AccountSettingsSection';
 import ContactSubmissionsSection from '../../components/admin/ContactSubmissionsSection';
+import HighValueBiddingSection from '../../components/admin/HighValueBiddingSection';
+import DealerBiddingDashboard from '../../components/admin/DealerBiddingDashboard';
+import { useAuth } from '../../context/AuthContext';
 import {
   fetchEnquiries,
+  fetchHighValueEnquiries,
   fetchPastEnquiries,
   fetchPricingConfig,
   updateEnquiryStatus,
@@ -21,9 +25,12 @@ import {
 
 export default function AdminDashboardPage() {
   const location = useLocation();
+  const { user } = useAuth();
 
   const getTabFromPath = (path) => {
     switch (path) {
+      case '/admin/high-value-bidding':
+        return 'high-value';
       case '/admin/enquiries':
         return 'enquiries';
       case '/admin/past-enquiries':
@@ -44,6 +51,7 @@ export default function AdminDashboardPage() {
 
   const activeTab = getTabFromPath(location.pathname);
   const [enquiries, setEnquiries] = useState([]);
+  const [highValueEnquiries, setHighValueEnquiries] = useState([]);
   const [pastEnquiries, setPastEnquiries] = useState([]);
   const [pricing, setPricing] = useState({
     defaultPricePerTonne: 235,
@@ -54,12 +62,14 @@ export default function AdminDashboardPage() {
   const reloadData = async () => {
     setLoading(true);
     try {
-      const [fetchedEnquiries, fetchedPast, fetchedPricing] = await Promise.all([
+      const [fetchedEnquiries, fetchedHighValue, fetchedPast, fetchedPricing] = await Promise.all([
         fetchEnquiries(),
+        fetchHighValueEnquiries(),
         fetchPastEnquiries(),
         fetchPricingConfig(),
       ]);
       setEnquiries(fetchedEnquiries || []);
+      setHighValueEnquiries(fetchedHighValue || []);
       setPastEnquiries(fetchedPast || []);
       if (fetchedPricing) setPricing(fetchedPricing);
     } catch (err) {
@@ -120,6 +130,7 @@ export default function AdminDashboardPage() {
           <div>
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 font-['Manrope'] tracking-tight">
               {activeTab === 'overview' && 'Dashboard Overview'}
+              {activeTab === 'high-value' && (user?.role === 'City Dealer' ? 'Dealer Territory Bidding' : 'High Value Bidding Management')}
               {activeTab === 'enquiries' && 'Scrap Car Enquiries'}
               {activeTab === 'past' && 'Past Enquiries (Archived / Deleted)'}
               {activeTab === 'contacts' && 'Website Contact Messages (Super Admin Only)'}
@@ -176,6 +187,14 @@ export default function AdminDashboardPage() {
               onDeleteBulk={handleDeleteBulkEnquiries}
             />
           </div>
+        )}
+
+        {activeTab === 'high-value' && (
+          user?.role === 'City Dealer' ? (
+            <DealerBiddingDashboard enquiries={highValueEnquiries} onBidSubmitted={reloadData} />
+          ) : (
+            <HighValueBiddingSection enquiries={highValueEnquiries} onWinnerSelected={reloadData} />
+          )
         )}
 
         {activeTab === 'enquiries' && (

@@ -2,8 +2,12 @@ const express = require('express');
 const router = express.Router();
 const {
   getEnquiries,
+  getHighValueEnquiries,
   getPastEnquiries,
   createEnquiry,
+  placeDealerBid,
+  selectWinningDealer,
+  markEnquiryPurchased,
   updateEnquiryStatus,
   updateBulkEnquiryStatus,
   deleteEnquiry,
@@ -14,8 +18,12 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 // Public customer submission endpoint
 router.post('/', createEnquiry);
 
-// Protected admin endpoints
+// Protected admin & dealer endpoints
 router.get('/', authenticateToken, getEnquiries);
+router.get('/high-value', authenticateToken, getHighValueEnquiries);
+router.post('/high-value/bid', authenticateToken, placeDealerBid);
+router.post('/high-value/select-winner', authenticateToken, selectWinningDealer);
+router.post('/high-value/purchase', authenticateToken, markEnquiryPurchased);
 router.get('/past', authenticateToken, getPastEnquiries);
 router.patch('/bulk-status', authenticateToken, updateBulkEnquiryStatus);
 router.patch('/:id/status', authenticateToken, updateEnquiryStatus);

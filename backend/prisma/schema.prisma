@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique @db.VarChar(100)
-  password     String   @db.VarChar(255)
-  name         String   @db.VarChar(100)
-  role         String   @default("City Dealer") @db.VarChar(30)
-  assignedCity String?  @map("assigned_city") @db.VarChar(50)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  id           Int          @id @default(autoincrement())
+  email        String       @unique @db.VarChar(100)
+  password     String       @db.VarChar(255)
+  name         String       @db.VarChar(100)
+  role         String       @default("City Dealer") @db.VarChar(30)
+  assignedCity String?      @map("assigned_city") @db.VarChar(50)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  bids         DealerBid[]
 
   @@map("users")
 }
@@ -40,6 +41,77 @@ model Enquiry {
   quote     Json?
 
   @@map("enquiries")
+}
+
+model HighValueEnquiry {
+  id                    Int          @id @default(autoincrement())
+  reference             String       @unique @db.VarChar(50)
+  
+  // Customer & Bank Details
+  customerName          String       @map("customer_name") @db.VarChar(100)
+  customerEmail         String       @map("customer_email") @db.VarChar(100)
+  customerPhone         String       @map("customer_phone") @db.VarChar(30)
+  bank                  Json?
+
+  // Vehicle Details
+  registration          String       @db.VarChar(20)
+  make                  String       @db.VarChar(100)
+  model                 String       @db.VarChar(100)
+  year                  Int
+  mileage               Int?
+  condition             String       @default("Good") @db.VarChar(50)
+
+  // Photos (Array of image URLs / stored metadata as JSON)
+  photos                Json?
+
+  // Location
+  postcode              String       @db.VarChar(20)
+  city                  String?      @db.VarChar(50)
+  area                  String?      @db.VarChar(50)
+
+  // Money-safe Valuation Fields (stored as Decimal in GBP)
+  estimatedValue        Decimal      @map("estimated_value") @db.Decimal(10, 2)
+  customerExpectedValue Decimal      @map("customer_expected_value") @db.Decimal(10, 2)
+  valuePreference       String       @default("ESTIMATED_VALUE") @map("value_preference") @db.VarChar(30)
+
+  // Status & Dealer Bidding Fields
+  status                String       @default("PENDING") @db.VarChar(30)
+  biddingStartAt        DateTime?    @map("bidding_start_at") @db.Timestamptz
+  biddingEndsAt         DateTime?    @map("bidding_ends_at") @db.Timestamptz
+
+  winningDealerId       Int?         @map("winning_dealer_id")
+  winningBidId          Int?         @map("winning_bid_id")
+  winnerSelectedAt      DateTime?    @map("winner_selected_at") @db.Timestamptz
+  purchasedAt           DateTime?    @map("purchased_at") @db.Timestamptz
+
+  createdAt             DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  bids                  DealerBid[]
+
+  @@map("high_value_enquiries")
+}
+
+model DealerBid {
+  id                 Int              @id @default(autoincrement())
+  highValueEnquiryId Int              @map("high_value_enquiry_id")
+  dealerId           Int              @map("dealer_id")
+
+  // Money-safe Decimal handling for GBP bid amount
+  amount             Decimal          @db.Decimal(10, 2)
+
+  // Bid Status: ACTIVE | WINNING | REJECTED | WITHDRAWN | EXPIRED
+  status             String           @default("ACTIVE") @db.VarChar(30)
+
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+
+  // Relations
+  highValueEnquiry   HighValueEnquiry @relation(fields: [highValueEnquiryId], references: [id], onDelete: Cascade)
+  dealer             User             @relation(fields: [dealerId], references: [id], onDelete: Cascade)
+
+  @@unique([highValueEnquiryId, dealerId])
+  @@map("dealer_bids")
 }
 
 model ContactSubmission {

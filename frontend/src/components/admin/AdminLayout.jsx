@@ -11,6 +11,7 @@ export default function AdminLayout({ activeTab, children }) {
 
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: '📊', path: '/admin/dashboard' },
+    { id: 'high-value', label: 'High Value Bidding', icon: '⭐', path: '/admin/high-value-bidding' },
     { id: 'enquiries', label: 'Vehicle Enquiries', icon: '🚗', path: '/admin/enquiries' },
     { id: 'past', label: 'Past Enquiries', icon: '📁', path: '/admin/past-enquiries' },
     { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️', path: '/admin/scrap-rates' },

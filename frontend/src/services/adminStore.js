@@ -88,6 +88,65 @@ export async function fetchPastEnquiries() {
   return cachedPastEnquiries;
 }
 
+export async function fetchHighValueEnquiries() {
+  try {
+    const res = await fetch(getApiUrl('/api/enquiries/high-value'), {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend fetch error for high-value enquiries:', err);
+  }
+  return [];
+}
+
+export async function submitDealerBid(enquiryId, amount) {
+  const res = await fetch(getApiUrl('/api/enquiries/high-value/bid'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ enquiryId, amount }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to submit bid.');
+  }
+
+  return data;
+}
+
+export async function selectWinnerDealer(enquiryId, bidId) {
+  const res = await fetch(getApiUrl('/api/enquiries/high-value/select-winner'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ enquiryId, bidId }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to select winning dealer.');
+  }
+
+  return data;
+}
+
+export async function markEnquiryAsPurchased(enquiryId) {
+  const res = await fetch(getApiUrl('/api/enquiries/high-value/purchase'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ enquiryId }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to mark enquiry as purchased.');
+  }
+
+  return data;
+}
+
 export function getEnquiries() {
   fetchEnquiries();
   return cachedEnquiries;
