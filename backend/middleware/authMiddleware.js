@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
 const { prisma } = require('../config/db');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'autoscrap_jwt_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.warn('⚠️ WARNING: JWT_SECRET is not explicitly set in environment variables! Using default secret in non-production environment.');
+}
 
 async function authenticateToken(req, res, next) {
   try {

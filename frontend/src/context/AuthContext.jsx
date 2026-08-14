@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { getApiUrl } from '../config/api';
 
 const TOKEN_STORAGE_KEY = 'autoscrap_admin_token';
 const USER_STORAGE_KEY = 'autoscrap_admin_user';
@@ -18,7 +19,7 @@ export function AuthProvider({ children }) {
         try {
           setUser(JSON.parse(storedUser));
           // Validate token with backend /api/auth/me
-          const res = await fetch('/api/auth/me', {
+          const res = await fetch(getApiUrl('/api/auth/me'), {
             headers: { Authorization: `Bearer ${token}` },
           });
 
@@ -45,7 +46,7 @@ export function AuthProvider({ children }) {
       throw new Error('Please enter both email and password.');
     }
 
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(getApiUrl('/api/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, city }),

@@ -5,8 +5,12 @@ async function lookupVehicle(req, res) {
       return res.status(400).json({ error: 'Please enter a valid vehicle registration.' });
     }
 
-    const apiKey = process.env.VDG_API_KEY || '36964D16-DC80-4774-8E87-2A5623F87014';
-    const vdgUrl = `https://uk.api.vehicledataglobal.com/r2/lookup?packagename=VehicleDetailsWithImage&apikey=${encodeURIComponent(apiKey)}&vrm=${encodeURIComponent(vrm)}`;
+    const apiKey = process.env.VDG_API_KEY;
+    if (!apiKey) {
+      throw new Error('VDG_API_KEY is not configured in backend environment variables.');
+    }
+    const vdgApiUrl = process.env.VDG_API_URL || 'https://uk.api.vehicledataglobal.com/r2/lookup';
+    const vdgUrl = `${vdgApiUrl}?packagename=VehicleDetailsWithImage&apikey=${encodeURIComponent(apiKey)}&vrm=${encodeURIComponent(vrm)}`;
 
     const vdgRes = await fetch(vdgUrl);
     if (!vdgRes.ok) {

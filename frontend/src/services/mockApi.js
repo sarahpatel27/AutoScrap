@@ -1,5 +1,6 @@
 import { fetchPricingConfig, saveEnquiry } from './adminStore';
 import { getCityFromPostcode } from '../utils/cityHelper';
+import { getApiUrl } from '../config/api';
 
 export async function lookupVehicle(registration) {
   if (!registration || registration.replace(/\s/g, '').length < 2) {
@@ -7,7 +8,7 @@ export async function lookupVehicle(registration) {
   }
 
   const cleanReg = registration.replace(/\s/g, '').toUpperCase();
-  const response = await fetch(`/api/vrm-lookup?vrm=${encodeURIComponent(cleanReg)}`);
+  const response = await fetch(getApiUrl(`/api/vrm-lookup?vrm=${encodeURIComponent(cleanReg)}`));
   const data = await response.json();
 
   if (!response.ok || data.error) {

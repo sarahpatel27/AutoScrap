@@ -6,8 +6,12 @@ export async function getVrmDetails(vrm) {
     throw new Error('Please enter a valid vehicle registration.');
   }
 
-  const apiKey = process.env.VDG_API_KEY || '36964D16-DC80-4774-8E87-2A5623F87014';
-  const url = `https://uk.api.vehicledataglobal.com/r2/lookup?packagename=VehicleDetailsWithImage&apikey=${encodeURIComponent(apiKey)}&vrm=${encodeURIComponent(cleanVrm)}`;
+  const apiKey = import.meta.env.VDG_API_KEY;
+  if (!apiKey) {
+    throw new Error('VDG_API_KEY environment variable is not configured.');
+  }
+  const vdgApiUrl = import.meta.env.VDG_API_URL || 'https://uk.api.vehicledataglobal.com/r2/lookup';
+  const url = `${vdgApiUrl}?packagename=VehicleDetailsWithImage&apikey=${encodeURIComponent(apiKey)}&vrm=${encodeURIComponent(cleanVrm)}`;
 
   const response = await fetch(url);
   if (!response.ok) {

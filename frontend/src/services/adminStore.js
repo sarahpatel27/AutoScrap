@@ -1,4 +1,5 @@
 import { getCityFromPostcode } from '../utils/cityHelper';
+import { getApiUrl } from '../config/api';
 
 const TOKEN_STORAGE_KEY = 'autoscrap_admin_token';
 
@@ -29,7 +30,7 @@ let cachedPastEnquiries = [];
 
 export async function fetchPricingConfig() {
   try {
-    const res = await fetch('/api/pricing', {
+    const res = await fetch(getApiUrl('/api/pricing'), {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
@@ -57,7 +58,7 @@ export function getCityPricePerTonne(city) {
 
 export async function fetchEnquiries() {
   try {
-    const res = await fetch('/api/enquiries', {
+    const res = await fetch(getApiUrl('/api/enquiries'), {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
@@ -73,7 +74,7 @@ export async function fetchEnquiries() {
 
 export async function fetchPastEnquiries() {
   try {
-    const res = await fetch('/api/enquiries/past', {
+    const res = await fetch(getApiUrl('/api/enquiries/past'), {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
@@ -94,7 +95,7 @@ export function getEnquiries() {
 
 export async function saveEnquiry(enquiryData) {
   try {
-    const res = await fetch('/api/enquiries', {
+    const res = await fetch(getApiUrl('/api/enquiries'), {
       method: 'POST',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(enquiryData),
@@ -129,7 +130,7 @@ export async function saveEnquiry(enquiryData) {
 
 export async function updateEnquiryStatus(id, newStatus, notes) {
   try {
-    const res = await fetch(`/api/enquiries/${id}/status`, {
+    const res = await fetch(getApiUrl(`/api/enquiries/${id}/status`), {
       method: 'PATCH',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ status: newStatus, notes }),
@@ -161,7 +162,7 @@ export async function updateEnquiryStatus(id, newStatus, notes) {
 
 export async function updateBulkEnquiryStatus(ids, newStatus) {
   try {
-    const res = await fetch('/api/enquiries/bulk-status', {
+    const res = await fetch(getApiUrl('/api/enquiries/bulk-status'), {
       method: 'PATCH',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ids, status: newStatus }),
@@ -195,7 +196,7 @@ export async function deleteEnquiry(id) {
   }
 
   try {
-    const res = await fetch(`/api/enquiries/${id}`, {
+    const res = await fetch(getApiUrl(`/api/enquiries/${id}`), {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -223,7 +224,7 @@ export async function deleteBulkEnquiries(ids) {
   }
 
   try {
-    const res = await fetch('/api/enquiries/bulk-delete', {
+    const res = await fetch(getApiUrl('/api/enquiries/bulk-delete'), {
       method: 'DELETE',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ ids }),
@@ -243,7 +244,7 @@ export async function deleteBulkEnquiries(ids) {
 
 export async function savePricingConfig(config) {
   try {
-    const res = await fetch('/api/pricing', {
+    const res = await fetch(getApiUrl('/api/pricing'), {
       method: 'POST',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(config),
@@ -279,7 +280,7 @@ export function resetPricingConfig() {
 
 export async function fetchUsers() {
   try {
-    const res = await fetch('/api/auth/users', {
+    const res = await fetch(getApiUrl('/api/auth/users'), {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
@@ -292,7 +293,7 @@ export async function fetchUsers() {
 }
 
 export async function createDealerUser(userData) {
-  const res = await fetch('/api/auth/users', {
+  const res = await fetch(getApiUrl('/api/auth/users'), {
     method: 'POST',
     headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(userData),
@@ -305,7 +306,7 @@ export async function createDealerUser(userData) {
 }
 
 export async function deleteDealerUser(id) {
-  const res = await fetch(`/api/auth/users/${id}`, {
+  const res = await fetch(getApiUrl(`/api/auth/users/${id}`), {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
@@ -317,7 +318,7 @@ export async function deleteDealerUser(id) {
 }
 
 export async function changeUserPassword(currentPassword, newPassword) {
-  const res = await fetch('/api/auth/change-password', {
+  const res = await fetch(getApiUrl('/api/auth/change-password'), {
     method: 'POST',
     headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ currentPassword, newPassword }),
@@ -330,7 +331,7 @@ export async function changeUserPassword(currentPassword, newPassword) {
 }
 
 export async function submitContactMessage(contactData) {
-  const res = await fetch('/api/contact/submit', {
+  const res = await fetch(getApiUrl('/api/contact/submit'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(contactData),
@@ -345,7 +346,7 @@ export async function submitContactMessage(contactData) {
 
 export async function fetchContactSubmissions() {
   try {
-    const res = await fetch('/api/contact', {
+    const res = await fetch(getApiUrl('/api/contact'), {
       headers: getAuthHeaders(),
     });
     if (res.ok) {
@@ -358,7 +359,7 @@ export async function fetchContactSubmissions() {
 }
 
 export async function deleteContactSubmission(id) {
-  const res = await fetch(`/api/contact/${id}`, {
+  const res = await fetch(getApiUrl(`/api/contact/${id}`), {
     method: 'DELETE',
     headers: getAuthHeaders(),
   });
