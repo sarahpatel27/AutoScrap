@@ -336,8 +336,14 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
 
       {/* Dealer Detail View & PLACE BID Modal */}
       {selectedEnquiry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="relative w-full max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
+        <div
+          onClick={() => setSelectedEnquiry(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-3xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto cursor-default"
+          >
             {/* Header */}
             <div className="flex items-center justify-between border-b pb-4">
               <div className="flex items-center gap-3">

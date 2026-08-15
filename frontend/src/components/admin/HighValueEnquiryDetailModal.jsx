@@ -1,12 +1,14 @@
 import { useState } from 'react';
-import { selectWinnerDealer } from '../../services/adminStore';
+import { selectWinnerDealer, deleteHighValueEnquiry } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
-export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinnerSelected }) {
+export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinnerSelected, onDeleteHVEnquiry, readOnly = false }) {
   const [activePhoto, setActivePhoto] = useState(null);
   const [selectingWinnerId, setSelectingWinnerId] = useState(null);
   const [winnerError, setWinnerError] = useState('');
   const [winnerSuccess, setWinnerSuccess] = useState('');
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   if (!enquiry) return null;
 
@@ -40,8 +42,14 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="relative w-full max-w-4xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto text-slate-900 font-['DM_Sans',sans-serif]">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-4xl rounded-3xl bg-white p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto text-slate-900 font-['DM_Sans',sans-serif] cursor-default"
+      >
         {/* Top Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-200 pb-4">
           <div className="flex items-center gap-3">
@@ -268,7 +276,18 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
         </div>
 
         {/* Modal Actions */}
-        <div className="flex justify-end pt-2 border-t border-gray-200">
+        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
+          <div>
+            {!readOnly && onDeleteHVEnquiry && (
+              <button
+                type="button"
+                onClick={() => setDeleteConfirmOpen(true)}
+                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-extrabold text-red-700 hover:bg-red-600 hover:text-white transition cursor-pointer"
+              >
+                🗑️ Delete
+              </button>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -292,6 +311,29 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
           />
         </div>
       )}
+
+      {/* Delete Confirmation Modal Overlay */}
+      <DeleteConfirmationModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title={`Delete High-Value Enquiry #${enquiry?.reference}?`}
+        subtitle="High-Value Vehicle Bidding Record"
+        warningText={`High-value vehicle enquiry #${enquiry?.reference} (${enquiry?.make || ''} ${enquiry?.model || ''}) will be removed from active operations and safely stored under Past Enquiries for record-keeping.`}
+        onConfirm={async () => {
+          try {
+            await deleteHighValueEnquiry(enquiry.id);
+            showToast(`Enquiry #${enquiry.reference} deleted & archived to Past Enquiries!`, 'success');
+            onClose();
+            if (onDeleteHVEnquiry) {
+              onDeleteHVEnquiry();
+            } else if (onWinnerSelected) {
+              onWinnerSelected();
+            }
+          } catch (err) {
+            showToast(err.message || 'Failed to delete high-value enquiry.', 'error');
+          }
+        }}
+      />
     </div>
   );
 }

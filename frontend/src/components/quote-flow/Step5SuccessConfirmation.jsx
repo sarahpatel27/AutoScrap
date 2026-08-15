@@ -183,8 +183,14 @@ export default function Step5SuccessConfirmation({
 
       {/* Payment Details Modal */}
       {showBankModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-8 text-left shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div
+          onClick={() => setShowBankModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs animate-in fade-in duration-200 cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-2xl rounded-2xl bg-white p-6 sm:p-8 text-left shadow-2xl max-h-[90vh] overflow-y-auto cursor-default"
+          >
             <button
               type="button"
               onClick={() => setShowBankModal(false)}

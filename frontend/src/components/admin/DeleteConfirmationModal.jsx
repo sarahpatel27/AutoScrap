@@ -30,8 +30,14 @@ export default function DeleteConfirmationModal({
       : 'This record will be removed from active operations and safely stored under Past Enquiries for record-keeping.';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in">
-      <div className="w-full max-w-md rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl space-y-5">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in cursor-pointer"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-3xl border border-gray-100 bg-white p-6 shadow-2xl space-y-5 cursor-default"
+      >
         <div className="flex items-center gap-3">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-red-100 text-red-600 text-xl shrink-0">
             🗑️

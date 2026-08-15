@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getCityFromPostcode } from '../../utils/cityHelper';
 import { showToast } from './ToastContainer';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 const STATUS_OPTIONS = [
   { value: 'Pending', icon: '⏳' },
@@ -21,6 +22,7 @@ export default function EnquiryDetailModal({
   const [status, setStatus] = useState(enquiry?.status || 'Pending');
   const [notes, setNotes] = useState(enquiry?.customer?.notes || '');
   const [saving, setSaving] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState(null);
@@ -148,8 +150,15 @@ export default function EnquiryDetailModal({
     }
   };
 
-  const handleDelete = () => {
-    onDelete(enquiry.id);
+  const handleDeleteClick = () => {
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (onDelete) {
+      await onDelete(enquiry.id);
+    }
+    showToast(`Enquiry #${enquiry.reference} deleted & archived to Past Enquiries!`, 'success');
     onClose();
   };
 
@@ -172,8 +181,14 @@ export default function EnquiryDetailModal({
 
   return (
     <>
-      <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 p-0 backdrop-blur-md sm:items-center sm:p-4">
-        <div className="relative flex h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-white/20 bg-white shadow-2xl sm:h-auto sm:max-h-[85vh] sm:rounded-3xl">
+      <div
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 p-0 backdrop-blur-md sm:items-center sm:p-4 cursor-pointer"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative flex h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl border border-white/20 bg-white shadow-2xl sm:h-auto sm:max-h-[85vh] sm:rounded-3xl cursor-default"
+        >
 
           {/* Header */}
           <div className="flex shrink-0 items-center justify-between border-b border-white/10 bg-[#0b2e21] px-5 py-4 text-white">
@@ -465,7 +480,7 @@ export default function EnquiryDetailModal({
             ) : (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 className="cursor-pointer rounded-xl border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs font-extrabold text-red-700 transition hover:bg-red-100 active:scale-95"
               >
                 🗑️ Delete
@@ -495,6 +510,16 @@ export default function EnquiryDetailModal({
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal Overlay */}
+      <DeleteConfirmationModal
+        isOpen={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title={`Delete Enquiry #${enquiry?.reference}?`}
+        subtitle="Scrap Car Enquiry Record"
+        warningText={`Enquiry #${enquiry?.reference} (${enquiry?.vehicle?.make || ''} ${enquiry?.vehicle?.model || ''}) will be removed from active operations and safely stored under Past Enquiries for record-keeping.`}
+        onConfirm={handleConfirmDelete}
+      />
 
       {/* Status Dropdown */}
       {statusOpen &&

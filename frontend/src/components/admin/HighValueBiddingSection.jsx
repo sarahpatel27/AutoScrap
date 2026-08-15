@@ -269,6 +269,12 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
             setSelectedEnquiry(null);
             if (onWinnerSelected) onWinnerSelected();
           }}
+          onDeleteHVEnquiry={() => {
+            setSelectedEnquiry(null);
+            if (onDeleteHVEnquiry) onDeleteHVEnquiry();
+            else if (onWinnerSelected) onWinnerSelected();
+          }}
+          readOnly={readOnly}
         />
       )}
 
