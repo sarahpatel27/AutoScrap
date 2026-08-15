@@ -323,7 +323,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                         disabled={isEnded && !isWinner}
                         className="w-full rounded-xl border border-slate-300 bg-white py-2 text-xs font-extrabold text-slate-800 hover:bg-slate-100 transition cursor-pointer disabled:opacity-50"
                       >
-                        {isWinner ? 'VIEW CUSTOMER DETAILS →' : isEnded ? 'BIDDING ENDED' : 'PLACE DIFFERENT BID →'}
+                        {isWinner ? 'VIEW CUSTOMER DETAILS' : isEnded ? 'BIDDING ENDED' : 'PLACE DIFFERENT BID'}
                       </button>
                     </>
                   )}
@@ -389,7 +389,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                   disabled={biddingLoading}
                   className="rounded-xl bg-[#0f7b4f] px-4 py-2 text-xs font-extrabold text-white shadow-xs hover:bg-[#075b3a] cursor-pointer disabled:opacity-50"
                 >
-                  [ ACCEPT £{Number(selectedEnquiry.customerExpectedValue || selectedEnquiry.estimatedValue || 0).toLocaleString('en-GB')} ]
+                  ACCEPT £{Number(selectedEnquiry.customerExpectedValue || selectedEnquiry.estimatedValue || 0).toLocaleString('en-GB')}
                 </button>
               </div>
 
@@ -427,7 +427,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                     disabled={biddingLoading}
                     className="rounded-xl bg-slate-900 px-6 py-2.5 text-xs font-extrabold text-white shadow-md hover:bg-slate-800 transition cursor-pointer disabled:opacity-50"
                   >
-                    {biddingLoading ? 'Submitting Bid…' : '[ PLACE DIFFERENT BID ]'}
+                    {biddingLoading ? 'Submitting Bid…' : 'PLACE DIFFERENT BID'}
                   </button>
                   <span className="text-[11px] text-slate-500 font-medium">
                     Participates in normal competitive bidding.

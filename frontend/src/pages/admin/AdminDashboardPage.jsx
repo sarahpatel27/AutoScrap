@@ -53,6 +53,8 @@ export default function AdminDashboardPage() {
   const [enquiries, setEnquiries] = useState([]);
   const [highValueEnquiries, setHighValueEnquiries] = useState([]);
   const [pastEnquiries, setPastEnquiries] = useState([]);
+  const [pastHighValueEnquiries, setPastHighValueEnquiries] = useState([]);
+  const [pastSubTab, setPastSubTab] = useState('high-value');
   const [pricing, setPricing] = useState({
     defaultPricePerTonne: 235,
     cityRates: {},
@@ -62,7 +64,7 @@ export default function AdminDashboardPage() {
   const reloadData = async () => {
     setLoading(true);
     try {
-      const [fetchedEnquiries, fetchedHighValue, fetchedPast, fetchedPricing] = await Promise.all([
+      const [fetchedEnquiries, fetchedHighValue, fetchedPastData, fetchedPricing] = await Promise.all([
         fetchEnquiries(),
         fetchHighValueEnquiries(),
         fetchPastEnquiries(),
@@ -70,7 +72,15 @@ export default function AdminDashboardPage() {
       ]);
       setEnquiries(fetchedEnquiries || []);
       setHighValueEnquiries(fetchedHighValue || []);
-      setPastEnquiries(fetchedPast || []);
+
+      if (fetchedPastData && typeof fetchedPastData === 'object' && !Array.isArray(fetchedPastData)) {
+        setPastEnquiries(fetchedPastData.pastEnquiries || []);
+        setPastHighValueEnquiries(fetchedPastData.pastHighValueEnquiries || []);
+      } else {
+        setPastEnquiries(Array.isArray(fetchedPastData) ? fetchedPastData : []);
+        setPastHighValueEnquiries([]);
+      }
+
       if (fetchedPricing) setPricing(fetchedPricing);
     } catch (err) {
       console.error('Error reloading admin dashboard data:', err);
@@ -86,29 +96,23 @@ export default function AdminDashboardPage() {
   const handleUpdateStatus = async (id, newStatus, notes) => {
     const updated = await updateEnquiryStatus(id, newStatus, notes);
     setEnquiries(updated);
-    const updatedPast = await fetchPastEnquiries();
-    setPastEnquiries(updatedPast || []);
+    await reloadData();
   };
 
   const handleUpdateBulkStatus = async (ids, newStatus) => {
     const updated = await updateBulkEnquiryStatus(ids, newStatus);
     setEnquiries(updated);
-    const updatedPast = await fetchPastEnquiries();
-    setPastEnquiries(updatedPast || []);
+    await reloadData();
   };
 
   const handleDeleteEnquiry = async (id) => {
-    const updated = await deleteEnquiry(id);
-    setEnquiries(updated);
-    const updatedPast = await fetchPastEnquiries();
-    setPastEnquiries(updatedPast || []);
+    await deleteEnquiry(id);
+    await reloadData();
   };
 
   const handleDeleteBulkEnquiries = async (ids) => {
-    const updated = await deleteBulkEnquiries(ids);
-    setEnquiries(updated);
-    const updatedPast = await fetchPastEnquiries();
-    setPastEnquiries(updatedPast || []);
+    await deleteBulkEnquiries(ids);
+    await reloadData();
   };
 
   const handleSavePricing = async (newConfig) => {
@@ -208,21 +212,76 @@ export default function AdminDashboardPage() {
         )}
 
         {activeTab === 'past' && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-amber-300/80 bg-amber-50/80 p-4 text-amber-900 flex items-center gap-3">
-              <span className="text-xl">📁</span>
-              <div className="text-xs">
-                <span className="font-extrabold uppercase tracking-wide">Read-Only Past Enquiries View</span>
-                <p className="font-medium text-amber-800">
-                  These records have been deleted from active operations. All enquiry data is permanently stored for audit & history. No actions can be taken.
-                </p>
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-amber-300/80 bg-amber-50/80 p-4 text-amber-900 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <span className="text-xl">📁</span>
+                <div className="text-xs">
+                  <span className="font-extrabold uppercase tracking-wide">Archived & Past Records Repository</span>
+                  <p className="font-medium text-amber-800">
+                    These records have been deleted from active operations. All enquiry and bidding history is stored for audit.
+                  </p>
+                </div>
+              </div>
+
+              {/* Sub-tab Navigation */}
+              <div className="flex items-center gap-2 bg-white/80 p-1.5 rounded-xl border border-amber-200 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setPastSubTab('high-value')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                    pastSubTab === 'high-value'
+                      ? 'bg-[#0f7b4f] text-white shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  ⭐ Past High-Value Biddings ({pastHighValueEnquiries.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPastSubTab('standard')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                    pastSubTab === 'standard'
+                      ? 'bg-[#0f7b4f] text-white shadow-xs'
+                      : 'text-slate-700 hover:bg-slate-100'
+                  }`}
+                >
+                  🚗 Past Standard Enquiries ({pastEnquiries.length})
+                </button>
               </div>
             </div>
 
-            <EnquiriesTable
-              enquiries={pastEnquiries}
-              readOnly={true}
-            />
+            {pastSubTab === 'high-value' && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                  <span>⭐</span> Archived High-Value Vehicle Biddings
+                </h3>
+                {pastHighValueEnquiries.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-xs text-gray-400 font-semibold">
+                    No archived high-value enquiries found in history.
+                  </div>
+                ) : (
+                  <HighValueBiddingSection
+                    enquiries={pastHighValueEnquiries}
+                    onWinnerSelected={reloadData}
+                    onDeleteHVEnquiry={reloadData}
+                    readOnly={true}
+                  />
+                )}
+              </div>
+            )}
+
+            {pastSubTab === 'standard' && (
+              <div className="space-y-3">
+                <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                  <span>🚗</span> Archived Standard Scrap Car Enquiries
+                </h3>
+                <EnquiriesTable
+                  enquiries={pastEnquiries}
+                  readOnly={true}
+                />
+              </div>
+            )}
           </div>
         )}
 

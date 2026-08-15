@@ -41,6 +41,11 @@ async function getHighValueEnquiries(req, res) {
   try {
     const user = req.user;
     const rows = await prisma.highValueEnquiry.findMany({
+      where: {
+        status: {
+          notIn: ['archived', 'deleted', 'ARCHIVED', 'DELETED'],
+        },
+      },
       include: {
         bids: {
           include: {
@@ -76,18 +81,46 @@ async function getHighValueEnquiries(req, res) {
 
 async function getPastEnquiries(req, res) {
   try {
-    const rows = await prisma.enquiry.findMany({
-      where: {
-        status: {
-          in: ['archived', 'deleted'],
+    const user = req.user;
+    const [standardRows, highValueRows] = await Promise.all([
+      prisma.enquiry.findMany({
+        where: {
+          status: {
+            in: ['archived', 'deleted', 'ARCHIVED', 'DELETED'],
+          },
         },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    });
+        orderBy: {
+          date: 'desc',
+        },
+      }),
+      prisma.highValueEnquiry.findMany({
+        where: {
+          status: {
+            in: ['archived', 'deleted', 'ARCHIVED', 'DELETED'],
+          },
+        },
+        include: {
+          bids: {
+            include: {
+              dealer: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  assignedCity: true,
+                },
+              },
+            },
+            orderBy: { amount: 'desc' },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
 
-    const enquiries = rows.map((row) => ({
+    const enquiries = standardRows.map((row) => ({
       id: String(row.id),
       reference: row.reference,
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
@@ -101,9 +134,122 @@ async function getPastEnquiries(req, res) {
       quote: row.quote,
     }));
 
-    res.json(enquiries);
+    const eligibleHVRows = highValueRows.filter((row) => isDealerEligibleForEnquiry(user, row));
+    const pastHighValueEnquiries = eligibleHVRows.map((row) => anonymizeEnquiryForDealer(row, user));
+
+    res.json({
+      pastEnquiries: enquiries,
+      pastHighValueEnquiries,
+    });
   } catch (err) {
     console.error('Get Past Enquiries Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function deleteHighValueEnquiry(req, res) {
+  try {
+    const { id } = req.params;
+    const numericId = parseInt(id, 10);
+
+    if (isNaN(numericId)) {
+      return res.status(400).json({ error: 'Invalid High-Value Enquiry ID' });
+    }
+
+    await prisma.highValueEnquiry.update({
+      where: { id: numericId },
+      data: { status: 'archived' },
+    });
+
+    const user = req.user;
+    const remainingRows = await prisma.highValueEnquiry.findMany({
+      where: {
+        status: {
+          notIn: ['archived', 'deleted', 'ARCHIVED', 'DELETED'],
+        },
+      },
+      include: {
+        bids: {
+          include: {
+            dealer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                assignedCity: true,
+              },
+            },
+          },
+          orderBy: { amount: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const items = remainingRows
+      .filter((row) => isDealerEligibleForEnquiry(user, row))
+      .map((row) => anonymizeEnquiryForDealer(row, user));
+
+    res.json(items);
+  } catch (err) {
+    console.error('Delete High Value Enquiry Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function deleteManyHighValueEnquiries(req, res) {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required' });
+    }
+
+    const numericIds = ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
+
+    await prisma.highValueEnquiry.updateMany({
+      where: {
+        id: {
+          in: numericIds,
+        },
+      },
+      data: {
+        status: 'archived',
+      },
+    });
+
+    const user = req.user;
+    const remainingRows = await prisma.highValueEnquiry.findMany({
+      where: {
+        status: {
+          notIn: ['archived', 'deleted', 'ARCHIVED', 'DELETED'],
+        },
+      },
+      include: {
+        bids: {
+          include: {
+            dealer: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                assignedCity: true,
+              },
+            },
+          },
+          orderBy: { amount: 'desc' },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const items = remainingRows
+      .filter((row) => isDealerEligibleForEnquiry(user, row))
+      .map((row) => anonymizeEnquiryForDealer(row, user));
+
+    res.json(items);
+  } catch (err) {
+    console.error('Delete Many High Value Enquiries Error:', err);
     res.status(500).json({ error: err.message });
   }
 }
@@ -753,4 +899,6 @@ module.exports = {
   updateBulkEnquiryStatus,
   deleteEnquiry,
   deleteManyEnquiries,
+  deleteHighValueEnquiry,
+  deleteManyHighValueEnquiries,
 };

@@ -1,10 +1,15 @@
 import { useState } from 'react';
 import HighValueEnquiryDetailModal from './HighValueEnquiryDetailModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
+import { deleteHighValueEnquiry } from '../../services/adminStore';
+import { showToast } from './ToastContainer';
 
-export default function HighValueBiddingSection({ enquiries = [], onWinnerSelected }) {
+export default function HighValueBiddingSection({ enquiries = [], onWinnerSelected, onDeleteHVEnquiry, readOnly = false }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
 
   const filteredEnquiries = enquiries.filter((item) => {
     const matchesSearch =
@@ -223,13 +228,28 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedEnquiry(item)}
-                          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-extrabold text-slate-900 hover:border-[#0f7b4f] hover:bg-emerald-50 hover:text-[#0f7b4f] transition shadow-2xs cursor-pointer"
-                        >
-                          View Details
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedEnquiry(item)}
+                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-extrabold text-slate-900 hover:border-[#0f7b4f] hover:bg-emerald-50 hover:text-[#0f7b4f] transition shadow-2xs cursor-pointer"
+                          >
+                            View Details
+                          </button>
+                          {!readOnly && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setItemToDelete(item);
+                                setDeleteModalOpen(true);
+                              }}
+                              className="rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 font-extrabold text-red-700 hover:bg-red-600 hover:text-white transition shadow-2xs cursor-pointer"
+                              title="Delete enquiry record"
+                            >
+                              🗑️ Delete
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -251,6 +271,36 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
           }}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setItemToDelete(null);
+        }}
+        title="Delete High-Value Enquiry Record?"
+        subtitle="High-Value Vehicle Bidding"
+        warningText={
+          itemToDelete
+            ? `High-value enquiry #${itemToDelete.reference} (${itemToDelete.make} ${itemToDelete.model}) will be removed from active operations and safely stored under Past Enquiries for record-keeping.`
+            : 'This high-value enquiry will be removed from active operations and safely stored under Past Enquiries for record-keeping.'
+        }
+        onConfirm={async () => {
+          if (!itemToDelete) return;
+          try {
+            await deleteHighValueEnquiry(itemToDelete.id);
+            showToast(`Enquiry #${itemToDelete.reference} deleted & archived to Past Enquiries!`, 'success');
+            if (onDeleteHVEnquiry) {
+              onDeleteHVEnquiry();
+            } else if (onWinnerSelected) {
+              onWinnerSelected();
+            }
+          } catch (err) {
+            showToast(err.message || 'Failed to delete high-value enquiry.', 'error');
+          }
+        }}
+      />
     </div>
   );
 }

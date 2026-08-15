@@ -1,8 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { getApiUrl } from '../config/api';
+import { setCookie, getCookie, deleteCookie } from '../utils/cookieHelper';
 
-const TOKEN_STORAGE_KEY = 'autoscrap_admin_token';
-const USER_STORAGE_KEY = 'autoscrap_admin_user';
+const TOKEN_COOKIE_KEY = 'autoscrap_admin_token';
+const USER_COOKIE_KEY = 'autoscrap_admin_user';
 
 const AuthContext = createContext(null);
 
@@ -12,12 +13,20 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-      const storedUser = localStorage.getItem(USER_STORAGE_KEY);
+      // Clean up legacy localStorage if present
+      try {
+        localStorage.removeItem('autoscrap_admin_token');
+        localStorage.removeItem('autoscrap_admin_user');
+      } catch (e) {}
 
-      if (token && storedUser) {
+      const token = getCookie(TOKEN_COOKIE_KEY);
+      const storedUserRaw = getCookie(USER_COOKIE_KEY);
+
+      if (token && storedUserRaw) {
         try {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUserRaw);
+          setUser(parsedUser);
+
           // Validate token with backend /api/auth/me
           const res = await fetch(getApiUrl('/api/auth/me'), {
             headers: { Authorization: `Bearer ${token}` },
@@ -26,9 +35,8 @@ export function AuthProvider({ children }) {
           if (res.ok) {
             const data = await res.json();
             setUser(data.user);
-            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+            setCookie(USER_COOKIE_KEY, JSON.stringify(data.user), 7);
           } else {
-            // Token expired or invalid
             logout();
           }
         } catch (err) {
@@ -57,21 +65,25 @@ export function AuthProvider({ children }) {
       throw new Error(data.error || 'Authentication failed.');
     }
 
-    localStorage.setItem(TOKEN_STORAGE_KEY, data.token);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(data.user));
+    setCookie(TOKEN_COOKIE_KEY, data.token, 7);
+    setCookie(USER_COOKIE_KEY, JSON.stringify(data.user), 7);
     setUser(data.user);
     return data.user;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem(TOKEN_STORAGE_KEY);
-    localStorage.removeItem(USER_STORAGE_KEY);
+    deleteCookie(TOKEN_COOKIE_KEY);
+    deleteCookie(USER_COOKIE_KEY);
+    try {
+      localStorage.removeItem('autoscrap_admin_token');
+      localStorage.removeItem('autoscrap_admin_user');
+    } catch (e) {}
   };
 
   const value = {
     user,
-    token: localStorage.getItem(TOKEN_STORAGE_KEY),
+    token: getCookie(TOKEN_COOKIE_KEY),
     isAuthenticated: !!user,
     loading,
     login,

@@ -65,7 +65,7 @@ export default function DeleteConfirmationModal({
             onClick={handleConfirm}
             className="rounded-xl bg-red-600 px-5 py-2.5 text-xs font-extrabold text-white shadow-md hover:bg-red-700 transition cursor-pointer disabled:opacity-50"
           >
-            {loading ? 'Deleting...' : 'Delete Account'}
+            {loading ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       </div>

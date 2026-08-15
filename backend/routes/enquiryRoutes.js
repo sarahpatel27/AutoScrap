@@ -12,6 +12,8 @@ const {
   updateBulkEnquiryStatus,
   deleteEnquiry,
   deleteManyEnquiries,
+  deleteHighValueEnquiry,
+  deleteManyHighValueEnquiries,
 } = require('../controllers/enquiryController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
@@ -24,6 +26,8 @@ router.get('/high-value', authenticateToken, getHighValueEnquiries);
 router.post('/high-value/bid', authenticateToken, placeDealerBid);
 router.post('/high-value/select-winner', authenticateToken, selectWinningDealer);
 router.post('/high-value/purchase', authenticateToken, markEnquiryPurchased);
+router.delete('/high-value/bulk-delete', authenticateToken, deleteManyHighValueEnquiries);
+router.delete('/high-value/:id', authenticateToken, deleteHighValueEnquiry);
 router.get('/past', authenticateToken, getPastEnquiries);
 router.patch('/bulk-status', authenticateToken, updateBulkEnquiryStatus);
 router.patch('/:id/status', authenticateToken, updateEnquiryStatus);

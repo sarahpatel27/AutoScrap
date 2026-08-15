@@ -1,10 +1,11 @@
 import { getCityFromPostcode } from '../utils/cityHelper';
 import { getApiUrl } from '../config/api';
+import { getCookie } from '../utils/cookieHelper';
 
-const TOKEN_STORAGE_KEY = 'autoscrap_admin_token';
+const TOKEN_COOKIE_KEY = 'autoscrap_admin_token';
 
 function getAuthHeaders(extraHeaders = {}) {
-  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  const token = getCookie(TOKEN_COOKIE_KEY);
   const headers = { ...extraHeaders };
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -79,13 +80,17 @@ export async function fetchPastEnquiries() {
     });
     if (res.ok) {
       const data = await res.json();
-      cachedPastEnquiries = data;
-      return data;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        cachedPastEnquiries = data.pastEnquiries || [];
+        return data;
+      }
+      cachedPastEnquiries = Array.isArray(data) ? data : [];
+      return { pastEnquiries: cachedPastEnquiries, pastHighValueEnquiries: [] };
     }
   } catch (err) {
     console.warn('Backend fetch error for past enquiries:', err);
   }
-  return cachedPastEnquiries;
+  return { pastEnquiries: cachedPastEnquiries, pastHighValueEnquiries: [] };
 }
 
 export async function fetchHighValueEnquiries() {
@@ -299,6 +304,37 @@ export async function deleteBulkEnquiries(ids) {
 
   cachedEnquiries = cachedEnquiries.filter((item) => !idSet.has(String(item.id)));
   return cachedEnquiries;
+}
+
+export async function deleteHighValueEnquiry(id) {
+  try {
+    const res = await fetch(getApiUrl(`/api/enquiries/high-value/${id}`), {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('Error deleting high-value enquiry from backend:', err);
+  }
+  return [];
+}
+
+export async function deleteBulkHighValueEnquiries(ids) {
+  try {
+    const res = await fetch(getApiUrl('/api/enquiries/high-value/bulk-delete'), {
+      method: 'DELETE',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ ids }),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('Error bulk deleting high-value enquiries from backend:', err);
+  }
+  return [];
 }
 
 export async function savePricingConfig(config) {
