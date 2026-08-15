@@ -5,6 +5,7 @@ import BulkStatusModal from './BulkStatusModal';
 import { showToast } from './ToastContainer';
 import { TARGET_CITIES, getCityFromPostcode } from '../../utils/cityHelper';
 import { useAuth } from '../../context/AuthContext';
+import { exportEnquiriesToExcel } from '../../utils/excelExporter';
 
 export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
@@ -124,6 +125,45 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
     setBulkDeleting(false);
   };
 
+  const handleExportData = () => {
+    try {
+      let recordsToExport = [];
+      if (selectedIds.length > 0) {
+        const idSet = new Set(selectedIds.map(String));
+        recordsToExport = filteredEnquiries.filter((item) => idSet.has(String(item.id)));
+      } else {
+        recordsToExport = filteredEnquiries;
+      }
+
+      if (recordsToExport.length === 0) {
+        showToast('No records available to export.', 'error');
+        return;
+      }
+
+      exportEnquiriesToExcel(recordsToExport, 'Vehicle_Enquiries');
+      showToast(`Exported ${recordsToExport.length} ${recordsToExport.length === 1 ? 'record' : 'records'} to Excel!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Export failed.', 'error');
+    }
+  };
+
+  const handleBulkExport = () => {
+    try {
+      const idSet = new Set(selectedIds.map(String));
+      const recordsToExport = filteredEnquiries.filter((item) => idSet.has(String(item.id)));
+
+      if (recordsToExport.length === 0) {
+        showToast('No selected records available to export.', 'error');
+        return;
+      }
+
+      exportEnquiriesToExcel(recordsToExport, `Selected_${recordsToExport.length}_Vehicle_Enquiries`);
+      showToast(`Exported ${recordsToExport.length} selected ${recordsToExport.length === 1 ? 'record' : 'records'} to Excel!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Export failed.', 'error');
+    }
+  };
+
   const getBadgeClass = (status) => {
     switch (status) {
       case 'Pending':
@@ -184,6 +224,16 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
               className="rounded-xl bg-[#0f7b4f] px-3.5 py-1.5 text-xs font-black text-white hover:bg-emerald-600 transition cursor-pointer active:scale-95 disabled:opacity-50"
             >
               🔄 Batch Update Status ({selectedIds.length})
+            </button>
+
+            <button
+              type="button"
+              onClick={handleBulkExport}
+              disabled={bulkUpdating || bulkDeleting}
+              className="rounded-xl bg-emerald-700/90 border border-emerald-500/40 px-3.5 py-1.5 text-xs font-black text-white hover:bg-emerald-800 transition cursor-pointer active:scale-95 disabled:opacity-50"
+              title="Export selected records to Excel"
+            >
+              📊 Export ({selectedIds.length})
             </button>
 
             <button
@@ -302,24 +352,38 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
             </div>
           )}
 
-          {/* Search Input */}
-          <div className="relative w-full lg:w-72">
-            <span className="absolute left-3.5 top-2.5 text-sm text-gray-400">🔍</span>
-            <input
-              type="text"
-              placeholder="Search reg, ref, postcode..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full rounded-xl border border-gray-300 bg-gray-50 py-2 pl-9 pr-8 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:shadow-[0_0_0_3px_rgba(15,123,79,0.1)]"
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-2.5 text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
-              >
-                ✕
-              </button>
-            )}
+          {/* Search Input & Always Visible Export Data Button */}
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <div className="relative w-full lg:w-72">
+              <span className="absolute left-3.5 top-2.5 text-sm text-gray-400">🔍</span>
+              <input
+                type="text"
+                placeholder="Search reg, ref, postcode..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full rounded-xl border border-gray-300 bg-gray-50 py-2 pl-9 pr-8 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:shadow-[0_0_0_3px_rgba(15,123,79,0.1)] font-medium"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-2.5 text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExportData}
+              className="rounded-xl border border-emerald-600/30 bg-[#0f7b4f] px-3.5 py-2 text-xs font-black text-white hover:bg-[#075b3a] transition shadow-xs cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 active:scale-95"
+              title={selectedIds.length > 0 ? `Export ${selectedIds.length} selected records to Excel` : 'Export all enquiry records to Excel'}
+            >
+              <span>📊</span>
+              <span>
+                {selectedIds.length > 0 ? `Export Data (${selectedIds.length})` : 'Export Data'}
+              </span>
+            </button>
           </div>
         </div>
       </div>

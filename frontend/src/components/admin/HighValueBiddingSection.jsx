@@ -3,6 +3,7 @@ import HighValueEnquiryDetailModal from './HighValueEnquiryDetailModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { deleteHighValueEnquiry } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
+import { exportEnquiriesToExcel } from '../../utils/excelExporter';
 
 export default function HighValueBiddingSection({ enquiries = [], onWinnerSelected, onDeleteHVEnquiry, readOnly = false }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,6 +45,19 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
     }
   };
 
+  const handleExportHVData = () => {
+    try {
+      if (filteredEnquiries.length === 0) {
+        showToast('No high-value records available to export.', 'error');
+        return;
+      }
+      exportEnquiriesToExcel(filteredEnquiries, 'High_Value_Enquiries');
+      showToast(`Exported ${filteredEnquiries.length} high-value records to Excel!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Export failed.', 'error');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -71,15 +85,27 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
       {/* Filter & Search Bar */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs">
-        <div className="relative w-full sm:w-80">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search reg, make, model, customer..."
-            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/20 font-medium"
-          />
-          <span className="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+        <div className="flex items-center gap-2 w-full sm:w-auto flex-1 max-w-lg">
+          <div className="relative w-full">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search reg, make, model, customer..."
+              className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/20 font-medium"
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleExportHVData}
+            className="rounded-xl border border-emerald-600/30 bg-[#0f7b4f] px-3.5 py-2 text-xs font-black text-white hover:bg-[#075b3a] transition shadow-xs cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 active:scale-95"
+            title="Export high-value enquiry records to Excel"
+          >
+            <span>📊</span>
+            <span>Export Data</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">

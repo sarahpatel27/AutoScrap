@@ -18,6 +18,7 @@
     "react-router": "latest",
     "tailwindcss": "^4.3.3",
     "typescript": "latest",
-    "vite": "latest"
+    "vite": "latest",
+    "xlsx": "^0.18.5"
   }
 }
