@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { selectWinnerDealer } from '../../services/adminStore';
+import { showToast } from './ToastContainer';
 
 export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinnerSelected }) {
   const [activePhoto, setActivePhoto] = useState(null);
@@ -22,13 +23,17 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
     try {
       setSelectingWinnerId(bidId);
       const res = await selectWinnerDealer(enquiry.id, bidId);
-      setWinnerSuccess(res.message || 'Winning dealer selected successfully.');
+      const msg = res.message || 'Winning dealer selected successfully.';
+      setWinnerSuccess(msg);
+      showToast(msg, 'success');
 
       if (onWinnerSelected) {
         onWinnerSelected();
       }
     } catch (err) {
-      setWinnerError(err.message || 'Failed to select winning dealer.');
+      const errMsg = err.message || 'Failed to select winning dealer.';
+      setWinnerError(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setSelectingWinnerId(null);
     }

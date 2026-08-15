@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { submitDealerBid, markEnquiryAsPurchased } from '../../services/adminStore';
+import { showToast } from './ToastContainer';
 
 export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,7 +11,6 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
   const [bidAmountInput, setBidAmountInput] = useState('');
   const [biddingLoading, setBiddingLoading] = useState(false);
   const [biddingError, setBiddingError] = useState('');
-  const [toastMessage, setToastMessage] = useState('');
 
   const filteredEnquiries = enquiries.filter((item) => {
     if (!searchTerm) return true;
@@ -34,7 +34,9 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
     const targetPrice = Number(item.customerExpectedValue || item.estimatedValue);
 
     if (!targetPrice || isNaN(targetPrice) || targetPrice <= 0) {
-      setBiddingError('Invalid customer price to accept.');
+      const errMsg = 'Invalid customer price to accept.';
+      setBiddingError(errMsg);
+      showToast(errMsg, 'error');
       return;
     }
 
@@ -43,11 +45,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
       const res = await submitDealerBid(item.id, targetPrice);
 
       const successToast = res.message || `Your bid of £${targetPrice.toLocaleString('en-GB')} matching customer expected price has been submitted successfully.`;
-      setToastMessage(successToast);
-
-      setTimeout(() => {
-        setToastMessage('');
-      }, 5000);
+      showToast(successToast, 'success');
 
       setSelectedEnquiry(null);
 
@@ -55,7 +53,9 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
         onBidSubmitted();
       }
     } catch (err) {
-      setBiddingError(err.message || 'Failed to submit bid.');
+      const errMsg = err.message || 'Failed to submit bid.';
+      setBiddingError(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setBiddingLoading(false);
     }
@@ -69,7 +69,9 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
 
     const num = Number(bidAmountInput);
     if (!bidAmountInput || isNaN(num) || num <= 0) {
-      setBiddingError('Please enter a valid positive GBP bid amount (greater than £0).');
+      const errMsg = 'Please enter a valid positive GBP bid amount (greater than £0).';
+      setBiddingError(errMsg);
+      showToast(errMsg, 'error');
       return;
     }
 
@@ -78,11 +80,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
       const res = await submitDealerBid(selectedEnquiry.id, num);
 
       const successToast = res.message || `Your bid of £${num.toLocaleString('en-GB')} has been submitted successfully.`;
-      setToastMessage(successToast);
-
-      setTimeout(() => {
-        setToastMessage('');
-      }, 5000);
+      showToast(successToast, 'success');
 
       setSelectedEnquiry(null);
 
@@ -90,7 +88,9 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
         onBidSubmitted();
       }
     } catch (err) {
-      setBiddingError(err.message || 'Failed to submit bid.');
+      const errMsg = err.message || 'Failed to submit bid.';
+      setBiddingError(errMsg);
+      showToast(errMsg, 'error');
     } finally {
       setBiddingLoading(false);
     }
@@ -98,14 +98,6 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
 
   return (
     <div className="space-y-6 font-['DM_Sans',sans-serif]">
-      {/* Toast Notification Banner */}
-      {toastMessage && (
-        <div className="fixed top-20 right-6 z-60 max-w-md animate-bounce rounded-2xl border border-emerald-300 bg-emerald-900 p-4 text-white shadow-2xl flex items-center gap-3">
-          <span className="text-xl">✅</span>
-          <span className="text-xs font-extrabold">{toastMessage}</span>
-        </div>
-      )}
-
       {/* Territory Opportunity Banner */}
       <div className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-900 p-6 text-white shadow-lg">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -504,11 +496,13 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                       onClick={async () => {
                         try {
                           await markEnquiryAsPurchased(selectedEnquiry.id);
-                          setToastMessage('Vehicle marked as PURCHASED & completed successfully!');
+                          showToast('Vehicle marked as PURCHASED & completed successfully!', 'success');
                           setSelectedEnquiry(null);
                           if (onBidSubmitted) onBidSubmitted();
                         } catch (err) {
-                          setBiddingError(err.message || 'Failed to mark as purchased.');
+                          const errMsg = err.message || 'Failed to mark as purchased.';
+                          setBiddingError(errMsg);
+                          showToast(errMsg, 'error');
                         }
                       }}
                       className="rounded-xl bg-[#dff46b] px-4 py-2 text-xs font-black text-[#082d1c] shadow-md hover:bg-yellow-300 transition cursor-pointer"
