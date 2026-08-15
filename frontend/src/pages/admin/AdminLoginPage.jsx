@@ -13,13 +13,13 @@ export default function AdminLoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const from = location.state?.from?.pathname || '/admin/dashboard';
+  const defaultDestination = '/admin/dashboard';
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true });
+      navigate(defaultDestination, { replace: true });
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
 
     try {
       await login(email, password, selectedCity || null);
-      navigate(from, { replace: true });
+      navigate(defaultDestination, { replace: true });
     } catch (err) {
       setError(err.message || 'Invalid credentials.');
     } finally {

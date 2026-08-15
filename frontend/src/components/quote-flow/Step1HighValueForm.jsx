@@ -8,6 +8,7 @@ import {
   alertErrorClass,
 } from './constants';
 import { getCityFromPostcode } from '../../utils/cityHelper';
+import { showToast } from '../admin/ToastContainer';
 
 export const VEHICLE_CONDITIONS = [
   { value: 'Excellent', label: 'Excellent', description: 'Clean bodywork, smooth engine, full service history', icon: '✨' },
@@ -33,6 +34,9 @@ export default function Step1HighValueForm({
 
   // Base estimated value calculated or default
   const estimatedValue = Number(data.quote?.finalValue || data.estimatedValue || 1250);
+
+  const [imageError, setImageError] = useState(false);
+  const hasVehicleImage = vehicle.imageUrl && !imageError;
 
   // Form State
   const [mileage, setMileage] = useState(data.mileage || '');
@@ -60,31 +64,20 @@ export default function Step1HighValueForm({
 
   // Mileage Validation
   const handleMileageChange = (e) => {
-    const val = e.target.value.replace(/\D/g, '');
-    setMileage(val);
-    update('mileage', val);
-
-    if (val && (Number(val) < 0 || Number(val) > 999999)) {
-      setMileageError('Please enter a valid mileage between 0 and 999,999.');
-    } else {
-      setMileageError('');
+    const val = e.target.value;
+    if (val === '' || /^\d+$/.test(val)) {
+      setMileage(val);
+      update('mileage', val ? Number(val) : '');
+      if (mileageError) setMileageError('');
     }
   };
 
   // Custom Value Validation
   const handleCustomValueChange = (e) => {
-    const rawVal = e.target.value.replace(/[^0-9.]/g, '');
-    setCustomValue(rawVal);
-
-    if (valuePreference === 'CUSTOM_VALUE') {
-      const num = Number(rawVal);
-      if (!rawVal || isNaN(num) || num <= 0) {
-        setCustomValueError('Please enter a valid positive GBP amount (greater than £0).');
-      } else if (num > 100000) {
-        setCustomValueError('Please enter a realistic expected value under £100,000.');
-      } else {
-        setCustomValueError('');
-      }
+    const val = e.target.value;
+    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+      setCustomValue(val);
+      if (customValueError) setCustomValueError('');
     }
   };
 
@@ -99,20 +92,20 @@ export default function Step1HighValueForm({
 
   // Postcode Validation
   const handlePostcodeChange = (e) => {
-    const formatted = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
-    setPostcode(formatted);
-    updateCustomer('collectionPostcode', formatted);
-    update('postcode', formatted);
+    const val = e.target.value.toUpperCase();
+    setPostcode(val);
+    update('postcode', val);
+    updateCustomer('collectionPostcode', val);
 
-    if (formatted.length >= 4 && !ukPostcodeRegex.test(formatted.trim())) {
-      setPostcodeError('Please enter a valid UK postcode (e.g. SW1A 1AA or M1 1AA).');
+    if (val.trim() && !ukPostcodeRegex.test(val.trim())) {
+      setPostcodeError('Please enter a valid UK postcode (e.g. SW1A 1AA)');
     } else {
       setPostcodeError('');
     }
   };
 
   // Photo Upload Handler with validation (Max 8 images, max 10MB each)
-  const handlePhotoUpload = (e) => {
+  const handlePhotoUpload = async (e) => {
     setPhotoError('');
     const files = Array.from(e.target.files || []);
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -120,33 +113,77 @@ export default function Step1HighValueForm({
     const maxSizeBytes = 10 * 1024 * 1024; // 10MB
 
     if (photos.length + files.length > maxFiles) {
-      setPhotoError(`You can upload a maximum of ${maxFiles} photos.`);
+      const msg = `You can upload a maximum of ${maxFiles} photos.`;
+      setPhotoError(msg);
+      showToast(msg, 'error');
       return;
     }
 
-    const validNewPhotos = [];
-    for (const file of files) {
-      if (!allowedTypes.includes(file.type.toLowerCase())) {
-        setPhotoError('Invalid format. Please upload JPG, JPEG, PNG, or WEBP images.');
-        return;
-      }
-      if (file.size > maxSizeBytes) {
-        setPhotoError(`File "${file.name}" exceeds the 10MB size limit.`);
-        return;
-      }
-
-      validNewPhotos.push({
-        id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        name: file.name,
-        size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-        previewUrl: URL.createObjectURL(file),
-        file,
+    const readFileAsCompressedDataURL = (file, maxDimension = 1200, quality = 0.8) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let { width, height } = img;
+            if (width > maxDimension || height > maxDimension) {
+              if (width > height) {
+                height = Math.round((height * maxDimension) / width);
+                width = maxDimension;
+              } else {
+                width = Math.round((width * maxDimension) / height);
+                height = maxDimension;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', quality));
+          };
+          img.onerror = (err) => reject(err);
+          img.src = e.target.result;
+        };
+        reader.onerror = (err) => reject(err);
+        reader.readAsDataURL(file);
       });
-    }
+    };
 
-    const updatedPhotos = [...photos, ...validNewPhotos];
-    setPhotos(updatedPhotos);
-    update('photos', updatedPhotos);
+    try {
+      const validNewPhotos = [];
+      for (const file of files) {
+        if (!allowedTypes.includes(file.type.toLowerCase())) {
+          const msg = 'Invalid format. Please upload JPG, JPEG, PNG, or WEBP images.';
+          setPhotoError(msg);
+          showToast(msg, 'error');
+          return;
+        }
+        if (file.size > maxSizeBytes) {
+          const msg = `File "${file.name}" exceeds the 10MB size limit.`;
+          setPhotoError(msg);
+          showToast(msg, 'error');
+          return;
+        }
+
+        const base64Url = await readFileAsCompressedDataURL(file);
+        validNewPhotos.push({
+          id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          name: file.name,
+          size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
+          url: base64Url,
+          previewUrl: base64Url,
+        });
+      }
+
+      const updatedPhotos = [...photos, ...validNewPhotos];
+      setPhotos(updatedPhotos);
+      update('photos', updatedPhotos);
+    } catch (err) {
+      const msg = 'Failed to process image file. Please try again.';
+      setPhotoError(msg);
+      showToast(msg, 'error');
+    }
   };
 
   const handleRemovePhoto = (photoId) => {
@@ -158,35 +195,84 @@ export default function Step1HighValueForm({
   const handleSubmit = (e) => {
     e.preventDefault();
     if (setError) setError('');
+    setMileageError('');
+    setPhotoError('');
+    setCustomValueError('');
+    setPostcodeError('');
 
-    // Validations
-    if (!mileage || isNaN(Number(mileage)) || Number(mileage) <= 0) {
-      setMileageError('Please enter a valid positive vehicle mileage.');
-      return;
-    }
+    const missingFields = [];
+    let firstErrorElementId = null;
 
-    // Custom Value Validation
+    // 1. Custom Value Validation
     let customerExpectedValue = estimatedValue;
     if (valuePreference === 'CUSTOM_VALUE') {
       const num = Number(customValue);
       if (!customValue || isNaN(num) || num <= 0) {
-        setCustomValueError('Please enter a valid positive expected value greater than £0.');
-        return;
+        const msg = 'Please enter a valid positive expected value greater than £0.';
+        setCustomValueError(msg);
+        missingFields.push('Expected Asking Price');
+        if (!firstErrorElementId) firstErrorElementId = 'field-custom-value';
+      } else if (num > 100000) {
+        const msg = 'Please enter a realistic expected value under £100,000.';
+        setCustomValueError(msg);
+        missingFields.push('Expected Asking Price under £100,000');
+        if (!firstErrorElementId) firstErrorElementId = 'field-custom-value';
+      } else {
+        customerExpectedValue = num;
       }
-      if (num > 100000) {
-        setCustomValueError('Please enter a realistic expected value under £100,000.');
-        return;
-      }
-      customerExpectedValue = num;
     }
 
+    // 2. Mileage Validation
+    if (!mileage || isNaN(Number(mileage)) || Number(mileage) <= 0) {
+      setMileageError('Please enter a valid positive vehicle mileage.');
+      missingFields.push('Vehicle Mileage');
+      if (!firstErrorElementId) firstErrorElementId = 'field-mileage';
+    }
+
+    // 3. Vehicle Photos Validation (Required)
+    if (!photos || photos.length === 0) {
+      setPhotoError('Please upload at least 1 clear photo of your vehicle.');
+      missingFields.push('Vehicle Photos (1 photo min)');
+      if (!firstErrorElementId) firstErrorElementId = 'field-photos';
+    }
+
+    // 4. Postcode Validation
     if (!postcode || !ukPostcodeRegex.test(postcode.trim())) {
       setPostcodeError('Please provide a valid UK collection postcode.');
-      return;
+      missingFields.push('Collection UK Postcode');
+      if (!firstErrorElementId) firstErrorElementId = 'field-postcode';
     }
 
-    if (!customer.fullName || !customer.phone || !customer.email) {
-      if (setError) setError('Please complete your name, phone number, and email address.');
+    // 5. Contact Info Validation
+    if (!customer.fullName || !customer.fullName.trim()) {
+      missingFields.push('Full Name');
+      if (!firstErrorElementId) firstErrorElementId = 'field-fullname';
+    }
+
+    if (!customer.phone || !customer.phone.trim()) {
+      missingFields.push('Phone Number');
+      if (!firstErrorElementId) firstErrorElementId = 'field-phone';
+    }
+
+    if (!customer.email || !customer.email.trim()) {
+      missingFields.push('Email Address');
+      if (!firstErrorElementId) firstErrorElementId = 'field-email';
+    }
+
+    // Handle Unfilled / Invalid Fields
+    if (missingFields.length > 0) {
+      const toastMessage = `Please complete required field(s): ${missingFields.join(', ')}`;
+      showToast(toastMessage, 'error', 4500);
+
+      if (firstErrorElementId) {
+        const targetElement = document.getElementById(firstErrorElementId);
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (typeof targetElement.focus === 'function') {
+            setTimeout(() => targetElement.focus(), 300);
+          }
+        }
+      }
       return;
     }
 
@@ -205,7 +291,7 @@ export default function Step1HighValueForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form noValidate onSubmit={handleSubmit} className="space-y-6">
       <StepHeading number="2" title="High-Value Vehicle Valuation Form">
         Complete vehicle condition details & photos for high-value valuation.
       </StepHeading>
@@ -228,8 +314,8 @@ export default function Step1HighValueForm({
       </div>
 
       {/* Pre-populated Vehicle Information */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-        <div className="flex items-center justify-between mb-3 border-b border-slate-200/80 pb-2">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
           <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
             Retrieved Vehicle Details (Pre-filled)
           </h5>
@@ -237,22 +323,42 @@ export default function Step1HighValueForm({
             ✓ UKVD Verified
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
-          <div>
-            <span className="block text-xs text-slate-500 font-medium">Registration</span>
-            <strong className="font-mono text-slate-900 text-base">{data.registration || vehicle.registration}</strong>
-          </div>
-          <div>
-            <span className="block text-xs text-slate-500 font-medium">Make & Model</span>
-            <strong className="text-slate-900">{vehicle.make} {vehicle.model}</strong>
-          </div>
-          <div>
-            <span className="block text-xs text-slate-500 font-medium">Year</span>
-            <strong className="text-slate-900">{vehicle.year}</strong>
-          </div>
-          <div>
-            <span className="block text-xs text-slate-500 font-medium">Fuel & Engine</span>
-            <strong className="text-slate-900">{vehicle.fuelType || 'N/A'} {vehicle.engineSize || ''}</strong>
+
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+          {hasVehicleImage ? (
+            <img
+              src={vehicle.imageUrl}
+              alt={`${vehicle.make || ''} ${vehicle.model || ''}`}
+              onError={() => setImageError(true)}
+              className="h-[100px] w-[140px] shrink-0 rounded-[14px]   p-1"
+            />
+          ) : (
+            <div className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[14px] bg-[#edf7f2] text-4xl shadow-inner">
+              🚗
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <div className="mb-1.5 inline-flex items-center overflow-hidden rounded-md border border-amber-300 bg-[#f6cf3c] font-mono text-sm font-black text-black shadow-xs">
+              <span className="bg-[#003399] px-2 py-1 text-[10px] font-bold text-white flex flex-col items-center leading-none select-none">
+                <span className="text-yellow-300 text-[8px]">★</span>
+                UK
+              </span>
+              <span className="px-3 py-1 tracking-[0.14em]">
+                {data.registration || vehicle.registration}
+              </span>
+            </div>
+
+            <h3 className="mt-1 mb-1 text-[1.25rem] font-extrabold text-slate-900 leading-tight">
+              {vehicle.year ? `${vehicle.year} ` : ''}{vehicle.make} {vehicle.model}
+            </h3>
+
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-3 gap-y-1 text-xs font-semibold text-slate-600">
+              {vehicle.fuelType && <span>{vehicle.fuelType}</span>}
+              {vehicle.engineSize && <span>• {vehicle.engineSize}</span>}
+              {vehicle.colour && <span>• {vehicle.colour}</span>}
+              {vehicle.year && <span>• Registered {vehicle.year}</span>}
+            </div>
           </div>
         </div>
       </div>
@@ -335,6 +441,7 @@ export default function Step1HighValueForm({
                     £
                   </span>
                   <input
+                    id="field-custom-value"
                     className={`${inputClass} pl-8 font-extrabold text-slate-900`}
                     type="text"
                     inputMode="numeric"
@@ -342,7 +449,6 @@ export default function Step1HighValueForm({
                     onChange={handleCustomValueChange}
                     placeholder="e.g. 1400"
                     autoFocus
-                    required
                   />
                 </div>
                 {customValueError && (
@@ -359,13 +465,13 @@ export default function Step1HighValueForm({
         <label className={labelClass}>
           Current Mileage (Miles) *
           <input
+            id="field-mileage"
             className={inputClass}
             type="text"
             inputMode="numeric"
             value={mileage}
             onChange={handleMileageChange}
             placeholder="e.g. 45000"
-            required
           />
         </label>
         {mileageError && <p className="mt-1 text-xs text-red-600 font-semibold">{mileageError}</p>}
@@ -407,9 +513,9 @@ export default function Step1HighValueForm({
       </div>
 
       {/* Vehicle Photos Upload */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+      <div id="field-photos" className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
         <label className="block text-sm font-bold text-slate-900 mb-1">
-          Vehicle Photos (Optional)
+          Vehicle Photos <span className="text-red-600 font-bold">* (At least 1 required)</span>
         </label>
         <p className="text-xs text-slate-500 mb-3">
           Upload clear photos (front, rear, interior, any damage). Supported formats: JPG, JPEG, PNG, WEBP (Max 8 photos, 10MB each).
@@ -461,11 +567,11 @@ export default function Step1HighValueForm({
         <label className={labelClass}>
           Collection UK Postcode *
           <input
+            id="field-postcode"
             className={inputClass}
             value={postcode}
             onChange={handlePostcodeChange}
             placeholder="e.g. SW1A 1AA or M1 1AA"
-            required
           />
         </label>
         {postcodeError && <p className="mt-1 text-xs text-red-600 font-semibold">{postcodeError}</p>}
@@ -485,23 +591,23 @@ export default function Step1HighValueForm({
           <label className={labelClass}>
             Full Name *
             <input
+              id="field-fullname"
               className={inputClass}
               value={customer.fullName}
               onChange={(e) => updateCustomer('fullName', e.target.value)}
               placeholder="John Smith"
-              required
             />
           </label>
 
           <label className={labelClass}>
             Phone Number *
             <input
+              id="field-phone"
               className={inputClass}
               type="tel"
               value={customer.phone}
               onChange={(e) => updateCustomer('phone', e.target.value)}
               placeholder="07123 456789"
-              required
             />
           </label>
         </div>
@@ -509,12 +615,12 @@ export default function Step1HighValueForm({
         <label className={labelClass}>
           Email Address *
           <input
+            id="field-email"
             className={inputClass}
             type="email"
             value={customer.email}
             onChange={(e) => updateCustomer('email', e.target.value)}
             placeholder="john@example.com"
-            required
           />
         </label>
       </div>

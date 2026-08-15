@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router';
+import { Route, Routes, Navigate } from 'react-router';
 
 import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
@@ -26,6 +26,7 @@ export default function App() {
             <Routes>
                 {/* Admin Auth Route (Public to allow login) */}
                 <Route path="/admin/login" element={<AdminLoginPage />} />
+                <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
 
                 {/* Protected Admin Routes (Requires authentication) */}
                 <Route

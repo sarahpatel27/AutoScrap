@@ -90,7 +90,7 @@ export default function Step2QuoteDisplay({
             setStep(2);
           }}
         >
-          Accept £{data.quote.finalValue} and Arrange a Collection →
+          Accept £{data.quote.finalValue} and Arrange a Collection
         </button>
         <button
           type="button"
