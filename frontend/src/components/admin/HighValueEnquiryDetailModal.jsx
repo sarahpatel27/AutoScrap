@@ -1,14 +1,12 @@
 import { useState } from 'react';
-import { selectWinnerDealer, deleteHighValueEnquiry } from '../../services/adminStore';
+import { selectWinnerDealer } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
-import DeleteConfirmationModal from './DeleteConfirmationModal';
 
-export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinnerSelected, onDeleteHVEnquiry, readOnly = false }) {
+export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinnerSelected }) {
   const [activePhoto, setActivePhoto] = useState(null);
   const [selectingWinnerId, setSelectingWinnerId] = useState(null);
   const [winnerError, setWinnerError] = useState('');
   const [winnerSuccess, setWinnerSuccess] = useState('');
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   if (!enquiry) return null;
 
@@ -276,18 +274,7 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
         </div>
 
         {/* Modal Actions */}
-        <div className="flex justify-between items-center pt-2 border-t border-gray-200">
-          <div>
-            {!readOnly && onDeleteHVEnquiry && (
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmOpen(true)}
-                className="rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs font-extrabold text-red-700 hover:bg-red-600 hover:text-white transition cursor-pointer"
-              >
-                🗑️ Delete
-              </button>
-            )}
-          </div>
+        <div className="flex justify-end pt-2 border-t border-gray-200">
           <button
             type="button"
             onClick={onClose}
@@ -311,29 +298,6 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
           />
         </div>
       )}
-
-      {/* Delete Confirmation Modal Overlay */}
-      <DeleteConfirmationModal
-        isOpen={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-        title={`Delete High-Value Enquiry #${enquiry?.reference}?`}
-        subtitle="High-Value Vehicle Bidding Record"
-        warningText={`High-value vehicle enquiry #${enquiry?.reference} (${enquiry?.make || ''} ${enquiry?.model || ''}) will be removed from active operations and safely stored under Past Enquiries for record-keeping.`}
-        onConfirm={async () => {
-          try {
-            await deleteHighValueEnquiry(enquiry.id);
-            showToast(`Enquiry #${enquiry.reference} deleted & archived to Past Enquiries!`, 'success');
-            onClose();
-            if (onDeleteHVEnquiry) {
-              onDeleteHVEnquiry();
-            } else if (onWinnerSelected) {
-              onWinnerSelected();
-            }
-          } catch (err) {
-            showToast(err.message || 'Failed to delete high-value enquiry.', 'error');
-          }
-        }}
-      />
     </div>
   );
 }

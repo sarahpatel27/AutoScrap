@@ -437,9 +437,29 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                         📞
                       </a>
                     )}
-                    <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-800 hover:bg-slate-200 transition flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(ev) => {
+                        ev.stopPropagation();
+                        setSelectedEnquiry(e);
+                      }}
+                      className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-800 hover:bg-slate-200 transition flex items-center gap-1 cursor-pointer"
+                    >
                       Details →
-                    </span>
+                    </button>
+                    {!readOnly && (
+                      <button
+                        type="button"
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          openSingleDeleteModal(e.id);
+                        }}
+                        className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-extrabold text-red-700 hover:bg-red-600 hover:text-white transition cursor-pointer"
+                        title="Delete enquiry record"
+                      >
+                        🗑️
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -565,13 +585,25 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                     </td>
 
                     <td className="px-5 py-4 text-right whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedEnquiry(e)}
-                        className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-extrabold text-gray-700 shadow-2xs hover:border-[#0f7b4f] hover:text-[#0f7b4f] cursor-pointer"
-                      >
-                        View Details
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedEnquiry(e)}
+                          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-extrabold text-gray-700 shadow-2xs hover:border-[#0f7b4f] hover:text-[#0f7b4f] cursor-pointer"
+                        >
+                          View Details
+                        </button>
+                        {!readOnly && (
+                          <button
+                            type="button"
+                            onClick={() => openSingleDeleteModal(e.id)}
+                            className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-extrabold text-red-700 shadow-2xs hover:bg-red-600 hover:text-white transition cursor-pointer"
+                            title="Delete enquiry record"
+                          >
+                            🗑️ Delete
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
