@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
+import { lookupAddress } from '../services/mockApi';
 
 const eyebrowClass =
     'mb-4 inline-block text-xs font-extrabold uppercase tracking-[0.16em] text-[#0f7b4f]';
@@ -10,8 +11,9 @@ export default function PostcodeCheckerForm() {
     const [postcode, setPostcode] = useState('');
     const [result, setResult] = useState('');
     const [resultType, setResultType] = useState('');
+    const [loading, setLoading] = useState(false);
 
-    const checkPostcode = (event) => {
+    const checkPostcode = async (event) => {
         event.preventDefault();
 
         const cleanedPostcode = postcode.trim();
@@ -28,10 +30,33 @@ export default function PostcodeCheckerForm() {
             return;
         }
 
-        setResult(
-            `Great news! We may be able to collect a vehicle from ${cleanedPostcode}. Request a quote to confirm availability.`,
-        );
-        setResultType('success');
+        try {
+            setLoading(true);
+            setResult('');
+            setResultType('');
+
+            const data = await lookupAddress(cleanedPostcode);
+
+            if (data.isSupported && data.addresses && data.addresses.length > 0) {
+                const matchedLocation = data.matchedServiceArea || data.postTown || cleanedPostcode;
+                setResult(
+                    `Great news! We collect scrap vehicles from ${matchedLocation} (${data.postcode || cleanedPostcode}). Request a quote to get started.`,
+                );
+                setResultType('success');
+            } else {
+                setResult("Sorry, we don't currently collect vehicles from this area.");
+                setResultType('error');
+            }
+        } catch (err) {
+            if (err.type === 'NOT_FOUND') {
+                setResult(`Sorry, We don't currently collect vehicles from ${cleanedPostcode}`);
+            } else {
+                setResult("We couldn't check your postcode right now. Please try again.");
+            }
+            setResultType('error');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -47,7 +72,7 @@ export default function PostcodeCheckerForm() {
 
             <p className="mb-5 leading-[1.6] text-gray-500">
                 Enter your vehicle collection postcode to check whether our
-                collection network may cover your area.
+                collection network covers your area.
             </p>
 
             <label
@@ -63,6 +88,7 @@ export default function PostcodeCheckerForm() {
                     id="coverage-postcode"
                     type="text"
                     value={postcode}
+                    disabled={loading}
                     onChange={(event) => {
                         setPostcode(event.target.value.toUpperCase());
                         setResult('');
@@ -75,14 +101,15 @@ export default function PostcodeCheckerForm() {
                 <button
                     className={`${primaryButtonClass} w-full sm:w-auto`}
                     type="submit"
+                    disabled={loading}
                 >
-                    Check Coverage
+                    {loading ? 'Checking...' : 'Check Coverage'}
                 </button>
             </div>
 
             {result && (
                 <div
-                    className={`mt-3.5 rounded-[10px] px-[15px] py-[13px] leading-normal ${
+                    className={`mt-3.5 rounded-[10px] px-[15px] py-[13px] leading-normal font-semibold ${
                         resultType === 'success'
                             ? 'border border-[#c9e8d8] bg-[#edf7f2] text-[#175c40]'
                             : 'border border-red-200 bg-red-50 text-red-800'
