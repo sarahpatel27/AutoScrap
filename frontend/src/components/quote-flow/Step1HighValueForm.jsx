@@ -259,6 +259,11 @@ export default function Step1HighValueForm({
       if (!firstErrorElementId) firstErrorElementId = 'field-email';
     }
 
+    if (!customer.collectionAddress || !customer.collectionAddress.trim()) {
+      missingFields.push('Collection Address');
+      if (!firstErrorElementId) firstErrorElementId = 'field-address';
+    }
+
     // Handle Unfilled / Invalid Fields
     if (missingFields.length > 0) {
       const toastMessage = `Please complete required field(s): ${missingFields.join(', ')}`;
@@ -297,11 +302,9 @@ export default function Step1HighValueForm({
       </StepHeading>
 
       {/* High Value Badge / Banner */}
-      <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-5 text-amber-950 shadow-xs">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-2 text-amber-950 shadow-xs -mt-4">
         <div className="flex items-start gap-3.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 font-bold text-white shadow-sm">
-            ⭐
-          </div>
+          
           <div>
             <h4 className="font-extrabold text-amber-900 text-base">
               High-Value Vehicle Detected ({vehicle.year})
@@ -621,6 +624,67 @@ export default function Step1HighValueForm({
             value={customer.email}
             onChange={(e) => updateCustomer('email', e.target.value)}
             placeholder="john@example.com"
+          />
+        </label>
+
+        <label className={labelClass}>
+          Collection Address *
+          {((data?.addresses && data.addresses.length > 0) || (data?.addressList && data.addressList.length > 0)) ? (
+            <select
+              id="field-address"
+              className={inputClass}
+              value={
+                (data.addresses || data.addressList).find(
+                  (a) => a.summaryAddress === customer.collectionAddress
+                )?.udprn || ''
+              }
+              onChange={(event) => {
+                const selectedUdprn = event.target.value;
+                const addressOptions = data.addresses || data.addressList || [];
+                const found = addressOptions.find(
+                  (item) => String(item.udprn) === selectedUdprn
+                );
+                if (found) {
+                  updateCustomer('collectionAddress', found.summaryAddress);
+                  updateCustomer('collectionAddressUdprn', found.udprn);
+                } else {
+                  updateCustomer('collectionAddress', '');
+                  updateCustomer('collectionAddressUdprn', null);
+                }
+              }}
+            >
+              <option value="">Select your collection address</option>
+              {(data.addresses || data.addressList).map((address) => (
+                <option key={address.udprn || address.summaryAddress} value={address.udprn}>
+                  {address.summaryAddress}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              id="field-address"
+              className={inputClass}
+              value={customer.collectionAddress || ''}
+              onChange={(event) =>
+                updateCustomer('collectionAddress', event.target.value)
+              }
+              placeholder="House name/number, street name, town"
+              autoComplete="street-address"
+              maxLength={120}
+            />
+          )}
+        </label>
+
+        <label className={labelClass}>
+          Flat, house number or additional address details (Optional)
+          <input
+            className={inputClass}
+            value={customer.additionalAddressDetails || ''}
+            onChange={(event) =>
+              updateCustomer('additionalAddressDetails', event.target.value)
+            }
+            placeholder="e.g. Flat 3B, House 12, Gate Code or access instructions"
+            maxLength={120}
           />
         </label>
       </div>

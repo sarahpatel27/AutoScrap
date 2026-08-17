@@ -1,6 +1,8 @@
 export const initial = {
   registration: '',
   postcode: '',
+  postTown: '',
+  addresses: [],
   mileage: '',
   vehicle: null,
 
@@ -17,6 +19,8 @@ export const initial = {
     email: '',
     collectionPostcode: '',
     collectionAddress: '',
+    collectionAddressUdprn: null,
+    additionalAddressDetails: '',
     preferredContact: 'phone',
     notes: '',
     privacy: false,

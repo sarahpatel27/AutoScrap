@@ -541,6 +541,24 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                   </div>
                 </div>
 
+                {/* Collection Address & Additional Address Details */}
+                <div className="rounded-xl bg-white/10 p-3.5 border border-white/20 space-y-2 text-xs">
+                  <div>
+                    <span className="text-emerald-300 block font-bold text-[10px] uppercase">📍 Collection Address</span>
+                    <strong className="text-white text-sm block">
+                      {selectedEnquiry.customer?.collectionAddress || selectedEnquiry.address || selectedEnquiry.postcode}
+                    </strong>
+                  </div>
+                  {(selectedEnquiry.customer?.additionalAddressDetails || selectedEnquiry.additionalAddressDetails) && (
+                    <div>
+                      <span className="text-emerald-300 block font-bold text-[10px] uppercase">🏠 Flat / House / Additional Address Details</span>
+                      <strong className="text-[#dff46b] text-sm block">
+                        {selectedEnquiry.customer?.additionalAddressDetails || selectedEnquiry.additionalAddressDetails}
+                      </strong>
+                    </div>
+                  )}
+                </div>
+
                 {/* Customer Payment / Bank Details for Payout */}
                 {selectedEnquiry.bank && (selectedEnquiry.bank.accountNumber || selectedEnquiry.bank.sortCode) ? (
                   <div className="rounded-xl bg-slate-950/80 p-3.5 border border-emerald-400/40 space-y-2">
@@ -570,15 +588,30 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
               </div>
             ) : null}
 
-            {/* Vehicle Specs */}
-            <div className="rounded-xl bg-slate-50 p-4 space-y-2 text-xs">
-              <h5 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Vehicle Specifications</h5>
+            {/* Vehicle Specs & Location */}
+            <div className="rounded-xl bg-slate-50 p-4 space-y-3 text-xs">
+              <h5 className="font-bold text-slate-900 uppercase tracking-wider text-[11px]">Vehicle Specifications & Location</h5>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div><span className="text-slate-500 block">Registration</span><strong className="text-slate-900 font-mono">{selectedEnquiry.registration}</strong></div>
                 <div><span className="text-slate-500 block">Mileage</span><strong className="text-slate-900">{selectedEnquiry.mileage ? `${Number(selectedEnquiry.mileage).toLocaleString('en-GB')} mi` : 'N/A'}</strong></div>
                 <div><span className="text-slate-500 block">Condition</span><strong className="text-slate-900">{selectedEnquiry.condition}</strong></div>
-                <div><span className="text-slate-500 block">Location</span><strong className="text-slate-900">{selectedEnquiry.city || selectedEnquiry.area} ({selectedEnquiry.postcode})</strong></div>
+                <div><span className="text-slate-500 block">Location Area</span><strong className="text-slate-900">{selectedEnquiry.city || selectedEnquiry.area} ({selectedEnquiry.postcode})</strong></div>
               </div>
+
+              {selectedEnquiry.customerName !== '[Hidden Until Won]' && selectedEnquiry.customer?.collectionAddress && selectedEnquiry.customer?.collectionAddress !== '[Hidden Until Won]' && (
+                <div className="border-t border-slate-200 pt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-slate-500 block font-semibold">📍 Collection Address:</span>
+                    <strong className="text-slate-900 break-words">{selectedEnquiry.customer?.collectionAddress}</strong>
+                  </div>
+                  {selectedEnquiry.customer?.additionalAddressDetails && selectedEnquiry.customer?.additionalAddressDetails !== '[Hidden Until Won]' && (
+                    <div>
+                      <span className="text-slate-500 block font-semibold">🏠 Flat / House / Extra:</span>
+                      <strong className="text-emerald-800 break-words">{selectedEnquiry.customer?.additionalAddressDetails}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end pt-2 border-t">

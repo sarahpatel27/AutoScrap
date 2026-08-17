@@ -80,11 +80,19 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     createdAt: row.createdAt.toISOString(),
   };
 
-  // If Super Admin OR Winning Dealer (after winning selection/purchase), include full contact & bank details
+  // If Super Admin OR Winning Dealer (after winning selection/purchase), include full contact, address & bank details
   if (isSuperAdmin || isWinningDealer) {
     payload.customerName = row.customerName;
     payload.customerEmail = row.customerEmail;
     payload.customerPhone = row.customerPhone;
+    payload.customer = row.customer || {
+      fullName: row.customerName,
+      email: row.customerEmail,
+      phone: row.customerPhone,
+      collectionPostcode: row.postcode,
+      collectionAddress: row.address || '',
+      additionalAddressDetails: row.additionalAddressDetails || '',
+    };
     payload.bank = row.bank || null;
     payload.bids = (row.bids || []).map((b) => ({
       id: String(b.id),
@@ -97,10 +105,18 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
       createdAt: b.createdAt.toISOString(),
     }));
   } else {
-    // Non-winning dealer view BEFORE winning: Completely strip sensitive customer & competing dealer identities
+    // Non-winning dealer view BEFORE winning: Completely strip sensitive customer & address identities
     payload.customerName = '[Hidden Until Won]';
     payload.customerEmail = '[Hidden Until Won]';
     payload.customerPhone = '[Hidden Until Won]';
+    payload.customer = {
+      fullName: '[Hidden Until Won]',
+      email: '[Hidden Until Won]',
+      phone: '[Hidden Until Won]',
+      collectionPostcode: row.postcode,
+      collectionAddress: '[Hidden Until Won]',
+      additionalAddressDetails: '[Hidden Until Won]',
+    };
     // Completely omit individual competing dealer identities array
     payload.bids = [];
   }

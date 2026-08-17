@@ -69,3 +69,44 @@ export async function submitEnquiry(data) {
   const saved = await saveEnquiry(fullData);
   return saved || fullData;
 }
+
+export async function lookupAddress(postcode) {
+  if (!postcode || !postcode.trim()) {
+    throw new Error('Please enter a collection postcode.');
+  }
+
+  const cleanPostcode = postcode.trim().toUpperCase();
+  const url = getApiUrl(`/api/address-lookup?postcode=${encodeURIComponent(cleanPostcode)}`);
+
+  let response;
+  try {
+    response = await fetch(url);
+  } catch (err) {
+    const error = new Error("We couldn't check your postcode right now. Please try again.");
+    error.type = 'NETWORK_ERROR';
+    throw error;
+  }
+
+  let data;
+  try {
+    data = await response.json();
+  } catch (err) {
+    const error = new Error("We couldn't check your postcode right now. Please try again.");
+    error.type = 'SERVER_ERROR';
+    throw error;
+  }
+
+  if (response.status === 404 || data.error === 'NoResultsFound' || (data.error && data.error.toLowerCase().includes('not found'))) {
+    const error = new Error("We couldn't find that postcode. Please check it and try again.");
+    error.type = 'NOT_FOUND';
+    throw error;
+  }
+
+  if (!response.ok || data.success === false) {
+    const error = new Error(data.error || "We couldn't check your postcode right now. Please try again.");
+    error.type = response.status === 404 ? 'NOT_FOUND' : 'SERVER_ERROR';
+    throw error;
+  }
+
+  return data;
+}

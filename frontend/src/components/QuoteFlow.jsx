@@ -4,8 +4,10 @@ import {
   calculateQuote,
   lookupVehicle,
   submitEnquiry,
+  lookupAddress,
 } from '../services/mockApi';
 import { isHighValueVehicle } from '../utils/vehicleEligibility';
+import { showToast } from './admin/ToastContainer';
 
 import { initial, steps } from './quote-flow/constants';
 import Step0VehicleLookup from './quote-flow/Step0VehicleLookup';
@@ -33,6 +35,12 @@ export default function QuoteFlow({ compact = false }) {
   }, [step]);
 
   useEffect(() => {
+    if (step > 0 && (!data.vehicle || !data.postcode)) {
+      setStep(0);
+    }
+  }, [step, data.vehicle, data.postcode]);
+
+  useEffect(() => {
     const regParam = searchParams.get('reg');
     const postcodeParam = searchParams.get('postcode');
 
@@ -49,33 +57,80 @@ export default function QuoteFlow({ compact = false }) {
       (async () => {
         try {
           setLoading(true);
+
+          let addressRes;
+          if (data.addresses && data.addresses.length > 0 && data.postcode === formattedPostcode) {
+            addressRes = {
+              isSupported: true,
+              addresses: data.addresses,
+              postTown: data.postTown,
+              postcode: formattedPostcode,
+            };
+          } else {
+            try {
+              addressRes = await lookupAddress(formattedPostcode);
+            } catch (addrErr) {
+              const msg = addrErr?.message || "We couldn't check your postcode right now. Please try again.";
+              setError(msg);
+              showToast(msg, 'error');
+              return;
+            }
+          }
+
+          if (!addressRes.isSupported) {
+            const msg = "Sorry, we don't currently collect vehicles from this area.";
+            setError(msg);
+            showToast(msg, 'error');
+            return;
+          }
+
+          if (!addressRes.addresses || addressRes.addresses.length === 0) {
+            const msg = "We couldn't find that postcode. Please check it and try again.";
+            setError(msg);
+            showToast(msg, 'error');
+            return;
+          }
+
           const vehicle = await lookupVehicle(formattedReg);
           const highValue = isHighValueVehicle(vehicle?.year);
 
-          const quote = await calculateQuote({ vehicle, postcode: formattedPostcode });
+          const quote = await calculateQuote({ vehicle, postcode: addressRes.postcode });
 
           if (highValue) {
             setData((prev) => ({
               ...prev,
               registration: formattedReg,
-              postcode: formattedPostcode,
+              postcode: addressRes.postcode,
+              addresses: addressRes.addresses,
+              addressList: addressRes.addresses,
+              postTown: addressRes.postTown,
               vehicle,
               isHighValue: true,
               quote,
               estimatedValue: quote.finalValue,
               enquiry: null,
+              customer: {
+                ...prev.customer,
+                collectionPostcode: addressRes.postcode,
+              },
             }));
             setStep(1);
           } else {
-            const quote = await calculateQuote({ vehicle, postcode: formattedPostcode });
             setData((prev) => ({
               ...prev,
               registration: formattedReg,
-              postcode: formattedPostcode,
+              postcode: addressRes.postcode,
+              addresses: addressRes.addresses,
+              addressList: addressRes.addresses,
+              postTown: addressRes.postTown,
               vehicle,
               isHighValue: false,
               quote,
               enquiry: null,
+              customer: {
+                ...prev.customer,
+                collectionPostcode: addressRes.postcode,
+              },
             }));
             setStep(1);
           }
@@ -136,45 +191,88 @@ export default function QuoteFlow({ compact = false }) {
       return;
     }
 
-    if (compact) {
-      navigate(
-        `/scrap-my-car?reg=${encodeURIComponent(registration)}&postcode=${encodeURIComponent(postcode)}`,
-      );
-      return;
-    }
-
     try {
       setLoading(true);
 
+      let addressRes;
+      try {
+        addressRes = await lookupAddress(postcode);
+      } catch (addrErr) {
+        let msg = "We couldn't check your postcode right now. Please try again.";
+        if (addrErr.type === 'NOT_FOUND' || addrErr.message?.includes("couldn't find")) {
+          msg = "We couldn't find that postcode. Please check it and try again.";
+        } else if (addrErr.message) {
+          msg = addrErr.message;
+        }
+        setError(msg);
+        showToast(msg, 'error');
+        return;
+      }
+
+      if (!addressRes.isSupported) {
+        const msg = "Sorry, we don't currently collect vehicles from this area.";
+        setError(msg);
+        showToast(msg, 'error');
+        return;
+      }
+
+      if (!addressRes.addresses || addressRes.addresses.length === 0) {
+        const msg = "We couldn't find that postcode. Please check it and try again.";
+        setError(msg);
+        showToast(msg, 'error');
+        return;
+      }
+
+      const cleanPostcode = addressRes.postcode || postcode.toUpperCase();
+
+      if (compact) {
+        navigate(
+          `/scrap-my-car?reg=${encodeURIComponent(registration)}&postcode=${encodeURIComponent(cleanPostcode)}`,
+        );
+        return;
+      }
+
       const vehicle = await lookupVehicle(registration);
       const highValue = isHighValueVehicle(vehicle?.year);
-
-      const quote = await calculateQuote({ vehicle, postcode });
+      const quote = await calculateQuote({ vehicle, postcode: cleanPostcode });
 
       if (highValue) {
         // High-Value Vehicle (> 2015): Route into separate high-value form with pre-calculated quote
         setData((previousData) => ({
           ...previousData,
           registration,
-          postcode,
+          postcode: cleanPostcode,
+          addresses: addressRes.addresses,
+          addressList: addressRes.addresses,
+          postTown: addressRes.postTown,
           vehicle,
           isHighValue: true,
           quote,
           estimatedValue: quote.finalValue,
           enquiry: null,
+          customer: {
+            ...previousData.customer,
+            collectionPostcode: cleanPostcode,
+          },
         }));
         setStep(1);
       } else {
         // Standard Scrap Vehicle (<= 2015): Continue existing instant quote flow
-        const quote = await calculateQuote({ vehicle, postcode });
         setData((previousData) => ({
           ...previousData,
           registration,
-          postcode,
+          postcode: cleanPostcode,
+          addresses: addressRes.addresses,
+          addressList: addressRes.addresses,
+          postTown: addressRes.postTown,
           vehicle,
           isHighValue: false,
           quote,
           enquiry: null,
+          customer: {
+            ...previousData.customer,
+            collectionPostcode: cleanPostcode,
+          },
         }));
         setStep(1);
       }

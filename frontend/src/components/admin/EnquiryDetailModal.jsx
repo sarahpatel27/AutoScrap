@@ -320,10 +320,17 @@ export default function EnquiryDetailModal({
                     </a>
                   </div>
 
-                  <div className="border-t border-gray-100 pt-1 text-[11px] font-medium text-gray-500">
-                    📍{' '}
-                    {enquiry.customer?.collectionAddress ||
-                      enquiry.postcode}
+                  <div className="border-t border-gray-100 pt-2 space-y-1 text-[11px] font-medium text-gray-500">
+                    <div>
+                      📍 <span className="font-semibold text-gray-700">Address:</span>{' '}
+                      {enquiry.customer?.collectionAddress || enquiry.postcode}
+                    </div>
+                    {enquiry.customer?.additionalAddressDetails && (
+                      <div className="text-emerald-800">
+                        🏠 <span className="font-semibold text-emerald-900">Flat / House / Extra:</span>{' '}
+                        {enquiry.customer.additionalAddressDetails}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

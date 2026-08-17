@@ -51,6 +51,7 @@ model HighValueEnquiry {
   customerName          String       @map("customer_name") @db.VarChar(100)
   customerEmail         String       @map("customer_email") @db.VarChar(100)
   customerPhone         String       @map("customer_phone") @db.VarChar(30)
+  customer              Json?
   bank                  Json?
 
   // Vehicle Details

@@ -150,11 +150,16 @@ export default function Step5SuccessConfirmation({
 
         <div className="flex flex-col rounded-xl bg-[#f7f8f3] p-4 min-w-0">
           <span className="text-xs text-slate-500">Collection address</span>
-          <b className="text-slate-900 text-sm sm:text-base break-words" title={data.customer.collectionAddress ? `${data.customer.collectionAddress}, ${data.customer.collectionPostcode || data.postcode}` : data.postcode}>
+          <b className="text-slate-900 text-sm sm:text-base break-words">
             {data.customer.collectionAddress
               ? `${data.customer.collectionAddress}, ${data.customer.collectionPostcode || data.postcode}`
               : data.customer.collectionPostcode || data.postcode || 'Not available'}
           </b>
+          {data.customer.additionalAddressDetails && (
+            <span className="mt-1 text-xs text-slate-600 font-medium">
+              Flat / House / Notes: {data.customer.additionalAddressDetails}
+            </span>
+          )}
         </div>
       </div>
 

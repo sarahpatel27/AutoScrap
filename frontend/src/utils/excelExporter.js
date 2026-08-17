@@ -23,6 +23,7 @@ export function formatEnquiryForExport(row) {
     'Customer Email': row.customer?.email || row.customerEmail || '',
     'Customer Phone': row.customer?.phone || row.customerPhone || '',
     'Collection Address': row.customer?.collectionAddress || row.address || '',
+    'Flat / House / Additional Info': row.customer?.additionalAddressDetails || '',
     'Quoted Price (£)': row.quote?.finalValue !== undefined
       ? `£${row.quote.finalValue}`
       : (row.highestBid ? `£${row.highestBid}` : (row.estimatedValue ? `£${row.estimatedValue}` : 'N/A')),

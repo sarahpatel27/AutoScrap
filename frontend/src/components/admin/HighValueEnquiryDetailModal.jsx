@@ -166,9 +166,27 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
             </h3>
 
             <div className="space-y-2.5 text-xs">
-              <div><span className="text-slate-500 block">Full Name</span><strong className="text-slate-900 text-sm">{enquiry.customerName || 'N/A'}</strong></div>
-              <div><span className="text-slate-500 block">Phone</span><a href={`tel:${enquiry.customerPhone}`} className="font-bold text-[#0f7b4f] hover:underline">📞 {enquiry.customerPhone || 'N/A'}</a></div>
-              <div><span className="text-slate-500 block">Email</span><a href={`mailto:${enquiry.customerEmail}`} className="font-bold text-[#0f7b4f] hover:underline">✉️ {enquiry.customerEmail || 'N/A'}</a></div>
+              <div><span className="text-slate-500 block">Full Name</span><strong className="text-slate-900 text-sm">{enquiry.customerName || enquiry.customer?.fullName || 'N/A'}</strong></div>
+              <div><span className="text-slate-500 block">Phone</span><a href={`tel:${enquiry.customerPhone || enquiry.customer?.phone}`} className="font-bold text-[#0f7b4f] hover:underline">📞 {enquiry.customerPhone || enquiry.customer?.phone || 'N/A'}</a></div>
+              <div><span className="text-slate-500 block">Email</span><a href={`mailto:${enquiry.customerEmail || enquiry.customer?.email}`} className="font-bold text-[#0f7b4f] hover:underline">✉️ {enquiry.customerEmail || enquiry.customer?.email || 'N/A'}</a></div>
+              
+              <div className="pt-2 border-t border-gray-200/80 space-y-1.5">
+                <div>
+                  <span className="text-slate-500 block font-semibold">📍 Collection Address:</span>
+                  <strong className="text-slate-900 break-words block">
+                    {enquiry.customer?.collectionAddress || enquiry.address || enquiry.postcode}
+                  </strong>
+                </div>
+                {(enquiry.customer?.additionalAddressDetails || enquiry.additionalAddressDetails) && (
+                  <div>
+                    <span className="text-emerald-800 font-semibold block text-[11px]">🏠 Flat / House / Additional Address Details:</span>
+                    <strong className="text-emerald-900 break-words block">
+                      {enquiry.customer?.additionalAddressDetails || enquiry.additionalAddressDetails}
+                    </strong>
+                  </div>
+                )}
+              </div>
+
               {enquiry.bank && (enquiry.bank.accountNumber || enquiry.bank.sortCode) ? (
                 <div className="pt-2 border-t border-gray-200/80 space-y-1">
                   <span className="text-amber-800 font-extrabold block text-[11px]">🏦 Customer Bank Payout Details:</span>

@@ -107,14 +107,59 @@ export default function Step3ContactDetails({
 
         <label className={`${labelClass} sm:col-span-2`}>
           Collection address *
+          {((data.addresses && data.addresses.length > 0) || (data.addressList && data.addressList.length > 0)) ? (
+            <select
+              className={inputClass}
+              value={
+                (data.addresses || data.addressList).find(
+                  (a) => a.summaryAddress === data.customer.collectionAddress
+                )?.udprn || ''
+              }
+              onChange={(event) => {
+                const selectedUdprn = event.target.value;
+                const addressOptions = data.addresses || data.addressList || [];
+                const found = addressOptions.find(
+                  (item) => String(item.udprn) === selectedUdprn
+                );
+                if (found) {
+                  updateCustomer('collectionAddress', found.summaryAddress);
+                  updateCustomer('collectionAddressUdprn', found.udprn);
+                } else {
+                  updateCustomer('collectionAddress', '');
+                  updateCustomer('collectionAddressUdprn', null);
+                }
+              }}
+            >
+              <option value="">Select your collection address</option>
+              {(data.addresses || data.addressList).map((address) => (
+                <option key={address.udprn || address.summaryAddress} value={address.udprn}>
+                  {address.summaryAddress}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              className={inputClass}
+              value={data.customer.collectionAddress}
+              onChange={(event) =>
+                updateCustomer('collectionAddress', event.target.value)
+              }
+              placeholder="House name/number, street name, town"
+              autoComplete="street-address"
+              maxLength={120}
+            />
+          )}
+        </label>
+
+        <label className={`${labelClass} sm:col-span-2`}>
+          Flat, house number or additional address details (Optional)
           <input
             className={inputClass}
-            value={data.customer.collectionAddress}
+            value={data.customer.additionalAddressDetails || ''}
             onChange={(event) =>
-              updateCustomer('collectionAddress', event.target.value)
+              updateCustomer('additionalAddressDetails', event.target.value)
             }
-            placeholder="House name/number, street name, town"
-            autoComplete="street-address"
+            placeholder="e.g. Flat 3B, House 12, Gate Code or access instructions"
             maxLength={120}
           />
         </label>
