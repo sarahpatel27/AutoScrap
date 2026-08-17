@@ -47,9 +47,9 @@ export const steps = [
   'Success',
 ];
 
-export const labelClass = 'mb-[15px] flex flex-col gap-[7px] text-sm font-bold';
+export const labelClass = 'mb-[15px] flex flex-col gap-[7px] text-sm font-bold w-full max-w-full min-w-0';
 export const inputClass =
-  'rounded-[10px] border border-slate-200 bg-white px-3.5 py-[13px] outline-none focus:border-[#0f7b4f] focus:shadow-[0_0_0_3px_rgba(15,123,79,0.1)]';
+  'w-full max-w-full min-w-0 rounded-[10px] border border-slate-200 bg-white px-3.5 py-[13px] outline-none focus:border-[#0f7b4f] focus:shadow-[0_0_0_3px_rgba(15,123,79,0.1)]';
 export const regInputClass = `rounded-[10px] border border-slate-200 px-3.5 py-[13px] outline-none focus:border-[#0f7b4f] focus:shadow-[0_0_0_3px_rgba(15,123,79,0.1)] border-[#d1aa16] bg-[#f8ce3d] font-mono font-black uppercase tracking-[0.13em] text-[#111]`;
 export const primaryButtonClass =
   'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border-0 bg-[#0f7b4f] px-[22px] py-3.5 font-extrabold text-white shadow-[0_10px_25px_rgba(15,123,79,0.23)] transition hover:-translate-y-0.5 hover:bg-[#075b3a] disabled:cursor-not-allowed disabled:opacity-55 disabled:hover:translate-y-0';

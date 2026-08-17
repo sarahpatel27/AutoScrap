@@ -12,9 +12,15 @@ export async function lookupVehicle(registration) {
   const data = await response.json();
 
   if (!response.ok || data.error) {
-    throw new Error(
-      data.error || 'We could not retrieve this vehicle. Please check your registration and try again.',
-    );
+    let errMsg = data.error || 'We cannot find the car registered with this number. Please check your registration and try again.';
+    if (
+      errMsg.toLowerCase().includes('invalid search term') ||
+      errMsg.toLowerCase().includes('not found') ||
+      errMsg.toLowerCase().includes('could not retrieve')
+    ) {
+      errMsg = 'We cannot find the car registered with this number. Please check your registration and try again.';
+    }
+    throw new Error(errMsg);
   }
 
   return {

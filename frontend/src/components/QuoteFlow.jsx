@@ -135,10 +135,11 @@ export default function QuoteFlow({ compact = false }) {
             setStep(1);
           }
         } catch (err) {
-          setError(
+          const msg =
             err?.message ||
-              'We could not retrieve your vehicle. Please try again.',
-          );
+            'We cannot find the car registered with this number. Please check your registration and try again.';
+          setError(msg);
+          showToast(msg, 'error');
         } finally {
           setLoading(false);
         }
@@ -277,10 +278,11 @@ export default function QuoteFlow({ compact = false }) {
         setStep(1);
       }
     } catch (err) {
-      setError(
+      const msg =
         err?.message ||
-          'We could not retrieve your vehicle. Please try again.',
-      );
+        'We cannot find the car registered with this number. Please check your registration and try again.';
+      setError(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -503,7 +505,7 @@ export default function QuoteFlow({ compact = false }) {
         ))}
       </div>
 
-      <div className="min-h-[480px] rounded-[22px] bg-white px-[18px] py-6 shadow-[0_18px_50px_rgba(13,52,37,0.11)] sm:p-10">
+      <div className="min-h-[480px] w-full max-w-full min-w-0 overflow-hidden rounded-[22px] bg-white px-[18px] py-6 shadow-[0_18px_50px_rgba(13,52,37,0.11)] sm:p-10">
         {step === 0 && (
           <Step0VehicleLookup
             compact={false}

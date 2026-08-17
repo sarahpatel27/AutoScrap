@@ -92,7 +92,7 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
 
         {/* Valuation Section (Three Distinct Values Displayed Side-by-Side) */}
         <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-5 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap">
             <h3 className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-2">
               <span>💰</span> Valuation Comparison Breakdown (3 Key Metrics)
             </h3>

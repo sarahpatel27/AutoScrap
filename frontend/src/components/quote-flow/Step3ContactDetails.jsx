@@ -39,7 +39,7 @@ export default function Step3ContactDetails({
         </div>
       )}
 
-      <div className="grid gap-x-[18px] sm:grid-cols-2">
+      <div className="grid gap-x-[18px] gap-y-3 sm:grid-cols-2 w-full max-w-full min-w-0">
         <label className={`${labelClass} sm:col-span-2`}>
           Full name *
           <input
@@ -88,17 +88,13 @@ export default function Step3ContactDetails({
           />
         </label>
 
-        <label className={labelClass}>
+        <label className={`${labelClass} sm:col-span-2`}>
           Collection postcode *
           <input
-            className={inputClass}
+            className={`${inputClass} bg-slate-100/80 text-slate-600 cursor-not-allowed font-mono font-bold`}
             value={data.customer.collectionPostcode || data.postcode || ''}
-            onChange={(event) =>
-              updateCustomer(
-                'collectionPostcode',
-                event.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, ''),
-              )
-            }
+            disabled
+            readOnly
             placeholder="e.g. SW1A 1AA"
             autoComplete="postal-code"
             maxLength={10}
@@ -109,7 +105,7 @@ export default function Step3ContactDetails({
           Collection address *
           {((data.addresses && data.addresses.length > 0) || (data.addressList && data.addressList.length > 0)) ? (
             <select
-              className={inputClass}
+              className={`${inputClass} truncate`}
               value={
                 (data.addresses || data.addressList).find(
                   (a) => a.summaryAddress === data.customer.collectionAddress

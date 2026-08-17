@@ -571,9 +571,10 @@ export default function Step1HighValueForm({
           Collection UK Postcode *
           <input
             id="field-postcode"
-            className={inputClass}
+            className={`${inputClass} bg-slate-100/80 text-slate-600 cursor-not-allowed font-mono font-bold`}
             value={postcode}
-            onChange={handlePostcodeChange}
+            disabled
+            readOnly
             placeholder="e.g. SW1A 1AA or M1 1AA"
           />
         </label>
