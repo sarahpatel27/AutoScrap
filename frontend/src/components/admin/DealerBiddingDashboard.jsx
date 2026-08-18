@@ -381,7 +381,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
               </div>
 
               {/* Quick Accept Option */}
-              <div className="flex items-center justify-between rounded-xl bg-white p-3.5 border border-emerald-300 shadow-2xs">
+              <div className="flex flex-wrap items-center justify-between rounded-xl bg-white p-3.5 border border-emerald-300 shadow-2xs">
                 <div>
                   <span className="text-xs font-bold text-slate-700 block">Customer Expected Price</span>
                   <strong className="text-base font-black text-amber-950">
@@ -427,7 +427,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
 
                 {biddingError && <p className="text-xs font-bold text-red-600">{biddingError}</p>}
 
-                <div className="flex items-center gap-3 pt-1">
+                <div className="flex items-center gap-3 pt-1 flex-wrap">
                   <button
                     type="submit"
                     disabled={biddingLoading}

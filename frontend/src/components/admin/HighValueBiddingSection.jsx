@@ -29,17 +29,17 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
   const getStatusBadge = (status) => {
     switch (status) {
       case 'PENDING':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">⏳ Pending</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-800">Pending</span>;
       case 'BIDDING':
         return <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800"><span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" /> Bidding Active</span>;
       case 'BIDDING_ENDED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800">🏁 Bidding Ended</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800">Bidding Ended</span>;
       case 'DEALER_SELECTED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800">🤝 Dealer Selected</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-bold text-purple-800">Dealer Selected</span>;
       case 'PURCHASED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-800">✅ Purchased</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-bold text-green-800">Purchased</span>;
       case 'CANCELLED':
-        return <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800">❌ Cancelled</span>;
+        return <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800">Cancelled</span>;
       default:
         return <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-700">{status}</span>;
     }
@@ -132,14 +132,14 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500 border-b border-gray-200">
               <tr>
-                <th className="py-3.5 px-4">Vehicle</th>
-                <th className="py-3.5 px-4">Year & Mileage</th>
+                <th className="py-3.5 px-4 min-w-[160px] sm:min-w-0">Vehicle</th>
+                <th className="py-3.5 px-4 min-w-[110px] sm:min-w-0">Year & Mileage</th>
                 <th className="py-3.5 px-4">Condition</th>
-                <th className="py-3.5 px-4">Location</th>
-                <th className="py-3.5 px-4 bg-amber-50/50">Valuation Comparison</th>
-                <th className="py-3.5 px-4">Bids & Timer</th>
+                <th className="py-3.5 px-4 min-w-[110px] sm:min-w-0">Location</th>
+                <th className="py-3.5 px-4 bg-amber-50/50 min-w-[210px] sm:min-w-0">Valuation Comparison</th>
+                <th className="py-3.5 px-4 min-w-[130px] sm:min-w-0">Bids & Timer</th>
                 <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+                <th className="py-3.5 px-4 text-right min-w-[120px] sm:min-w-0">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -156,12 +156,12 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                     <tr key={item.id} className="hover:bg-slate-50/80 transition">
                       {/* Vehicle & Reg */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="font-extrabold text-slate-900 text-sm">
+                        <div className="flex flex-col gap-1 min-w-[150px] sm:min-w-0">
+                          <span className="font-extrabold text-slate-900 text-sm leading-tight">
                             {item.make} {item.model}
                           </span>
-                          <div className="inline-flex items-center gap-1.5">
-                            <span className="rounded-md border border-amber-300 bg-[#f6cf3c] px-2 py-0.5 font-mono text-[11px] font-black text-black">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="rounded-md border border-amber-300 bg-[#f6cf3c] px-2 py-0.5 font-mono text-[11px] font-black text-black whitespace-nowrap">
                               {item.registration}
                             </span>
                             <span className="text-[10px] text-gray-400 font-mono">
@@ -172,7 +172,7 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                       </td>
 
                       {/* Year & Mileage */}
-                      <td className="py-3.5 px-4 font-medium">
+                      <td className="py-3.5 px-4 font-medium whitespace-nowrap">
                         <div>📅 <strong className="text-slate-900">{item.year}</strong></div>
                         <div className="text-slate-500 text-[11px]">
                           {item.mileage ? `${Number(item.mileage).toLocaleString('en-GB')} mi` : 'N/A'}
@@ -181,15 +181,15 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
                       {/* Condition */}
                       <td className="py-3.5 px-4">
-                        <span className="rounded-md bg-slate-100 px-2 py-1 font-bold text-slate-800 text-[11px]">
+                        <span className="rounded-md bg-slate-100 px-2 py-1 font-bold text-slate-800 text-[11px] whitespace-nowrap">
                           {item.condition || 'Good'}
                         </span>
                       </td>
 
                       {/* Location */}
                       <td className="py-3.5 px-4 font-medium">
-                        <div className="font-bold text-slate-900">{item.city || item.area || 'UK'}</div>
-                        <div className="text-gray-400 text-[11px] font-mono">{item.postcode}</div>
+                        <div className="font-bold text-slate-900 whitespace-nowrap">{item.city || item.area || 'UK'}</div>
+                        <div className="text-gray-400 text-[11px] font-mono whitespace-nowrap">{item.postcode}</div>
                       </td>
 
                       {/* Three Distinct Values Clearly Visualized */}
@@ -234,15 +234,22 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
                       {/* Bids & Timer */}
                       <td className="py-3.5 px-4">
-                        <div className="space-y-1">
-                          <div className="font-bold text-slate-900">
-                            Bids: <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{item.bidCount || 0}</span>
+                        <div className="space-y-1 rounded-xl bg-slate-50/80 p-2 border border-slate-100 min-w-[120px] sm:min-w-0">
+                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                            <span className="font-semibold text-slate-500">Bids:</span>
+                            <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-xs font-black text-slate-800">
+                              {item.bidCount || 0}
+                            </span>
                           </div>
-                          <div className="text-[11px] text-emerald-700 font-bold">
-                            High: £{Number(item.highestBid || 0).toLocaleString('en-GB')}
+                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                            <span className="font-semibold text-slate-500">High:</span>
+                            <span className="text-emerald-700 font-black">
+                              £{Number(item.highestBid || 0).toLocaleString('en-GB')}
+                            </span>
                           </div>
-                          <div className="text-[10px] text-slate-400 font-medium">
-                            ⏱️ {item.timeRemaining || 'N/A'}
+                          <div className="pt-1 border-t border-slate-200/60 text-[10px] text-slate-500 font-bold flex items-center justify-between gap-1">
+                            <span>Timer:</span>
+                            <span>{item.timeRemaining || 'N/A'}</span>
                           </div>
                         </div>
                       </td>
@@ -254,11 +261,11 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-1.5">
                           <button
                             type="button"
                             onClick={() => setSelectedEnquiry(item)}
-                            className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 font-extrabold text-slate-900 hover:border-[#0f7b4f] hover:bg-emerald-50 hover:text-[#0f7b4f] transition shadow-2xs cursor-pointer"
+                            className="w-full sm:w-auto rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 font-extrabold text-slate-900 text-xs hover:border-[#0f7b4f] hover:bg-emerald-50 hover:text-[#0f7b4f] transition shadow-2xs cursor-pointer whitespace-nowrap text-center"
                           >
                             View Details
                           </button>
@@ -269,10 +276,10 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                                 setItemToDelete(item);
                                 setDeleteModalOpen(true);
                               }}
-                              className="rounded-xl border border-red-200 bg-red-50 px-2.5 py-1.5 font-extrabold text-red-700 hover:bg-red-600 hover:text-white transition shadow-2xs cursor-pointer"
+                              className="w-full sm:w-auto rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 font-extrabold text-red-700 text-xs hover:bg-red-600 hover:text-white transition shadow-2xs cursor-pointer whitespace-nowrap text-center"
                               title="Delete enquiry record"
                             >
-                              🗑️ Delete
+                              Delete
                             </button>
                           )}
                         </div>

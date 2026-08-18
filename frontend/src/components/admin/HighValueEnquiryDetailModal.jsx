@@ -242,11 +242,11 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                       return (
                         <tr key={bid.id} className={`hover:bg-slate-50/50 ${isHighest ? 'bg-amber-50/40' : ''}`}>
                           <td className="py-2.5 px-3">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 max-sm:gap-0.5">
                               <strong className="block text-slate-900">{bid.dealerName}</strong>
                               {isHighest && (
                                 <span className="rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[9px] font-black text-amber-900">
-                                  ⭐ HIGHEST BID
+                                  ⭐
                                 </span>
                               )}
                             </div>
@@ -264,10 +264,10 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                                 ? 'bg-red-100 text-red-800'
                                 : 'bg-blue-100 text-blue-800'
                             }`}>
-                              {isWinner ? '🏆 WINNER' : bid.status}
+                              {isWinner ? 'WINNER' : bid.status}
                             </span>
                           </td>
-                          <td className="py-2.5 px-3 text-right">
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
                             {isWinner ? (
                               <span className="text-xs font-black text-emerald-700">✓ WINNING DEALER</span>
                             ) : (
@@ -275,9 +275,16 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                                 type="button"
                                 onClick={() => handleSelectWinner(bid.id)}
                                 disabled={selectingWinnerId === bid.id || hasWinner}
-                                className="rounded-xl bg-[#0f7b4f] px-3 py-1.5 font-extrabold text-white text-[11px] hover:bg-[#075b3a] transition cursor-pointer disabled:opacity-50"
+                                className="rounded-lg bg-[#0f7b4f] px-2.5 py-1 text-[10px] sm:text-xs font-bold text-white hover:bg-[#075b3a] transition cursor-pointer disabled:opacity-50 tracking-tight"
                               >
-                                {selectingWinnerId === bid.id ? 'Selecting…' : 'SELECT WINNING DEALER'}
+                                {selectingWinnerId === bid.id ? (
+                                  'Selecting…'
+                                ) : (
+                                  <>
+                                    <span className="inline sm:hidden">Select Winner</span>
+                                    <span className="hidden sm:inline">Select Winning Dealer</span>
+                                  </>
+                                )}
                               </button>
                             )}
                           </td>
