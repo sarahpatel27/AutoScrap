@@ -11,7 +11,7 @@
  * - 24 hours
  */
 
-const DEFAULT_BIDDING_DURATION_HOURS = parseInt(process.env.BIDDING_DURATION_HOURS, 10) || 24;
+const DEFAULT_BIDDING_DURATION_HOURS = parseInt(process.env.BIDDING_DURATION_HOURS, 10) || 48;
 const BIDDING_DURATION_MS = DEFAULT_BIDDING_DURATION_HOURS * 60 * 60 * 1000;
 
 function calculateBiddingDeadline(startDate = new Date()) {

@@ -70,7 +70,14 @@ async function getHighValueEnquiries(req, res) {
     const eligibleRows = rows.filter((row) => isDealerEligibleForEnquiry(user, row));
 
     // Server-side Anonymization: Strips customer name/email/phone and competing dealer identities for non-winning dealers
-    const items = eligibleRows.map((row) => anonymizeEnquiryForDealer(row, user));
+    let items = eligibleRows.map((row) => anonymizeEnquiryForDealer(row, user));
+
+    // Role-based visibility logic:
+    // For City Dealers: Expired / Ended enquiries (after 48 hours) move to Past Enquiries (read-only archive)
+    // For Super Admin: All enquiries stay in High Value Bidding until explicitly deleted by Super Admin
+    if (user?.role === 'City Dealer') {
+      items = items.filter((item) => !['BIDDING_ENDED', 'DEALER_SELECTED', 'PURCHASED', 'CANCELLED', 'ARCHIVED', 'DELETED'].includes(item.status));
+    }
 
     res.json(items);
   } catch (err) {
@@ -95,9 +102,18 @@ async function getPastEnquiries(req, res) {
       }),
       prisma.highValueEnquiry.findMany({
         where: {
-          status: {
-            in: ['archived', 'deleted', 'ARCHIVED', 'DELETED'],
-          },
+          OR: [
+            {
+              status: {
+                in: ['archived', 'deleted', 'ARCHIVED', 'DELETED', 'BIDDING_ENDED', 'DEALER_SELECTED', 'PURCHASED', 'CANCELLED'],
+              },
+            },
+            {
+              biddingEndsAt: {
+                lte: new Date(),
+              },
+            },
+          ],
         },
         include: {
           bids: {
@@ -135,7 +151,15 @@ async function getPastEnquiries(req, res) {
     }));
 
     const eligibleHVRows = highValueRows.filter((row) => isDealerEligibleForEnquiry(user, row));
-    const pastHighValueEnquiries = eligibleHVRows.map((row) => anonymizeEnquiryForDealer(row, user));
+    let pastHighValueEnquiries = eligibleHVRows.map((row) => anonymizeEnquiryForDealer(row, user));
+
+    // For Super Admin: Only show enquiries explicitly deleted/archived by admin in the Past Enquiries repository.
+    // Expired 48-hour enquiries stay in High Value Bidding tab for Super Admin until deleted.
+    if (user?.role === 'Super Admin') {
+      pastHighValueEnquiries = pastHighValueEnquiries.filter((item) =>
+        ['archived', 'deleted', 'ARCHIVED', 'DELETED'].includes(item.status)
+      );
+    }
 
     res.json({
       pastEnquiries: enquiries,
@@ -346,6 +370,10 @@ async function createEnquiry(req, res) {
         : estimatedValue;
       const valuePreference = enquiryData.valuePreference || 'ESTIMATED_VALUE';
 
+      const { calculateBiddingDeadline } = require('../config/biddingConfig');
+      const now = new Date();
+      const biddingEndsAt = calculateBiddingDeadline(now);
+
       const highValueRecord = await prisma.highValueEnquiry.create({
         data: {
           reference,
@@ -367,7 +395,9 @@ async function createEnquiry(req, res) {
           customerExpectedValue,
           valuePreference,
           bank: enquiryData.bank || {},
-          status: 'PENDING',
+          status: 'BIDDING',
+          biddingStartAt: now,
+          biddingEndsAt: biddingEndsAt,
         },
       });
 
@@ -706,15 +736,15 @@ async function placeDealerBid(req, res) {
       },
     });
 
-    // If enquiry status was PENDING, update to BIDDING and initialize biddingStartAt & biddingEndsAt from central config
-    if (enquiry.status === 'PENDING' || !enquiry.biddingEndsAt) {
-      const startDate = enquiry.biddingStartAt || new Date();
+    // Ensure biddingStartAt and biddingEndsAt are set using enquiry creation date if missing
+    if (!enquiry.biddingEndsAt) {
+      const startDate = enquiry.biddingStartAt || enquiry.createdAt || new Date();
       const endDate = calculateBiddingDeadline(startDate);
 
       await prisma.highValueEnquiry.update({
         where: { id: numericEnquiryId },
         data: {
-          status: 'BIDDING',
+          status: enquiry.status === 'PENDING' ? 'BIDDING' : enquiry.status,
           biddingStartAt: startDate,
           biddingEndsAt: endDate,
         },

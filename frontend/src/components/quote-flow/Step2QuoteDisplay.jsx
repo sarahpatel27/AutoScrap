@@ -32,7 +32,7 @@ export default function Step2QuoteDisplay({
                 src={vehicle.imageUrl}
                 alt={`${vehicle.make || ''} ${vehicle.model || ''}`}
                 onError={() => setImageError(true)}
-                className="h-[100px] w-[140px] shrink-0 rounded-[14px]  object-contain "
+                className="h-[100px] w-[240px] shrink-0 rounded-[14px] object-contain"
               />
             ) : (
               <div className="grid h-[62px] w-[62px] shrink-0 place-items-center rounded-[14px] bg-[#edf7f2] text-3xl">

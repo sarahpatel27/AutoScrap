@@ -260,6 +260,11 @@ export default function AdminDashboardPage() {
                   <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center text-xs text-gray-400 font-semibold">
                     No archived high-value enquiries found in history.
                   </div>
+                ) : user?.role === 'City Dealer' ? (
+                  <DealerBiddingDashboard
+                    enquiries={pastHighValueEnquiries}
+                    onBidSubmitted={reloadData}
+                  />
                 ) : (
                   <HighValueBiddingSection
                     enquiries={pastHighValueEnquiries}

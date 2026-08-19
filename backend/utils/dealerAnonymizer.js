@@ -46,7 +46,7 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
       const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
       timeRemaining = `${hours}h ${mins}m`;
     } else {
-      timeRemaining = 'Bidding Ended';
+      timeRemaining = 'Ended';
       if (resolvedStatus === 'BIDDING' || resolvedStatus === 'PENDING') {
         resolvedStatus = 'BIDDING_ENDED';
       }

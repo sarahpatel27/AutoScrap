@@ -132,6 +132,7 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
           <table className="w-full text-left text-xs text-slate-700">
             <thead className="bg-slate-50 text-[11px] uppercase tracking-wider font-extrabold text-slate-500 border-b border-gray-200">
               <tr>
+                <th className="py-3.5 px-4 min-w-[100px] sm:min-w-0">Date</th>
                 <th className="py-3.5 px-4 min-w-[160px] sm:min-w-0">Vehicle</th>
                 <th className="py-3.5 px-4 min-w-[110px] sm:min-w-0">Year & Mileage</th>
                 <th className="py-3.5 px-4">Condition</th>
@@ -145,28 +146,43 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
             <tbody className="divide-y divide-gray-100">
               {filteredEnquiries.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-medium">
                     No high-value vehicle enquiries found.
                   </td>
                 </tr>
               ) : (
                 filteredEnquiries.map((item) => {
                   const acceptedEstimate = item.valuePreference === 'ESTIMATED_VALUE';
+                  const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A';
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition">
+                      {/* Date */}
+                      <td className="py-3.5 px-4 font-medium whitespace-nowrap text-slate-600 font-mono text-[11px]">
+                        {dateStr}
+                      </td>
+
                       {/* Vehicle & Reg */}
                       <td className="py-3.5 px-4">
-                        <div className="flex flex-col gap-1 min-w-[150px] sm:min-w-0">
-                          <span className="font-extrabold text-slate-900 text-sm leading-tight">
-                            {item.make} {item.model}
-                          </span>
-                          <div className="flex flex-wrap items-center gap-1.5">
-                            <span className="rounded-md border border-amber-300 bg-[#f6cf3c] px-2 py-0.5 font-mono text-[11px] font-black text-black whitespace-nowrap">
-                              {item.registration}
+                        <div className="flex items-center gap-3 min-w-[170px] sm:min-w-0">
+                          {Array.isArray(item.photos) && item.photos.length > 0 && (
+                            <img
+                              src={typeof item.photos[0] === 'string' ? item.photos[0] : (item.photos[0].previewUrl || item.photos[0].url)}
+                              alt={`${item.make} ${item.model}`}
+                              className="h-10 w-12 rounded-lg object-cover border border-slate-200 shrink-0 shadow-2xs"
+                            />
+                          )}
+                          <div className="flex flex-col gap-1">
+                            <span className="font-extrabold text-slate-900 text-sm leading-tight">
+                              {item.make} {item.model}
                             </span>
-                            <span className="text-[10px] text-gray-400 font-mono">
-                              #{item.reference}
-                            </span>
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="rounded-md border border-amber-300 bg-[#f6cf3c] px-2 py-0.5 font-mono text-[11px] font-black text-black whitespace-nowrap">
+                                {item.registration}
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-mono">
+                                #{item.reference}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -234,22 +250,24 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
                       {/* Bids & Timer */}
                       <td className="py-3.5 px-4">
-                        <div className="space-y-1 rounded-xl bg-slate-50/80 p-2 border border-slate-100 min-w-[120px] sm:min-w-0">
-                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                        <div className="space-y-1.5 rounded-xl bg-slate-50 p-2.5 border border-slate-200/80 min-w-[135px] shadow-2xs">
+                          <div className="flex items-center justify-between gap-1.5 text-[11px]">
                             <span className="font-semibold text-slate-500">Bids:</span>
-                            <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-xs font-black text-slate-800">
+                            <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-black text-slate-800">
                               {item.bidCount || 0}
                             </span>
                           </div>
-                          <div className="flex items-center justify-between gap-1 text-[11px]">
+                          <div className="flex items-center justify-between gap-1.5 text-[11px]">
                             <span className="font-semibold text-slate-500">High:</span>
                             <span className="text-emerald-700 font-black">
                               £{Number(item.highestBid || 0).toLocaleString('en-GB')}
                             </span>
                           </div>
-                          <div className="pt-1 border-t border-slate-200/60 text-[10px] text-slate-500 font-bold flex items-center justify-between gap-1">
-                            <span>Timer:</span>
-                            <span>{item.timeRemaining || 'N/A'}</span>
+                          <div className="pt-1 border-t border-slate-200/80 text-[10px] flex items-center justify-between gap-1.5">
+                            <span className="font-semibold text-slate-500">Timer:</span>
+                            <span className={`font-extrabold whitespace-nowrap ${item.timeRemaining === 'Ended' || item.timeRemaining === 'Bidding Ended' ? 'text-red-600' : 'text-amber-700'}`}>
+                              {item.timeRemaining === 'Bidding Ended' ? 'Ended' : (item.timeRemaining || 'N/A')}
+                            </span>
                           </div>
                         </div>
                       </td>

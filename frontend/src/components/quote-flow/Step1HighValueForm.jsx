@@ -318,11 +318,11 @@ export default function Step1HighValueForm({
 
       {/* Pre-populated Vehicle Information */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4 border-b border-slate-100 pb-3">
           <h5 className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
             Retrieved Vehicle Details (Pre-filled)
           </h5>
-          <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-[#0f7b4f]">
+          <span className="inline-flex items-center gap-1 shrink-0 whitespace-nowrap rounded-full bg-emerald-100/90 border border-emerald-300/80 px-2.5 py-0.5 text-[10px] sm:text-[11px] font-extrabold text-[#0f7b4f]">
             ✓ UKVD Verified
           </span>
         </div>
@@ -333,7 +333,7 @@ export default function Step1HighValueForm({
               src={vehicle.imageUrl}
               alt={`${vehicle.make || ''} ${vehicle.model || ''}`}
               onError={() => setImageError(true)}
-              className="h-[100px] w-[140px] shrink-0 rounded-[14px]   p-1"
+              className="h-[100px] w-[180px] shrink-0 rounded-[14px] object-contain"
             />
           ) : (
             <div className="grid h-[72px] w-[72px] shrink-0 place-items-center rounded-[14px] bg-[#edf7f2] text-4xl shadow-inner">

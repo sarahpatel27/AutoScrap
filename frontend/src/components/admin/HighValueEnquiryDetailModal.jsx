@@ -142,6 +142,40 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
           </div>
         </div>
 
+        {/* Vehicle Photos Gallery */}
+        {photos.length > 0 && (
+          <div className="rounded-2xl border border-gray-200 bg-slate-50/60 p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <span>📸</span> Vehicle Photos ({photos.length} uploaded)
+              </h3>
+              <span className="text-[10px] text-gray-400 font-medium">Click any photo to enlarge</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {photos.map((photo, idx) => {
+                const imgUrl = typeof photo === 'string' ? photo : (photo.previewUrl || photo.url);
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => setActivePhoto(imgUrl)}
+                    className="group relative h-24 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-200 cursor-pointer shadow-xs hover:shadow-md transition"
+                  >
+                    <img
+                      src={imgUrl}
+                      alt={`Vehicle photo ${idx + 1}`}
+                      className="h-full w-full object-cover group-hover:scale-105 transition duration-200"
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-bold">
+                      🔍 Enlarge
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Vehicle Details */}
           <div className="rounded-2xl border border-gray-200 bg-slate-50/60 p-5 space-y-4">
@@ -313,14 +347,33 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
       {/* Expanded Photo Lightbox */}
       {activePhoto && (
         <div
-          onClick={() => setActivePhoto(null)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setActivePhoto(null);
+          }}
           className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-4 cursor-pointer"
         >
-          <img
-            src={activePhoto}
-            alt="Expanded vehicle"
-            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
-          />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative flex flex-col items-center justify-center"
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivePhoto(null);
+              }}
+              className="absolute -top-12 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl font-bold text-white hover:bg-white/40 transition cursor-pointer"
+              title="Close Photo"
+            >
+              ✕
+            </button>
+            <img
+              src={activePhoto}
+              alt="Expanded vehicle"
+              className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </div>

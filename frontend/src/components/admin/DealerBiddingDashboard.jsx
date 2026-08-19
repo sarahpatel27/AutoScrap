@@ -630,14 +630,33 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
       {/* Photo Lightbox */}
       {activePhoto && (
         <div
-          onClick={() => setActivePhoto(null)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setActivePhoto(null);
+          }}
           className="fixed inset-0 z-60 flex items-center justify-center bg-black/90 p-4 cursor-pointer"
         >
-          <img
-            src={activePhoto}
-            alt="Expanded vehicle"
-            className="max-h-[90vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
-          />
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative flex flex-col items-center justify-center"
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActivePhoto(null);
+              }}
+              className="absolute -top-12 right-0 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-xl font-bold text-white hover:bg-white/40 transition cursor-pointer"
+              title="Close Photo"
+            >
+              ✕
+            </button>
+            <img
+              src={activePhoto}
+              alt="Expanded vehicle"
+              className="max-h-[85vh] max-w-[90vw] rounded-2xl object-contain shadow-2xl"
+            />
+          </div>
         </div>
       )}
     </div>

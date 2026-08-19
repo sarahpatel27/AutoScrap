@@ -466,7 +466,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                 <div className="flex items-center justify-between gap-3 bg-slate-50/80 rounded-xl p-3 border border-gray-100">
                   <div className="space-y-0.5 min-w-0">
                     <h4 className="font-black text-sm text-slate-900 truncate">
-                      {e.vehicle?.make} {e.vehicle?.model}
+                      {e.vehicle?.make} {e.vehicle?.model} {e.vehicle?.year ? <span className="text-slate-500 font-bold text-xs">({e.vehicle.year})</span> : ''}
                     </h4>
                     <p className="text-xs font-bold text-gray-600 truncate flex items-center gap-1">
                       <span>👤</span> <span>{e.customer?.fullName || 'Customer'}</span>
@@ -617,9 +617,16 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                         <span className="rounded-md border border-[#d1aa16] bg-[#f8ce3d] px-2 py-0.5 font-mono font-black text-[10px] text-black uppercase shrink-0">
                           {e.vehicle?.registration}
                         </span>
-                        <span className="font-bold text-gray-800">
-                          {e.vehicle?.make} {e.vehicle?.model}
-                        </span>
+                        <div className="flex flex-col">
+                          <span className="font-bold text-gray-800">
+                            {e.vehicle?.make} {e.vehicle?.model}
+                          </span>
+                          {e.vehicle?.year && (
+                            <span className="text-[11px] font-medium text-slate-500">
+                              Year: <strong>{e.vehicle.year}</strong>
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </td>
 
