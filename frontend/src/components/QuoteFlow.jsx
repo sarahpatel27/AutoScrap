@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams, useLocation } from 'react-router';
 import {
   calculateQuote,
   lookupVehicle,
@@ -22,8 +22,10 @@ export default function QuoteFlow({ compact = false }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const containerRef = useRef(null);
+  const initialParamsHandledRef = useRef(false);
 
   useEffect(() => {
     if (step > 0 && containerRef.current) {
@@ -41,10 +43,20 @@ export default function QuoteFlow({ compact = false }) {
   }, [step, data.vehicle, data.postcode]);
 
   useEffect(() => {
-    const regParam = searchParams.get('reg');
-    const postcodeParam = searchParams.get('postcode');
+    if (compact || initialParamsHandledRef.current) return;
 
-    if (regParam && postcodeParam && !compact) {
+    const stateReg = location.state?.reg || location.state?.registration;
+    const statePostcode = location.state?.postcode;
+    const regParam = searchParams.get('reg') || stateReg;
+    const postcodeParam = searchParams.get('postcode') || statePostcode;
+
+    if (regParam && postcodeParam) {
+      initialParamsHandledRef.current = true;
+
+      // Clear location state and URL query params immediately so the URL is clean (/scrap-my-car)
+      // and page refresh won't re-trigger API calls for the previous reg/postcode.
+      navigate(location.pathname, { replace: true, state: null });
+
       const formattedReg = regParam.trim().toUpperCase();
       const formattedPostcode = postcodeParam.trim().toUpperCase();
 
@@ -145,7 +157,7 @@ export default function QuoteFlow({ compact = false }) {
         }
       })();
     }
-  }, [searchParams, compact]);
+  }, [searchParams, compact, location.state, location.pathname, navigate]);
 
   const update = (key, value) => {
     setData((previousData) => ({
@@ -227,9 +239,12 @@ export default function QuoteFlow({ compact = false }) {
       const cleanPostcode = addressRes.postcode || postcode.toUpperCase();
 
       if (compact) {
-        navigate(
-          `/scrap-my-car?reg=${encodeURIComponent(registration)}&postcode=${encodeURIComponent(cleanPostcode)}`,
-        );
+        navigate('/scrap-my-car', {
+          state: {
+            reg: registration,
+            postcode: cleanPostcode,
+          },
+        });
         return;
       }
 

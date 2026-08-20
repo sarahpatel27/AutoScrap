@@ -2,6 +2,7 @@ const { prisma } = require('../config/db');
 const { getCityFromPostcode } = require('../utils/postcodeHelper');
 const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
 const { anonymizeEnquiryForDealer } = require('../utils/dealerAnonymizer');
+const { autoResolveExpiredBids } = require('../services/biddingAutoResolver');
 
 async function getEnquiries(req, res) {
   try {
@@ -40,6 +41,8 @@ async function getEnquiries(req, res) {
 async function getHighValueEnquiries(req, res) {
   try {
     const user = req.user;
+    await autoResolveExpiredBids();
+
     const rows = await prisma.highValueEnquiry.findMany({
       where: {
         status: {
@@ -73,10 +76,16 @@ async function getHighValueEnquiries(req, res) {
     let items = eligibleRows.map((row) => anonymizeEnquiryForDealer(row, user));
 
     // Role-based visibility logic:
-    // For City Dealers: Expired / Ended enquiries (after 48 hours) move to Past Enquiries (read-only archive)
-    // For Super Admin: All enquiries stay in High Value Bidding until explicitly deleted by Super Admin
+    // For Winning Dealer (DEALER_SELECTED): Remains in High Value Bidding section for winning dealer & Super Admin.
+    // For non-winning City Dealers: Ended, non-winning DEALER_SELECTED, purchased, or cancelled enquiries move to Past Enquiries.
     if (user?.role === 'City Dealer') {
-      items = items.filter((item) => !['BIDDING_ENDED', 'DEALER_SELECTED', 'PURCHASED', 'CANCELLED', 'ARCHIVED', 'DELETED'].includes(item.status));
+      items = items.filter((item) => {
+        const isWinningDealer = item.winningDealerId && String(item.winningDealerId) === String(user.id);
+        if (item.status === 'DEALER_SELECTED' && isWinningDealer) {
+          return true;
+        }
+        return !['BIDDING_ENDED', 'DEALER_SELECTED', 'PURCHASED', 'CANCELLED', 'ARCHIVED', 'DELETED'].includes(item.status);
+      });
     }
 
     res.json(items);
@@ -89,6 +98,8 @@ async function getHighValueEnquiries(req, res) {
 async function getPastEnquiries(req, res) {
   try {
     const user = req.user;
+    await autoResolveExpiredBids();
+
     const [standardRows, highValueRows] = await Promise.all([
       prisma.enquiry.findMany({
         where: {
@@ -153,12 +164,34 @@ async function getPastEnquiries(req, res) {
     const eligibleHVRows = highValueRows.filter((row) => isDealerEligibleForEnquiry(user, row));
     let pastHighValueEnquiries = eligibleHVRows.map((row) => anonymizeEnquiryForDealer(row, user));
 
-    // For Super Admin: Only show enquiries explicitly deleted/archived by admin in the Past Enquiries repository.
-    // Expired 48-hour enquiries stay in High Value Bidding tab for Super Admin until deleted.
+    // Role-based visibility logic for Past Enquiries:
+    // For Super Admin: Only show enquiries explicitly deleted/archived by admin.
+    // For City Dealers: Active DEALER_SELECTED stays in High Value Bidding tab for winning dealer.
+    // All ended, selected (for non-winners), purchased, cancelled, archived, and deleted enquiries appear in Past Enquiries for City Dealers.
     if (user?.role === 'Super Admin') {
       pastHighValueEnquiries = pastHighValueEnquiries.filter((item) =>
         ['archived', 'deleted', 'ARCHIVED', 'DELETED'].includes(item.status)
       );
+    } else if (user?.role === 'City Dealer') {
+      pastHighValueEnquiries = pastHighValueEnquiries.filter((item) => {
+        const isWinningDealer = Boolean(item.winningDealerId) && String(item.winningDealerId) === String(user.id);
+
+        // Active DEALER_SELECTED stays in High Value Bidding tab for winning dealer (not Past Enquiries)
+        if (item.status === 'DEALER_SELECTED' && isWinningDealer) {
+          return false;
+        }
+
+        // Active open bidding or pending enquiries stay in High Value Bidding tab (not Past Enquiries)
+        if (['BIDDING', 'PENDING'].includes(item.status)) {
+          const isExpired = item.biddingEndsAt && new Date(item.biddingEndsAt) <= new Date();
+          if (!isExpired) {
+            return false;
+          }
+        }
+
+        // All ended, selected, purchased, cancelled, archived, or deleted high-value enquiries appear in Past Enquiries
+        return true;
+      });
     }
 
     res.json({

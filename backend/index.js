@@ -19,8 +19,14 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+const { autoResolveExpiredBids } = require('./services/biddingAutoResolver');
+
 // Initialize Database Tables & Accounts
-initDb();
+initDb().then(() => {
+  autoResolveExpiredBids();
+  // Periodically check and auto-resolve expired 48h biddings every 60 seconds
+  setInterval(autoResolveExpiredBids, 60 * 1000);
+});
 
 // Mount Routes
 app.get('/api/health', (req, res) => {

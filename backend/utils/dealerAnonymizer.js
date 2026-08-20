@@ -23,8 +23,9 @@
 function anonymizeEnquiryForDealer(row, requestingUser) {
   const isSuperAdmin = requestingUser?.role === 'Super Admin';
   const isWinningDealer =
+    Boolean(row.winningDealerId) &&
     Number(row.winningDealerId) === Number(requestingUser?.id) &&
-    ['DEALER_SELECTED', 'PURCHASED'].includes(row.status);
+    ['DEALER_SELECTED', 'PURCHASED', 'archived', 'deleted', 'ARCHIVED', 'DELETED'].includes(row.status);
 
   const bidCount = row.bids ? row.bids.length : 0;
   const highestBid = bidCount > 0 ? Number(row.bids[0].amount) : 0;
@@ -74,6 +75,8 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     highestBid,
     myBid,
     status: resolvedStatus,
+    winningDealerId: row.winningDealerId ? String(row.winningDealerId) : null,
+    winningBidId: row.winningBidId ? String(row.winningBidId) : null,
     biddingStartAt: row.biddingStartAt ? row.biddingStartAt.toISOString() : null,
     biddingEndsAt: row.biddingEndsAt ? row.biddingEndsAt.toISOString() : null,
     timeRemaining,

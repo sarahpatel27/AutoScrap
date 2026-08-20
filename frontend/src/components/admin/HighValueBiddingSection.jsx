@@ -164,13 +164,6 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                       {/* Vehicle & Reg */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3 min-w-[170px] sm:min-w-0">
-                          {Array.isArray(item.photos) && item.photos.length > 0 && (
-                            <img
-                              src={typeof item.photos[0] === 'string' ? item.photos[0] : (item.photos[0].previewUrl || item.photos[0].url)}
-                              alt={`${item.make} ${item.model}`}
-                              className="h-10 w-12 rounded-lg object-cover border border-slate-200 shrink-0 shadow-2xs"
-                            />
-                          )}
                           <div className="flex flex-col gap-1">
                             <span className="font-extrabold text-slate-900 text-sm leading-tight">
                               {item.make} {item.model}

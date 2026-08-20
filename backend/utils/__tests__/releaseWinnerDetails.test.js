@@ -11,11 +11,13 @@ describe('STEP 18 — Release Customer Details to Winner Only Test', () => {
     customerName: 'Secret Customer',
     customerPhone: '07000000000',
     customerEmail: 'secret@customer.co.uk',
+    createdAt: new Date(),
     bids: [],
   };
 
   test('releases customer PII ONLY to winning dealer upon DEALER_SELECTED status', () => {
     const winnerRes = anonymizeEnquiryForDealer(selectedEnquiryRow, winnerDealerUser);
+    expect(winnerRes.winningDealerId).toBe('5');
     expect(winnerRes.customerName).toBe('Secret Customer');
     expect(winnerRes.customerPhone).toBe('07000000000');
     expect(winnerRes.customerEmail).toBe('secret@customer.co.uk');
@@ -23,6 +25,7 @@ describe('STEP 18 — Release Customer Details to Winner Only Test', () => {
 
   test('blocks customer PII from non-winning dealer upon DEALER_SELECTED status', () => {
     const loserRes = anonymizeEnquiryForDealer(selectedEnquiryRow, loserDealerUser);
+    expect(loserRes.winningDealerId).toBe('5');
     expect(loserRes.customerName).toBe('[Hidden Until Won]');
     expect(loserRes.customerPhone).toBe('[Hidden Until Won]');
     expect(loserRes.customerEmail).toBe('[Hidden Until Won]');
