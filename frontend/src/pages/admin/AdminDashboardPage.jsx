@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
   const [highValueEnquiries, setHighValueEnquiries] = useState([]);
   const [pastEnquiries, setPastEnquiries] = useState([]);
   const [pastHighValueEnquiries, setPastHighValueEnquiries] = useState([]);
-  const [pastSubTab, setPastSubTab] = useState('high-value');
+  const [pastSubTab, setPastSubTab] = useState('standard');
   const [pricing, setPricing] = useState({
     defaultPricePerTonne: 235,
     cityRates: {},
@@ -232,7 +232,7 @@ export default function AdminDashboardPage() {
 
               {/* Sub-tab Navigation */}
               <div className="flex items-center gap-2 bg-white/80 p-1.5 rounded-xl border border-amber-200 shadow-2xs">
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setPastSubTab('high-value')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
@@ -242,7 +242,7 @@ export default function AdminDashboardPage() {
                   }`}
                 >
                   ⭐ Past High-Value Biddings ({pastHighValueEnquiries.length})
-                </button>
+                </button> */}
                 <button
                   type="button"
                   onClick={() => setPastSubTab('standard')}

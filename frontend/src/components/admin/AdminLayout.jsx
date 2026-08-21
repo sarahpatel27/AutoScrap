@@ -11,17 +11,17 @@ export default function AdminLayout({ activeTab, children }) {
 
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: '📊', path: '/admin/dashboard' },
-    { id: 'high-value', label: 'High Value Bidding', icon: '⭐', path: '/admin/high-value-bidding' },
+    // { id: 'high-value', label: 'High Value Bidding', icon: '⭐', path: '/admin/high-value-bidding' },
     { id: 'enquiries', label: 'Vehicle Enquiries', icon: '🚗', path: '/admin/enquiries' },
     { id: 'past', label: 'Past Enquiries', icon: '📁', path: '/admin/past-enquiries' },
     { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️', path: '/admin/scrap-rates' },
     ...(isSuperAdmin
       ? [
-          { id: 'contacts', label: 'Contact Messages', icon: '📬', path: '/admin/contact-messages' },
-          { id: 'users', label: 'Dealer Accounts', icon: '👤', path: '/admin/dealer-accounts' },
+          // { id: 'contacts', label: 'Contact Messages', icon: '📬', path: '/admin/contact-messages' },
+          // { id: 'users', label: 'Dealer Accounts', icon: '👤', path: '/admin/dealer-accounts' },
         ]
       : []),
-    { id: 'settings', label: 'Account Settings', icon: '🔒', path: '/admin/account-settings' },
+    // { id: 'settings', label: 'Account Settings', icon: '🔒', path: '/admin/account-settings' },
   ];
 
   const currentTab = activeTab || navItems.find((item) => item.path === location.pathname)?.id || 'overview';
