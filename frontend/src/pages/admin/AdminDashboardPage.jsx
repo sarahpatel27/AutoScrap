@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router';
+import { useLocation, Navigate } from 'react-router';
 import AdminLayout from '../../components/admin/AdminLayout';
 import DashboardStats from '../../components/admin/DashboardStats';
 import EnquiriesTable from '../../components/admin/EnquiriesTable';
@@ -26,6 +26,7 @@ import {
 export default function AdminDashboardPage() {
   const location = useLocation();
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'Super Admin';
 
   const getTabFromPath = (path) => {
     switch (path) {
@@ -50,6 +51,11 @@ export default function AdminDashboardPage() {
   };
 
   const activeTab = getTabFromPath(location.pathname);
+
+  // Automatic URL protection: If a non-super admin tries to directly access restricted routes via URL, redirect to dashboard
+  if (user && !isSuperAdmin && (activeTab === 'contacts' || activeTab === 'users')) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
   const [enquiries, setEnquiries] = useState([]);
   const [highValueEnquiries, setHighValueEnquiries] = useState([]);
   const [pastEnquiries, setPastEnquiries] = useState([]);

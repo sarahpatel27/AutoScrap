@@ -1,4 +1,4 @@
-import { HIGH_VALUE_STATUSES, HIGH_VALUE_STATUS_OPTIONS, isValidStatusTransition } from '../highValueStatuses';
+const { HIGH_VALUE_STATUSES, HIGH_VALUE_STATUS_OPTIONS, isValidStatusTransition } = require('../highValueStatuses');
 
 describe('High-Value Enquiry Status Workflow', () => {
   test('defines clear status constants', () => {

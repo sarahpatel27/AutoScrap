@@ -1,4 +1,4 @@
-import { BID_STATUSES, validateBidAmount } from '../bidValidation';
+const { BID_STATUSES, validateBidAmount } = require('../bidValidation');
 
 describe('Dealer Bid Validation & Statuses', () => {
   test('defines standard bid statuses', () => {

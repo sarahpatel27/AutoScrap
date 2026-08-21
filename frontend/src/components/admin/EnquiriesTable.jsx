@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import EnquiryDetailModal from './EnquiryDetailModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import BulkStatusModal from './BulkStatusModal';
+import Pagination from './Pagination';
 import { showToast } from './ToastContainer';
 import { TARGET_CITIES, getCityFromPostcode } from '../../utils/cityHelper';
 import { useAuth } from '../../context/AuthContext';
@@ -20,6 +21,10 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
   // Modal controls
   const [bulkStatusModalOpen, setBulkStatusModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -30,6 +35,11 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
       setCityFilter(user.assignedCity);
     }
   }, [user]);
+
+  // Reset to page 1 whenever filters or search term change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, cityFilter]);
 
   const statuses = ['All', 'Pending', 'Contacted', 'Accepted', 'Collected', 'Cancelled'];
   const cities = ['All', ...TARGET_CITIES];
@@ -62,6 +72,18 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   const filteredEnquiries = baseEnquiries.filter((e) => {
     return statusFilter === 'All' || e.status === statusFilter;
   });
+
+  // Calculate pagination bounds
+  const totalPages = Math.ceil(filteredEnquiries.length / ITEMS_PER_PAGE) || 1;
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredEnquiries.length, totalPages, currentPage]);
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedEnquiries = filteredEnquiries.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const toggleSelectAll = () => {
     if (selectedIds.length === filteredEnquiries.length) {
@@ -418,7 +440,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
             </p>
           </div>
         ) : (
-          filteredEnquiries.map((e) => {
+          paginatedEnquiries.map((e) => {
             const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
             const isSelected = selectedIds.includes(String(e.id));
 
@@ -574,7 +596,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                 </td>
               </tr>
             ) : (
-              filteredEnquiries.map((e) => {
+              paginatedEnquiries.map((e) => {
                 const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
                 const isSelected = selectedIds.includes(String(e.id));
 
@@ -683,6 +705,15 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Component */}
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) => setCurrentPage(page)}
+        totalItems={filteredEnquiries.length}
+        itemsPerPage={ITEMS_PER_PAGE}
+      />
 
       {/* Detail Modal View */}
       {selectedEnquiry && (

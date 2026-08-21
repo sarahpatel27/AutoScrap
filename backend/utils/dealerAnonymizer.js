@@ -28,7 +28,7 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     ['DEALER_SELECTED', 'PURCHASED', 'archived', 'deleted', 'ARCHIVED', 'DELETED'].includes(row.status);
 
   const bidCount = row.bids ? row.bids.length : 0;
-  const highestBid = bidCount > 0 ? Number(row.bids[0].amount) : 0;
+  const highestBid = bidCount > 0 ? Math.max(...row.bids.map((b) => Number(b.amount))) : 0;
   const estimatedValue = Number(row.estimatedValue);
   const customerExpectedValue = Number(row.customerExpectedValue);
 

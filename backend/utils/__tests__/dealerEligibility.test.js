@@ -22,16 +22,16 @@ describe('Server-Side Dealer Eligibility Validation', () => {
     expect(isDealerEligibleForEnquiry(superAdmin, londonEnquiry)).toBe(true);
   });
 
-  test('City Dealer is ONLY eligible for enquiries matching their assignedCity', () => {
+  test('All authenticated dealers (Super Admin & City Dealers) are eligible for UK high-value enquiries', () => {
     expect(isDealerEligibleForEnquiry(manchesterDealer, manchesterEnquiry)).toBe(true);
-    expect(isDealerEligibleForEnquiry(manchesterDealer, londonEnquiry)).toBe(false);
+    expect(isDealerEligibleForEnquiry(manchesterDealer, londonEnquiry)).toBe(true);
 
     expect(isDealerEligibleForEnquiry(londonDealer, londonEnquiry)).toBe(true);
-    expect(isDealerEligibleForEnquiry(londonDealer, manchesterEnquiry)).toBe(false);
+    expect(isDealerEligibleForEnquiry(londonDealer, manchesterEnquiry)).toBe(true);
   });
 
-  test('Rejects invalid or unassigned dealer objects', () => {
+  test('Rejects invalid dealer objects (null or unauthenticated)', () => {
     expect(isDealerEligibleForEnquiry(null, manchesterEnquiry)).toBe(false);
-    expect(isDealerEligibleForEnquiry({ role: 'City Dealer', assignedCity: null }, manchesterEnquiry)).toBe(false);
+    expect(isDealerEligibleForEnquiry({ role: 'Guest' }, manchesterEnquiry)).toBe(false);
   });
 });

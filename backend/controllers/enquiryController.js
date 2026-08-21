@@ -725,20 +725,23 @@ async function placeDealerBid(req, res) {
       return res.status(404).json({ error: 'High-value enquiry not found.' });
     }
 
-    // Check completion status
-    if (['PURCHASED', 'CANCELLED', 'DEALER_SELECTED', 'BIDDING_ENDED'].includes(enquiry.status)) {
-      return res.status(400).json({ error: `Cannot place bid on an enquiry that is already ${enquiry.status}.` });
+    // Check completion & archived/deleted status
+    if (['archived', 'deleted', 'ARCHIVED', 'DELETED', 'PURCHASED', 'CANCELLED', 'DEALER_SELECTED', 'BIDDING_ENDED'].includes(enquiry.status)) {
+      return res.status(400).json({ error: `Bidding is permanently closed for this vehicle (status: ${enquiry.status}).` });
     }
 
     // Authoritative Server-Side Deadline Check using central biddingConfig
     const { isBiddingExpired, calculateBiddingDeadline } = require('../config/biddingConfig');
 
     if (isBiddingExpired(enquiry.biddingEndsAt)) {
-      // Automatically transition enquiry status to BIDDING_ENDED in DB
-      await prisma.highValueEnquiry.update({
-        where: { id: numericEnquiryId },
-        data: { status: 'BIDDING_ENDED' },
-      });
+      // ONLY update status to BIDDING_ENDED if status is currently active (PENDING or BIDDING)
+      // Do NOT overwrite 'archived', 'deleted', 'PURCHASED', 'CANCELLED', or 'DEALER_SELECTED'
+      if (['PENDING', 'BIDDING'].includes(enquiry.status)) {
+        await prisma.highValueEnquiry.update({
+          where: { id: numericEnquiryId },
+          data: { status: 'BIDDING_ENDED' },
+        });
+      }
       return res.status(400).json({ error: 'Bidding period for this vehicle has ended.' });
     }
 

@@ -1,4 +1,4 @@
-import { validateBidAmount } from '../bidValidation';
+const { validateBidAmount } = require('../bidValidation');
 
 describe('Server-Side PLACE BID Validation Checklist', () => {
   test('validates authenticated dealer bid submission parameters', () => {

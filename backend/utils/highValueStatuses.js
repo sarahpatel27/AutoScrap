@@ -10,7 +10,7 @@
  * 6. CANCELLED       - Enquiry cancelled by admin or customer.
  */
 
-export const HIGH_VALUE_STATUSES = {
+const HIGH_VALUE_STATUSES = {
   PENDING: 'PENDING',
   BIDDING: 'BIDDING',
   BIDDING_ENDED: 'BIDDING_ENDED',
@@ -19,7 +19,7 @@ export const HIGH_VALUE_STATUSES = {
   CANCELLED: 'CANCELLED',
 };
 
-export const HIGH_VALUE_STATUS_OPTIONS = [
+const HIGH_VALUE_STATUS_OPTIONS = [
   { value: 'PENDING', label: 'Pending Review', icon: '⏳', color: 'amber' },
   { value: 'BIDDING', label: 'Bidding Active', icon: '⚡', color: 'emerald' },
   { value: 'BIDDING_ENDED', label: 'Bidding Ended', icon: '🏁', color: 'blue' },
@@ -36,7 +36,7 @@ export const HIGH_VALUE_STATUS_OPTIONS = [
  * @param {string} newStatus
  * @returns {boolean}
  */
-export function isValidStatusTransition(currentStatus, newStatus) {
+function isValidStatusTransition(currentStatus, newStatus) {
   if (currentStatus === newStatus) return true;
   if (currentStatus === HIGH_VALUE_STATUSES.CANCELLED) return false;
 
@@ -50,3 +50,9 @@ export function isValidStatusTransition(currentStatus, newStatus) {
 
   return (validTransitions[currentStatus] || []).includes(newStatus);
 }
+
+module.exports = {
+  HIGH_VALUE_STATUSES,
+  HIGH_VALUE_STATUS_OPTIONS,
+  isValidStatusTransition,
+};

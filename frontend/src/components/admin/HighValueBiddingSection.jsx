@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import HighValueEnquiryDetailModal from './HighValueEnquiryDetailModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
+import Pagination from './Pagination';
 import { deleteHighValueEnquiry } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
 import { exportEnquiriesToExcel } from '../../utils/excelExporter';
@@ -11,6 +12,15 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
+
+  // Reset page to 1 on filter or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const filteredEnquiries = enquiries.filter((item) => {
     const matchesSearch =
@@ -25,6 +35,17 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
     return matchesSearch && matchesStatus;
   });
+
+  const totalPages = Math.ceil(filteredEnquiries.length / ITEMS_PER_PAGE) || 1;
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [filteredEnquiries.length, totalPages, currentPage]);
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedEnquiries = filteredEnquiries.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -151,7 +172,7 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                   </td>
                 </tr>
               ) : (
-                filteredEnquiries.map((item) => {
+                paginatedEnquiries.map((item) => {
                   const acceptedEstimate = item.valuePreference === 'ESTIMATED_VALUE';
                   const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A';
                   return (
@@ -302,6 +323,15 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Component */}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => setCurrentPage(page)}
+          totalItems={filteredEnquiries.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+        />
       </div>
 
       {/* Detail Modal Component */}
