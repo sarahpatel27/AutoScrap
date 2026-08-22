@@ -23,7 +23,7 @@ async function getEnquiries(req, res) {
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'Pending',
       postcode: row.postcode,
-      city: row.city || getCityFromPostcode(row.postcode, row.customer?.collectionAddress),
+      city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,
       customer: row.customer,
@@ -153,7 +153,7 @@ async function getPastEnquiries(req, res) {
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'archived',
       postcode: row.postcode,
-      city: row.city || getCityFromPostcode(row.postcode, row.customer?.collectionAddress),
+      city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,
       customer: row.customer,
@@ -318,7 +318,7 @@ async function createEnquiry(req, res) {
 
     const postcode = enquiryData.postcode || enquiryData.customer?.collectionPostcode || '';
     const address = enquiryData.customer?.collectionAddress || '';
-    const city = getCityFromPostcode(postcode, address);
+    const city = await getCityFromPostcode(postcode, address);
 
     const isHighValueReq = enquiryData.isHighValue || (enquiryData.vehicle?.year && Number(enquiryData.vehicle.year) > 2015);
 
@@ -700,6 +700,10 @@ async function placeDealerBid(req, res) {
     const user = req.user;
     if (!user) {
       return res.status(401).json({ error: 'Authentication required to place a bid.' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ error: 'Your dealer account has been deactivated because coverage for your assigned city was removed.' });
     }
 
     const { enquiryId, amount } = req.body;

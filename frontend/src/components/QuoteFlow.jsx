@@ -106,7 +106,13 @@ export default function QuoteFlow({ compact = false }) {
           const vehicle = await lookupVehicle(formattedReg);
           const highValue = isHighValueVehicle(vehicle?.year);
 
-          const quote = await calculateQuote({ vehicle, postcode: addressRes.postcode });
+          const quote = await calculateQuote({
+            vehicle,
+            postcode: addressRes.postcode,
+            matchedServiceArea: addressRes.matchedServiceArea,
+            ratePerTon: addressRes.ratePerTon,
+            postTown: addressRes.postTown,
+          });
 
           if (highValue) {
             setData((prev) => ({
@@ -250,7 +256,26 @@ export default function QuoteFlow({ compact = false }) {
 
       const vehicle = await lookupVehicle(registration);
       const highValue = isHighValueVehicle(vehicle?.year);
-      const quote = await calculateQuote({ vehicle, postcode: cleanPostcode });
+
+      let quote;
+      try {
+        quote = await calculateQuote({
+          vehicle,
+          postcode: cleanPostcode,
+          matchedServiceArea: addressRes.matchedServiceArea,
+          ratePerTon: addressRes.ratePerTon,
+          postTown: addressRes.postTown,
+        });
+
+        if (!quote || !quote.pricePerTonne || quote.pricePerTonne <= 0) {
+          throw new Error(`Scrap valuation rate is currently unavailable for ${addressRes.matchedServiceArea || 'this location'}. Please contact support.`);
+        }
+      } catch (quoteErr) {
+        const msg = quoteErr.message || 'Scrap pricing is currently unavailable for this area. Please contact support.';
+        setError(msg);
+        showToast(msg, 'error');
+        return;
+      }
 
       if (highValue) {
         // High-Value Vehicle (> 2015): Route into separate high-value form with pre-calculated quote

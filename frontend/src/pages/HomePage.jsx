@@ -1,6 +1,8 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import QuoteFlow from '../components/QuoteFlow';
-import { cities, reviews } from '../data/siteData';
+import { reviews, formatCityLocation } from '../data/siteData';
+import { fetchSupportedCities } from '../services/adminStore';
 import SEO from '../components/Seo';
 import { getOrganizationSchema, getWebSiteSchema } from '../config/seo.config';
 
@@ -53,6 +55,21 @@ function HomeSectionTitle({ eyebrow, title, text, light = false }) {
 export default function HomePage() {
   const organizationSchema = getOrganizationSchema();
   const websiteSchema = getWebSiteSchema();
+  const [activeLocations, setActiveLocations] = useState([]);
+
+  useEffect(() => {
+    async function loadActiveCities() {
+      try {
+        const data = await fetchSupportedCities({ active: 'true' });
+        if (data && data.length > 0) {
+          setActiveLocations(data.map(formatCityLocation));
+        }
+      } catch (err) {
+        console.error('Error fetching active cities for homepage:', err);
+      }
+    }
+    loadActiveCities();
+  }, []);
 
   return (
     <>
@@ -98,8 +115,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="order-1 w-full lg:order-2">
-            <QuoteFlow compact />
+          <div className="order-1 w-full min-w-0 lg:order-2">
+            <QuoteFlow compact={true} />
           </div>
         </div>
       </section>
@@ -113,38 +130,32 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className={sectionClass}>
+      <section className={`${sectionClass} bg-slate-50`}>
         <div className={containerClass}>
           <HomeSectionTitle
-            eyebrow="Simple from start to finish"
-            title="How it works"
-            text="Turn an unwanted vehicle into a completed enquiry in a few clear steps."
+            eyebrow="Simple 4-Step Process"
+            title="How scrap car collection works"
+            text="From instant estimate to collection from your driveway."
           />
 
-          <div className="grid gap-[22px] sm:grid-cols-2 lg:grid-cols-4">
-            {steps.map(([number, title, description]) => (
-              <div
-                className="h-full min-w-0 rounded-[18px] border border-slate-200 bg-white p-[26px]"
-                key={number}
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {steps.map(([num, title, description]) => (
+              <article
+                className="h-full min-w-0 rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.05)]"
+                key={num}
               >
-                <span className="mb-[22px] grid h-11 w-11 place-items-center rounded-xl bg-[#dff46b] font-black">
-                  {number}
-                </span>
+                <div className="mb-[22px] grid h-12 w-12 place-items-center rounded-[13px] bg-emerald-50 text-xl font-black text-[#0f7b4f]">
+                  {num}
+                </div>
                 <h3 className="mb-3.5 text-[1.18rem]">{title}</h3>
                 <p className="m-0 text-slate-500">{description}</p>
-              </div>
+              </article>
             ))}
-          </div>
-
-          <div className="mt-8 flex justify-center">
-            <Link className={`${secondaryButtonClass} w-full text-center sm:w-auto`} to="/how-it-works">
-              See the full process
-            </Link>
           </div>
         </div>
       </section>
 
-      <section className={`${sectionClass} bg-[#f7f8f3]`}>
+      <section className={sectionClass}>
         <div className={containerClass}>
           <HomeSectionTitle
             eyebrow="Why MyAutoScrap"
@@ -173,30 +184,35 @@ export default function HomePage() {
           <HomeSectionTitle
             eyebrow="Nationwide network"
             title="Popular areas we cover"
-            text="Search your postcode or explore example service areas."
+            text="Search your postcode or explore our active service areas across the UK."
           />
 
           <div className="grid gap-[22px] md:grid-cols-3">
-            {cities.map((city) => (
+            {activeLocations.slice(0, 6).map((city) => (
               <article
-                className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-white p-[26px]"
+                className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.04)] transition hover:-translate-y-1 hover:border-[#0f7b4f]/40"
                 key={city.name}
               >
-                <div className="absolute top-1 right-4 font-['Manrope'] text-[3.4rem] font-black text-slate-100">
+                <div className="absolute top-1 right-4 font-['Manrope'] text-[3.4rem] font-black text-slate-100 select-none">
                   {city.code}
                 </div>
-                <h3 className="relative mb-3.5 text-[1.18rem]">{city.name}</h3>
-                <p className="relative text-slate-500">{city.areas}</p>
-                <Link className="relative font-extrabold text-[#0f7b4f]" to="/scrap-my-car">
-                  Get a local quote →
+                <h3 className="relative mb-3.5 text-[1.18rem] font-black text-slate-900">{city.name}</h3>
+                <p className="relative text-sm text-slate-500 mb-4 leading-relaxed">
+                  {Array.isArray(city.areas) ? city.areas.slice(0, 4).join(', ') : city.areas}
+                </p>
+                <Link className="relative font-extrabold text-sm text-[#0f7b4f] hover:underline" to={`/areas-we-cover/${city.slug}`}>
+                  Get a local quote in {city.name} →
                 </Link>
               </article>
             ))}
           </div>
 
-          <div className="mt-8 flex justify-center">
-            <Link className={`${secondaryButtonClass} w-full text-center sm:w-auto`} to="/areas-we-cover">
-              Explore all coverage
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link className={`${primaryButtonClass} w-full text-center sm:w-auto`} to="/areas-we-cover">
+              View All Areas ({activeLocations.length}) →
+            </Link>
+            <Link className={`${secondaryButtonClass} w-full text-center sm:w-auto`} to="/scrap-my-car">
+              Check Your Postcode
             </Link>
           </div>
         </div>

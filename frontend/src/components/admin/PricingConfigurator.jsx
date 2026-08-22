@@ -1,24 +1,43 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { TARGET_CITIES } from '../../utils/cityHelper';
+import { fetchSupportedCities } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
 
 export default function PricingConfigurator({ pricing, onSavePricing, onResetPricing }) {
   const { user } = useAuth();
   const isDealer = !!user?.assignedCity;
 
-  const [selectedCity, setSelectedCity] = useState(user?.assignedCity || 'London');
+  const [supportedCitiesList, setSupportedCitiesList] = useState([]);
+  const [selectedCity, setSelectedCity] = useState(user?.assignedCity || '');
   const [cityRates, setCityRates] = useState({ ...(pricing?.cityRates || {}) });
   
   // Keep rateInput as a string so user can clear the field completely and type freely
-  const [rateInput, setRateInput] = useState(
-    String(pricing?.cityRates?.[user?.assignedCity || 'London'] ?? 235),
-  );
+  const [rateInput, setRateInput] = useState('235');
   const [savedMessage, setSavedMessage] = useState(false);
 
   useEffect(() => {
+    async function loadCities() {
+      try {
+        const cities = await fetchSupportedCities({ active: 'true' });
+        const cityNames = (cities || []).map((c) => c.name);
+        setSupportedCitiesList(cityNames);
+
+        if (!selectedCity && cityNames.length > 0) {
+          const initial = user?.assignedCity || cityNames[0];
+          setSelectedCity(initial);
+        }
+      } catch (err) {
+        console.error('Error loading cities for pricing:', err);
+      }
+    }
+    loadCities();
+  }, [user]);
+
+  useEffect(() => {
     const activeCity = user?.assignedCity || selectedCity;
-    setRateInput(String(cityRates[activeCity] ?? 235));
+    if (activeCity) {
+      setRateInput(String(cityRates[activeCity] ?? 235));
+    }
   }, [selectedCity, user, cityRates]);
 
   const handleCityChange = (city) => {
@@ -69,7 +88,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
     setSavedMessage(false);
   };
 
-  const activeCityName = user?.assignedCity || selectedCity;
+  const activeCityName = user?.assignedCity || selectedCity || 'All';
   const currentNumericRate = rateInput === '' ? 0 : Number(rateInput);
 
   // Live Calculation Preview based on 1,300 kg sample vehicle
@@ -101,7 +120,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
                 onChange={(e) => handleCityChange(e.target.value)}
                 className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs font-extrabold text-slate-900 outline-none focus:border-[#0f7b4f]"
               >
-                {TARGET_CITIES.map((city) => (
+                {supportedCitiesList.map((city) => (
                   <option key={city} value={city}>
                     {city}
                   </option>
@@ -114,7 +133,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
         {/* City Selector Pills for Super Admin */}
         {!isDealer && (
           <div className="flex items-center gap-1.5 pt-2 border-t border-gray-100 overflow-x-auto pb-1 scrollbar-none">
-            {TARGET_CITIES.map((city) => (
+            {supportedCitiesList.map((city) => (
               <button
                 key={city}
                 type="button"

@@ -9,6 +9,7 @@ import AccountSettingsSection from '../../components/admin/AccountSettingsSectio
 import ContactSubmissionsSection from '../../components/admin/ContactSubmissionsSection';
 import HighValueBiddingSection from '../../components/admin/HighValueBiddingSection';
 import DealerBiddingDashboard from '../../components/admin/DealerBiddingDashboard';
+import CitiesManagementSection from '../../components/admin/CitiesManagementSection';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchEnquiries,
@@ -38,6 +39,8 @@ export default function AdminDashboardPage() {
         return 'past';
       case '/admin/scrap-rates':
         return 'pricing';
+      case '/admin/cities':
+        return 'cities';
       case '/admin/contact-messages':
         return 'contacts';
       case '/admin/dealer-accounts':
@@ -53,7 +56,7 @@ export default function AdminDashboardPage() {
   const activeTab = getTabFromPath(location.pathname);
 
   // Automatic URL protection: If a non-super admin tries to directly access restricted routes via URL, redirect to dashboard
-  if (user && !isSuperAdmin && (activeTab === 'contacts' || activeTab === 'users')) {
+  if (user && !isSuperAdmin && (activeTab === 'contacts' || activeTab === 'users' || activeTab === 'cities')) {
     return <Navigate to="/admin/dashboard" replace />;
   }
   const [enquiries, setEnquiries] = useState([]);
@@ -294,6 +297,10 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'cities' && (
+          <CitiesManagementSection />
         )}
 
         {activeTab === 'contacts' && (

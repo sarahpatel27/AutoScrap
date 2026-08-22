@@ -10,6 +10,7 @@ const pricingRoutes = require('./routes/pricingRoutes');
 const enquiryRoutes = require('./routes/enquiryRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+const cityRoutes = require('./routes/cityRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,7 @@ app.use('/api/address-lookup', addressRoutes);
 app.use('/api/pricing', pricingRoutes);
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/cities', cityRoutes);
 
 // Start Server
 app.listen(PORT, () => {

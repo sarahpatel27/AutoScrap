@@ -38,7 +38,15 @@ async function authenticateToken(req, res, next) {
   }
 }
 
+async function requireSuperAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'Super Admin') {
+    return res.status(403).json({ error: 'Forbidden: Only Super Administrators can perform this action.' });
+  }
+  next();
+}
+
 module.exports = {
   authenticateToken,
+  requireSuperAdmin,
   JWT_SECRET,
 };

@@ -38,11 +38,30 @@ export async function lookupVehicle(registration) {
 export async function calculateQuote(data) {
   const pricingConfig = await fetchPricingConfig();
   const postcode = data.postcode || data.customer?.collectionPostcode || data.vehicle?.postcode || '';
-  const city = getCityFromPostcode(postcode, data.customer?.collectionAddress);
+  
+  // Use matchedServiceArea if provided from address lookup or fallback to address text
+  let city = data.matchedServiceArea || data.city || data.postTown || '';
+  if (!city) {
+    city = getCityFromPostcode(postcode, data.customer?.collectionAddress);
+  }
 
-  let pricePerTonne = pricingConfig.defaultPricePerTonne || 235;
-  if (city && pricingConfig.cityRates && pricingConfig.cityRates[city]) {
-    pricePerTonne = pricingConfig.cityRates[city];
+  // 1. Direct rate from backend address lookup
+  let pricePerTonne = data.ratePerTon || null;
+
+  // 2. Or match city name in live database cityRates from /api/pricing
+  if (!pricePerTonne && city && pricingConfig.cityRates) {
+    const matchedKey = Object.keys(pricingConfig.cityRates).find(
+      (k) => k.toLowerCase() === city.toLowerCase(),
+    );
+    if (matchedKey) {
+      pricePerTonne = pricingConfig.cityRates[matchedKey];
+      city = matchedKey;
+    }
+  }
+
+  // 3. Fallback default
+  if (!pricePerTonne || isNaN(pricePerTonne)) {
+    pricePerTonne = pricingConfig.defaultPricePerTonne || 235;
   }
 
   const kerbWeightKg = data.vehicle?.weightKg || 1200;
@@ -52,7 +71,7 @@ export async function calculateQuote(data) {
   const finalValue = baseValue;
 
   return {
-    city,
+    city: city || 'UK',
     pricePerTonne,
     kerbWeightKg,
     tonnes,

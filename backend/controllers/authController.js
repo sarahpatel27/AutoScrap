@@ -28,6 +28,12 @@ async function login(req, res) {
       return res.status(401).json({ error: 'Invalid email or password.' });
     }
 
+    if (user.isActive === false) {
+      return res.status(403).json({
+        error: 'This account has been deactivated because coverage for its assigned city was removed. Please contact the administrator.',
+      });
+    }
+
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid email or password.' });
@@ -90,13 +96,8 @@ async function getUsers(req, res) {
 
     const users = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        assignedCity: true,
-        createdAt: true,
+      include: {
+        city: true,
       },
     });
 
@@ -106,7 +107,9 @@ async function getUsers(req, res) {
         email: u.email,
         name: u.name,
         role: u.role,
-        assignedCity: u.assignedCity,
+        isActive: u.isActive !== false,
+        cityId: u.cityId || u.city?.id || null,
+        assignedCity: u.city?.name || u.assignedCity || null,
         createdAt: u.createdAt,
       }))
     );
@@ -122,7 +125,7 @@ async function createUser(req, res) {
       return res.status(403).json({ error: 'Only Super Administrators can create dealer accounts.' });
     }
 
-    const { email, password, name, assignedCity } = req.body;
+    const { email, password, name, assignedCity, cityId } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
@@ -138,29 +141,52 @@ async function createUser(req, res) {
       return res.status(400).json({ error: 'An account with this email address already exists.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const role = assignedCity ? 'City Dealer' : 'Super Admin';
-    const accountName = name || (assignedCity ? `${assignedCity} Dealer` : 'Administrator');
+    // Resolve active city
+    let resolvedCityId = null;
+    let resolvedCityName = null;
 
-    const created = await prisma.user.create({
+    if (cityId) {
+      const cityRec = await prisma.city.findUnique({
+        where: { id: parseInt(cityId, 10) },
+      });
+      if (!cityRec || !cityRec.isActive) {
+        return res.status(400).json({ error: 'Selected city is not an active supported city in AutoScrap.' });
+      }
+      resolvedCityId = cityRec.id;
+      resolvedCityName = cityRec.name;
+    } else if (assignedCity && assignedCity.trim()) {
+      const cityRec = await prisma.city.findFirst({
+        where: {
+          name: { equals: assignedCity.trim(), mode: 'insensitive' },
+          isActive: true,
+        },
+      });
+      if (!cityRec) {
+        return res.status(400).json({ error: `City "${assignedCity}" is not an active supported city in AutoScrap.` });
+      }
+      resolvedCityId = cityRec.id;
+      resolvedCityName = cityRec.name;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const role = resolvedCityName ? 'City Dealer' : 'Super Admin';
+    const accountName = name || (resolvedCityName ? `${resolvedCityName} Dealer` : 'Administrator');
+
+    await prisma.user.create({
       data: {
         email: cleanEmail,
         password: hashedPassword,
         name: accountName,
         role,
-        assignedCity: assignedCity || null,
+        cityId: resolvedCityId,
+        assignedCity: resolvedCityName,
       },
     });
 
     const allUsers = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        assignedCity: true,
-        createdAt: true,
+      include: {
+        city: true,
       },
     });
 
@@ -170,7 +196,8 @@ async function createUser(req, res) {
         email: u.email,
         name: u.name,
         role: u.role,
-        assignedCity: u.assignedCity,
+        cityId: u.cityId || u.city?.id || null,
+        assignedCity: u.city?.name || u.assignedCity || null,
         createdAt: u.createdAt,
       }))
     );

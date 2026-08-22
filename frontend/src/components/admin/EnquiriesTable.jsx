@@ -1,17 +1,18 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import EnquiryDetailModal from './EnquiryDetailModal';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import BulkStatusModal from './BulkStatusModal';
 import Pagination from './Pagination';
 import { showToast } from './ToastContainer';
-import { TARGET_CITIES, getCityFromPostcode } from '../../utils/cityHelper';
 import { useAuth } from '../../context/AuthContext';
 import { exportEnquiriesToExcel } from '../../utils/excelExporter';
+import { fetchSupportedCities } from '../../services/adminStore';
 
 export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
   const isDealer = !!user?.assignedCity;
 
+  const [dbCities, setDbCities] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [cityFilter, setCityFilter] = useState(user?.assignedCity || 'All');
@@ -31,6 +32,18 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   const [targetDeleteId, setTargetDeleteId] = useState(null); // single delete ID or null for bulk
 
   useEffect(() => {
+    async function loadCities() {
+      try {
+        const data = await fetchSupportedCities({ active: 'true' });
+        setDbCities((data || []).map((c) => c.name));
+      } catch (err) {
+        console.error('Error fetching cities for enquiries filter:', err);
+      }
+    }
+    loadCities();
+  }, []);
+
+  useEffect(() => {
     if (user?.assignedCity) {
       setCityFilter(user.assignedCity);
     }
@@ -42,10 +55,19 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   }, [searchTerm, statusFilter, cityFilter]);
 
   const statuses = ['All', 'Pending', 'Contacted', 'Accepted', 'Collected', 'Cancelled'];
-  const cities = ['All', ...TARGET_CITIES];
+
+  const cities = useMemo(() => {
+    const set = new Set(dbCities);
+    for (const e of enquiries) {
+      if (e.city && e.city !== 'Other' && e.city !== 'Unassigned') {
+        set.add(e.city);
+      }
+    }
+    return ['All', ...Array.from(set).sort()];
+  }, [dbCities, enquiries]);
 
   const baseEnquiries = enquiries.filter((e) => {
-    const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+    const itemCity = e.city || 'Other';
 
     // Dealer scope constraint
     if (isDealer && itemCity !== user.assignedCity) {

@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
-import { locations } from '../data/siteData';
+import { formatCityLocation } from '../data/siteData';
+import { fetchSupportedCities } from '../services/adminStore';
 import PostcodeCheckerForm from '../components/PostcodeCheckerForm';
 import CityQuickLinkCard from '../components/CityQuickLinkCard';
 import LocationCard from '../components/LocationCard';
@@ -22,6 +24,22 @@ const sectionTitleClass = 'mb-9 max-w-[700px]';
 const centeredSectionTitleClass = `${sectionTitleClass} mx-auto text-center`;
 
 export default function AreasPage() {
+    const [locationsList, setLocationsList] = useState([]);
+
+    useEffect(() => {
+        async function loadCities() {
+            try {
+                const data = await fetchSupportedCities({ active: 'true' });
+                if (data && data.length > 0) {
+                    setLocationsList(data.map(formatCityLocation));
+                }
+            } catch (err) {
+                console.error('Error loading cities in AreasPage:', err);
+            }
+        }
+        loadCities();
+    }, []);
+
     const breadcrumbSchema = getBreadcrumbSchema([
         { name: 'Home', url: '/' },
         { name: 'Areas We Cover', url: '/areas-we-cover' }
@@ -31,7 +49,7 @@ export default function AreasPage() {
         <>
             <SEO
                 title="Scrap Car Collection Areas UK | Nationwide Vehicle Recovery"
-                description="Check MyAutoScrap coverage across Doncaster, Leicester, Peterborough, London, Cambridge, Liverpool, Manchester and surrounding UK areas."
+                description="Check MyAutoScrap coverage across our active supported UK cities and surrounding areas."
                 canonical="/areas-we-cover"
                 schema={breadcrumbSchema}
             />
@@ -94,7 +112,7 @@ export default function AreasPage() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-3.5 min-[1100px]:grid-cols-6 sm:grid-cols-3">
-                        {locations.map((location) => (
+                        {locationsList.map((location) => (
                             <CityQuickLinkCard key={location.slug} location={location} />
                         ))}
                     </div>
@@ -118,7 +136,7 @@ export default function AreasPage() {
                     </div>
 
                     <div className="grid gap-6 lg:grid-cols-2">
-                        {locations.map((location) => (
+                        {locationsList.map((location) => (
                             <LocationCard key={location.slug} location={location} />
                         ))}
                     </div>
@@ -126,7 +144,7 @@ export default function AreasPage() {
             </section>
 
             {/* Map Embed Section */}
-            <CoverageMapSection locations={locations} />
+            <CoverageMapSection locations={locationsList} />
 
             {/* Unlisted Area Call-to-Action */}
             <UnlistedAreaCTA />

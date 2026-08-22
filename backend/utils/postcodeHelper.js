@@ -1,164 +1,326 @@
-const SUPPORTED_SERVICE_AREAS = [
-  'DONCASTER',
-  'LEICESTER',
-  'PETERBOROUGH',
-  'LONDON',
-  'CAMBRIDGE',
-  'LIVERPOOL',
-  'MANCHESTER',
-];
-
-const LONDON_BOROUGHS = [
-  'CITY OF LONDON', 'WESTMINSTER', 'CAMDEN', 'ISLINGTON', 'HACKNEY',
-  'TOWER HAMLETS', 'GREENWICH', 'LEWISHAM', 'SOUTHWARK', 'LAMBETH',
-  'WANDSWORTH', 'HAMMERSMITH AND FULHAM', 'KENSINGTON AND CHELSEA',
-  'BRENT', 'EALING', 'HOUNSLOW', 'RICHMOND UPON THAMES', 'KINGSTON UPON THAMES',
-  'MERTON', 'SUTTON', 'CROYDON', 'BROMLEY', 'BEXLEY', 'HAVERING',
-  'BARKING AND DAGENHAM', 'REDBRIDGE', 'WALTHAM FOREST', 'HARINGEY',
-  'ENFIELD', 'BARNET', 'HARROW', 'HILLINGDON',
-];
-
-const LONDON_OUTWARD_CODES = [
-  'E', 'EC', 'N', 'NW', 'SE', 'SW', 'W', 'WC',
-  'BR', 'CR', 'DA', 'EN', 'HA', 'IG', 'KT', 'RM', 'SM', 'TW', 'UB', 'WD',
-];
-
-const MANCHESTER_BOROUGHS = [
-  'MANCHESTER', 'SALFORD', 'TRAFFORD', 'STOCKPORT', 'TAMESIDE',
-  'OLDHAM', 'ROCHDALE', 'BURY', 'BOLTON', 'WIGAN',
-];
-
-const LIVERPOOL_BOROUGHS = [
-  'LIVERPOOL', 'KNOWSLEY', 'SEFTON', 'ST. HELENS', 'ST HELENS', 'WIRRAL',
-];
-
-const LEICESTER_BOROUGHS = [
-  'LEICESTER', 'BLABY', 'CHARNWOOD', 'HARBOROUGH', 'HINCKLEY AND BOSWORTH',
-  'MELTON', 'OADBY AND WIGSTON', 'NORTH WEST LEICESTERSHIRE',
-];
-
-const CAMBRIDGE_DISTRICTS = [
-  'CAMBRIDGE', 'SOUTH CAMBRIDGESHIRE', 'EAST CAMBRIDGESHIRE',
-];
+const { prisma } = require("../config/db");
 
 /**
- * Defensively determines whether a postcode/address details match one of the central SUPPORTED_SERVICE_AREAS.
- * @param {Object} addressDetails - Vehicle Data Global AddressDetails object or params
- * @param {Array} addressDetails.addressList - AddressList array
- * @param {Object} addressDetails.locationDetails - LocationDetails object
- * @param {string} addressDetails.postcode - Clean input postcode
- * @returns {string|null} The matched service area name in uppercase, or null if unsupported.
+ * Normalizes an input string:
+ * - lowercase
+ * - trim outer whitespace
+ * - collapse multiple spaces
+ * - remove punctuation and symbols (dots, commas, hyphens, slashes)
  */
-function determineServiceArea(addressDetails = {}) {
-  const { addressList = [], locationDetails = {}, postcode = '' } = addressDetails;
-  const cleanPostcode = String(postcode).trim().toUpperCase();
+function normalizeLocationString(str) {
+  if (!str || typeof str !== "string") return "";
+  return str
+    .toLowerCase()
+    .trim()
+    .replace(/[.,\/#!$%^&*;:{}=\-_\`~()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  // 1. Inspect FormattedAddressLines.PostTown from AddressList items
+/**
+ * Centrally maps Royal ID / address API localities, administrative areas,
+ * and regional boroughs to their official UK city names.
+ */
+const CITY_ALIASES = {
+  // London aliases & boroughs
+  "city of london": "London",
+  "greater london": "London",
+  "westminster": "London",
+  "camden": "London",
+  "islington": "London",
+  "hackney": "London",
+  "tower hamlets": "London",
+  "greenwich": "London",
+  "lewisham": "London",
+  "southwark": "London",
+  "lambeth": "London",
+  "wandsworth": "London",
+  "hammersmith and fulham": "London",
+  "kensington and chelsea": "London",
+  "brent": "London",
+  "ealing": "London",
+  "hounslow": "London",
+  "richmond upon thames": "London",
+  "kingston upon thames": "London",
+  "merton": "London",
+  "sutton": "London",
+  "croydon": "London",
+  "bromley": "London",
+  "bexley": "London",
+  "havering": "London",
+  "barking and dagenham": "London",
+  "redbridge": "London",
+  "waltham forest": "London",
+  "haringey": "London",
+  "enfield": "London",
+  "barnet": "London",
+  "harrow": "London",
+  "hillingdon": "London",
+
+  // Manchester aliases & boroughs
+  "greater manchester": "Manchester",
+  "salford": "Manchester",
+  "trafford": "Manchester",
+  "stockport": "Manchester",
+  "tameside": "Manchester",
+  "oldham": "Manchester",
+  "rochdale": "Manchester",
+  "bury": "Manchester",
+  "bolton": "Manchester",
+  "wigan": "Manchester",
+
+  // Liverpool / Merseyside aliases
+  "merseyside": "Liverpool",
+  "knowsley": "Liverpool",
+  "sefton": "Liverpool",
+  "st helens": "Liverpool",
+  "st. helens": "Liverpool",
+  "wirral": "Liverpool",
+  "bootle": "Liverpool",
+
+  // Leicester / Leicestershire aliases
+  "leicestershire": "Leicester",
+  "blaby": "Leicester",
+  "charnwood": "Leicester",
+  "harborough": "Leicester",
+  "hinckley and bosworth": "Leicester",
+  "melton": "Leicester",
+  "oadby and wigston": "Leicester",
+  "north west leicestershire": "Leicester",
+  "loughborough": "Leicester",
+
+  // Cambridge / Cambridgeshire aliases
+  "cambridgeshire": "Cambridge",
+  "south cambridgeshire": "Cambridge",
+  "east cambridgeshire": "Cambridge",
+
+  // Newcastle / Tyne and Wear
+  "tyne and wear": "Newcastle upon Tyne",
+  "newcastle": "Newcastle upon Tyne",
+  "gateshead": "Newcastle upon Tyne",
+  "north tyneside": "Newcastle upon Tyne",
+  "south tyneside": "Newcastle upon Tyne",
+
+  // Brighton
+  "brighton": "Brighton and Hove",
+  "hove": "Brighton and Hove",
+
+  // Hull
+  "hull": "Kingston upon Hull",
+
+  // Stoke
+  "stoke": "Stoke-on-Trent",
+  "stoke on trent": "Stoke-on-Trent",
+
+  // Southend
+  "southend": "Southend-on-Sea",
+  "southend on sea": "Southend-on-Sea",
+
+  // St Albans
+  "st albans": "St Albans",
+  "st. albans": "St Albans",
+};
+
+/**
+ * Outward postcode prefix mapping
+ */
+const POSTCODE_AREA_PREFIX_MAP = {
+  dn: "Doncaster",
+  le: "Leicester",
+  pe: "Peterborough",
+  cb: "Cambridge",
+  l: "Liverpool",
+  m: "Manchester",
+  b: "Birmingham",
+  bs: "Bristol",
+  ls: "Leeds",
+  s: "Sheffield",
+  ne: "Newcastle upon Tyne",
+  ng: "Nottingham",
+  cv: "Coventry",
+  so: "Southampton",
+  po: "Portsmouth",
+  ox: "Oxford",
+  nr: "Norwich",
+  ex: "Exeter",
+  pl: "Plymouth",
+  gl: "Gloucester",
+  ct: "Canterbury",
+  ba: "Bath",
+  bd: "Bradford",
+  ca: "Carlisle",
+  cm: "Chelmsford",
+  ch: "Chester",
+  de: "Derby",
+  dh: "Durham",
+  hr: "Hereford",
+  hu: "Kingston upon Hull",
+  la: "Lancaster",
+  ln: "Lincoln",
+  mk: "Milton Keynes",
+  pr: "Preston",
+  sp: "Salisbury",
+  ss: "Southend-on-Sea",
+  al: "St Albans",
+  st: "Stoke-on-Trent",
+  sr: "Sunderland",
+  tr: "Truro",
+  wf: "Wakefield",
+  so: "Winchester",
+  wv: "Wolverhampton",
+  wr: "Worcester",
+  yo: "York",
+  e: "London",
+  ec: "London",
+  n: "London",
+  nw: "London",
+  se: "London",
+  sw: "London",
+  w: "London",
+  wc: "London",
+  br: "London",
+  cr: "London",
+  da: "London",
+  en: "London",
+  ha: "London",
+  ig: "London",
+  kt: "London",
+  rm: "London",
+  sm: "London",
+  tw: "London",
+  ub: "London",
+  wd: "London",
+};
+
+/**
+ * Centrally resolves an addressData object into a supported database City record (or null).
+ * 
+ * Flow:
+ * 1. Normalize all address components (PostTown, AdminDistrict, AdminCounty, AddressList, Postcode).
+ * 2. Resolve known aliases centrally.
+ * 3. Match against active cities in database (case/punctuation insensitive, exact or contains).
+ * 
+ * @param {Object} addressData - Data containing postcode, addressList, locationDetails, postTown, adminDistrict
+ * @returns {Promise<{ isSupported: boolean, city: Object|null, matchedCityName: string|null, ratePerTon: number|null }>}
+ */
+async function resolveSupportedCity(addressData = {}) {
+  const {
+    addressList = [],
+    locationDetails = {},
+    postcode = "",
+    postTown = "",
+    adminDistrict = "",
+    adminCounty = "",
+    address = "",
+  } = addressData;
+
+  const candidates = [];
+
+  // Extract all potential candidates in priority order
+  if (postTown) candidates.push(postTown);
+  if (adminDistrict) candidates.push(adminDistrict);
+  if (adminCounty) candidates.push(adminCounty);
+  if (address) candidates.push(address);
+
   for (const item of addressList) {
-    const postTown = item.FormattedAddressLines?.PostTown?.trim().toUpperCase();
-    if (postTown && SUPPORTED_SERVICE_AREAS.includes(postTown)) {
-      return postTown;
+    const pt = item.FormattedAddressLines?.PostTown || item.postTown;
+    if (pt) candidates.push(pt);
+    const summary = item.SummaryAddress || item.summaryAddress;
+    if (summary) candidates.push(summary);
+  }
+
+  const ons = locationDetails.OnsGeography || {};
+  if (ons.AdminDistrict?.Name) candidates.push(ons.AdminDistrict.Name);
+  if (ons.AdminCounty?.Name) candidates.push(ons.AdminCounty.Name);
+
+  // Outward postcode prefix candidate
+  const cleanPostcode = normalizeLocationString(postcode).replace(/\s+/g, "");
+  const outwardMatch = cleanPostcode.match(/^([a-z]{1,2})\d/i);
+  if (outwardMatch) {
+    const prefix = outwardMatch[1].toLowerCase();
+    if (POSTCODE_AREA_PREFIX_MAP[prefix]) {
+      candidates.push(POSTCODE_AREA_PREFIX_MAP[prefix]);
     }
   }
 
-  // 2. Inspect OnsGeography.AdminDistrict.Name & AdminCounty.Name
-  const ons = locationDetails.OnsGeography || {};
-  const adminDistrict = ons.AdminDistrict?.Name?.trim().toUpperCase();
-  const adminCounty = ons.AdminCounty?.Name?.trim().toUpperCase();
+  // Fetch all active supported cities and their current pricing from DB
+  const activeCities = await prisma.city.findMany({
+    where: { isActive: true },
+    include: { pricing: true },
+  });
 
-  if (adminDistrict && SUPPORTED_SERVICE_AREAS.includes(adminDistrict)) {
-    return adminDistrict;
+  if (!activeCities || activeCities.length === 0) {
+    return {
+      isSupported: false,
+      city: null,
+      matchedCityName: null,
+      ratePerTon: null,
+    };
   }
 
-  // 3. Defensive check using admin regions & boroughs
-  if (
-    postTownMatches(addressList, 'LONDON') ||
-    adminCounty === 'GREATER LONDON' ||
-    (adminDistrict && LONDON_BOROUGHS.includes(adminDistrict))
-  ) {
-    return 'LONDON';
+  // Match candidates against active database cities
+  for (const rawCandidate of candidates) {
+    const norm = normalizeLocationString(rawCandidate);
+    if (!norm) continue;
+
+    // Check alias first
+    const mappedAlias = CITY_ALIASES[norm];
+    const targetToSearch = mappedAlias ? normalizeLocationString(mappedAlias) : norm;
+
+    // Match against active cities
+    for (const city of activeCities) {
+      const normCityName = normalizeLocationString(city.name);
+
+      if (
+        normCityName === targetToSearch ||
+        normCityName === norm ||
+        targetToSearch.includes(normCityName) ||
+        norm.includes(normCityName)
+      ) {
+        return {
+          isSupported: true,
+          city,
+          matchedCityName: city.name,
+          ratePerTon: city.pricing ? Number(city.pricing.pricePerTonne || city.pricing.pricePerTon) : 235,
+        };
+      }
+    }
   }
 
-  if (
-    postTownMatches(addressList, 'MANCHESTER') ||
-    adminCounty === 'GREATER MANCHESTER' ||
-    (adminDistrict && MANCHESTER_BOROUGHS.includes(adminDistrict))
-  ) {
-    return 'MANCHESTER';
-  }
-
-  if (
-    postTownMatches(addressList, 'LIVERPOOL') ||
-    adminCounty === 'MERSEYSIDE' ||
-    (adminDistrict && LIVERPOOL_BOROUGHS.includes(adminDistrict))
-  ) {
-    return 'LIVERPOOL';
-  }
-
-  if (
-    postTownMatches(addressList, 'LEICESTER') ||
-    adminCounty === 'LEICESTERSHIRE' ||
-    (adminDistrict && LEICESTER_BOROUGHS.includes(adminDistrict))
-  ) {
-    return 'LEICESTER';
-  }
-
-  if (
-    postTownMatches(addressList, 'CAMBRIDGE') ||
-    adminCounty === 'CAMBRIDGESHIRE' ||
-    (adminDistrict && CAMBRIDGE_DISTRICTS.includes(adminDistrict))
-  ) {
-    return 'CAMBRIDGE';
-  }
-
-  if (postTownMatches(addressList, 'PETERBOROUGH') || adminDistrict === 'PETERBOROUGH') {
-    return 'PETERBOROUGH';
-  }
-
-  if (postTownMatches(addressList, 'DONCASTER') || adminDistrict === 'DONCASTER') {
-    return 'DONCASTER';
-  }
-
-  // 4. Outward Postcode Area fallback check
-  const outwardMatch = cleanPostcode.match(/^([A-Z]{1,2})\d/);
-  if (outwardMatch) {
-    const area = outwardMatch[1];
-    if (area === 'DN') return 'DONCASTER';
-    if (area === 'LE') return 'LEICESTER';
-    if (area === 'PE') return 'PETERBOROUGH';
-    if (area === 'CB') return 'CAMBRIDGE';
-    if (LONDON_OUTWARD_CODES.includes(area)) return 'LONDON';
-  }
-
-  if (/^L\d/.test(cleanPostcode)) return 'LIVERPOOL';
-  if (/^M\d/.test(cleanPostcode)) return 'MANCHESTER';
-
-  return null;
+  return {
+    isSupported: false,
+    city: null,
+    matchedCityName: null,
+    ratePerTon: null,
+  };
 }
 
-function postTownMatches(addressList, targetCity) {
-  return addressList.some(
-    (item) => item.FormattedAddressLines?.PostTown?.trim().toUpperCase() === targetCity,
-  );
+/**
+ * Convenience backward-compatible wrapper for address controller
+ */
+async function determineServiceArea(addressDetails = {}) {
+  const result = await resolveSupportedCity(addressDetails);
+  return result.isSupported ? result.matchedCityName.toUpperCase() : null;
 }
 
-function getCityFromPostcode(postcode = '', address = '') {
-  if (!postcode && !address) return 'Unassigned';
+/**
+ * Convenience helper to get city name from postcode / address
+ */
+async function getCityFromPostcode(postcode = "", address = "") {
+  if (!postcode && !address) return "Unassigned";
 
-  const matched = determineServiceArea({
+  const result = await resolveSupportedCity({
     postcode,
+    address,
     addressList: address ? [{ FormattedAddressLines: { PostTown: address } }] : [],
   });
 
-  if (matched) {
-    return matched.charAt(0) + matched.slice(1).toLowerCase();
-  }
-
-  return 'Other';
+  return result.isSupported ? result.matchedCityName : "Other";
 }
 
 module.exports = {
-  SUPPORTED_SERVICE_AREAS,
+  normalizeLocationString,
+  resolveSupportedCity,
   determineServiceArea,
   getCityFromPostcode,
 };
