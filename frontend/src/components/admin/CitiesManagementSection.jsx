@@ -500,7 +500,7 @@ export default function CitiesManagementSection() {
 
                       {/* Scrap Rate Per Ton Column */}
                       <td className="py-3.5 px-4">
-                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50/80 px-2.5 py-1 text-xs font-black text-[#0f7b4f]">
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50/80 px-2.5 py-1 text-xs font-black text-[#0f7b4f] max-sm:w-24">
                           <span>£{city.ratePerTon}</span>
                           <span className="text-[10px] font-normal text-emerald-700">/ tonne</span>
                         </div>
@@ -508,8 +508,8 @@ export default function CitiesManagementSection() {
 
                       {/* Dealer Accounts Column */}
                       <td className="py-3.5 px-4">
-                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
-                          👤 {city.dealerCount} {city.dealerCount === 1 ? "Dealer" : "Dealers"}
+                        <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 max-sm:w-18">
+                           {city.dealerCount} {city.dealerCount === 1 ? "Dealer" : "Dealers"}
                         </span>
                       </td>
 
@@ -517,11 +517,11 @@ export default function CitiesManagementSection() {
                       <td className="py-3.5 px-4">
                         {city.isActive ? (
                           <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-black text-emerald-800">
-                            ● Active
+                            Active
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 rounded-full bg-gray-200 px-2.5 py-0.5 text-[11px] font-black text-gray-600">
-                            ○ Inactive
+                            Inactive
                           </span>
                         )}
                       </td>
