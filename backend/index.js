@@ -11,6 +11,7 @@ const enquiryRoutes = require('./routes/enquiryRoutes');
 const contactRoutes = require('./routes/contactRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const cityRoutes = require('./routes/cityRoutes');
+const promotionRoutes = require('./routes/promotionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,13 +21,17 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const { autoResolveExpiredBids } = require('./services/biddingAutoResolver');
+const { autoResolveExpiredBids, processMidwayBiddingNotifications } = require('./services/biddingAutoResolver');
 
 // Initialize Database Tables & Accounts
 initDb().then(() => {
   autoResolveExpiredBids();
-  // Periodically check and auto-resolve expired 48h biddings every 60 seconds
-  setInterval(autoResolveExpiredBids, 60 * 1000);
+  processMidwayBiddingNotifications();
+  // Periodically check expired biddings & 24h midway notifications every 60 seconds
+  setInterval(() => {
+    autoResolveExpiredBids();
+    processMidwayBiddingNotifications();
+  }, 60 * 1000);
 });
 
 // Mount Routes
@@ -41,6 +46,7 @@ app.use('/api/pricing', pricingRoutes);
 app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/cities', cityRoutes);
+app.use('/api/promotions', promotionRoutes);
 
 // Start Server
 app.listen(PORT, () => {

@@ -529,3 +529,40 @@ export async function deleteSupportedCity(id) {
   return data;
 }
 
+export async function fetchCustomerAudience() {
+  const res = await fetch(getApiUrl('/api/promotions/customers'), {
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to fetch customer audience.');
+  }
+  return data;
+}
+
+export async function previewPromotionalCampaign(payload) {
+  const res = await fetch(getApiUrl('/api/promotions/preview'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to generate preview.');
+  }
+  return data;
+}
+
+export async function sendPromotionalCampaign(payload) {
+  const res = await fetch(getApiUrl('/api/promotions/send'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to send campaign.');
+  }
+  return data;
+}
+

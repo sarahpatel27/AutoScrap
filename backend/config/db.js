@@ -50,48 +50,48 @@ async function initDb() {
     }
 
     // 2. Seed Super Admin User
-    const superAdminEmail = 'admin@myautoscrap.co.uk';
-    const superAdminPasswordHash = await bcrypt.hash('admin123', 10);
+    // const superAdminEmail = 'admin@myautoscrap.co.uk';
+    // const superAdminPasswordHash = await bcrypt.hash('admin123', 10);
 
-    await prisma.user.upsert({
-      where: { email: superAdminEmail },
-      update: {},
-      create: {
-        email: superAdminEmail,
-        password: superAdminPasswordHash,
-        name: 'Super Administrator',
-        role: 'Super Admin',
-        assignedCity: null,
-      },
-    });
+    // await prisma.user.upsert({
+    //   where: { email: superAdminEmail },
+    //   update: {},
+    //   create: {
+    //     email: superAdminEmail,
+    //     password: superAdminPasswordHash,
+    //     name: 'Super Administrator',
+    //     role: 'Super Admin',
+    //     assignedCity: null,
+    //   },
+    // });
 
-    // 3. Seed City Dealer Accounts
-    const targetCities = [
-      'Doncaster',
-      'Leicester',
-      'Peterborough',
-      'London',
-      'Cambridge',
-      'Liverpool',
-      'Manchester',
-    ];
+    // // 3. Seed City Dealer Accounts
+    // const targetCities = [
+    //   'Doncaster',
+    //   'Leicester',
+    //   'Peterborough',
+    //   'London',
+    //   'Cambridge',
+    //   'Liverpool',
+    //   'Manchester',
+    // ];
 
-    const dealerPasswordHash = await bcrypt.hash('dealer123', 10);
+    // const dealerPasswordHash = await bcrypt.hash('dealer123', 10);
 
-    for (const city of targetCities) {
-      const email = `${city.toLowerCase()}@autoscrap.co.uk`;
-      await prisma.user.upsert({
-        where: { email },
-        update: {},
-        create: {
-          email,
-          password: dealerPasswordHash,
-          name: `${city} Dealer`,
-          role: 'City Dealer',
-          assignedCity: city,
-        },
-      });
-    }
+    // for (const city of targetCities) {
+    //   const email = `${city.toLowerCase()}@autoscrap.co.uk`;
+    //   await prisma.user.upsert({
+    //     where: { email },
+    //     update: {},
+    //     create: {
+    //       email,
+    //       password: dealerPasswordHash,
+    //       name: `${city} Dealer`,
+    //       role: 'City Dealer',
+    //       assignedCity: city,
+    //     },
+    //   });
+    // }
 
     console.log('✅ Prisma ORM database tables & default accounts initialized successfully.');
   } catch (err) {

@@ -2,7 +2,14 @@ const { prisma } = require('../config/db');
 const { getCityFromPostcode } = require('../utils/postcodeHelper');
 const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
 const { anonymizeEnquiryForDealer } = require('../utils/dealerAnonymizer');
-const { autoResolveExpiredBids } = require('../services/biddingAutoResolver');
+const { autoResolveExpiredBids, processMidwayBiddingNotifications } = require('../services/biddingAutoResolver');
+const {
+  sendStandardEnquiryEmail,
+  sendHighValueEnquiryEmail,
+  sendStandardEnquiryStatusEmail,
+} = require('../services/enquiryNotificationService');
+const { sendWinningDealerAndCustomerNotifications } = require('../services/emailService');
+
 
 async function getEnquiries(req, res) {
   try {
@@ -42,6 +49,7 @@ async function getHighValueEnquiries(req, res) {
   try {
     const user = req.user;
     await autoResolveExpiredBids();
+    await processMidwayBiddingNotifications();
 
     const rows = await prisma.highValueEnquiry.findMany({
       where: {
@@ -434,7 +442,12 @@ async function createEnquiry(req, res) {
         },
       });
 
+      // Asynchronously dispatch notification emails for High-Value Enquiry Bidding Start
+      sendHighValueEnquiryEmail(highValueRecord, enquiryData);
+
+
       return res.status(201).json({
+
         id: String(highValueRecord.id),
         reference: highValueRecord.reference,
         isHighValue: true,
@@ -473,7 +486,11 @@ async function createEnquiry(req, res) {
       },
     });
 
+    // Asynchronously dispatch notification emails to Customer, City Dealer & Super Admin
+    sendStandardEnquiryEmail(createdRow);
+
     res.status(201).json({
+
       id: String(createdRow.id),
       reference: createdRow.reference,
       date: createdRow.date,
@@ -511,14 +528,21 @@ async function updateEnquiryStatus(req, res) {
       currentCustomer.notes = notes;
     }
 
+    const newStatus = status || targetEnquiry.status;
+
     // Update single record using prisma.enquiry.update
-    await prisma.enquiry.update({
+    const updatedRecord = await prisma.enquiry.update({
       where: { id: numericId },
       data: {
-        status: status || targetEnquiry.status,
+        status: newStatus,
         customer: currentCustomer,
       },
     });
+
+    // Send customer notification email if status is updated to Accepted or Collected
+    if (newStatus && (newStatus.toLowerCase() === 'accepted' || newStatus.toLowerCase() === 'collected')) {
+      sendStandardEnquiryStatusEmail(updatedRecord, newStatus);
+    }
 
     const all = await prisma.enquiry.findMany({
       where: {
@@ -571,6 +595,20 @@ async function updateBulkEnquiryStatus(req, res) {
         status,
       },
     });
+
+    // Trigger status emails for bulk update if status is Accepted or Collected
+    if (status && (status.toLowerCase() === 'accepted' || status.toLowerCase() === 'collected')) {
+      const affectedEnquiries = await prisma.enquiry.findMany({
+        where: {
+          id: {
+            in: numericIds,
+          },
+        },
+      });
+      affectedEnquiries.forEach((item) => {
+        sendStandardEnquiryStatusEmail(item, status);
+      });
+    }
 
     const all = await prisma.enquiry.findMany({
       where: {
@@ -883,6 +921,15 @@ async function selectWinningDealer(req, res) {
         bid: updatedBid,
         dealer: targetBid.dealer,
       };
+    });
+
+    // Asynchronously dispatch notifications to the winning dealer (with customer details) and customer (with dealer details)
+    sendWinningDealerAndCustomerNotifications({
+      enquiry: result.enquiry,
+      winningBid: result.bid,
+      winningDealer: result.dealer,
+    }).catch((err) => {
+      console.error(`[EnquiryController] Winner notification failed for ref ${result.enquiry.reference}:`, err.message);
     });
 
     res.status(200).json({
