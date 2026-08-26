@@ -35,6 +35,7 @@ function baseLayout({ title = 'AutoScrap Notification', contentHtml, previewText
       .text-muted { color: #b0b3b8 !important; }
       .info-box { background-color: #1e293b !important; border-color: #334155 !important; }
       .table-row { border-color: #334155 !important; }
+      .brand-scrap { color: #ffffff !important; }
     }
 
     /* Mobile Responsive */
@@ -58,12 +59,14 @@ function baseLayout({ title = 'AutoScrap Notification', contentHtml, previewText
           
           <!-- Top Clean Header (White background with crisp AutoScrap logo) -->
           <tr>
-            <td align="left" class="header-padding" style="padding: 24px 32px; background-color: #ffffff; border-bottom: 1px solid #f1f5f9;">
+            <td align="left" class="header-padding" style="padding: 24px 32px; background-color: #ffffffff; border-bottom: 1px solid #f1f5f9;">
               <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
                 <tr>
                   <td>
                     <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1;">
-                      <span style="color: #0f7b4f;">Auto</span><span style="color: #f97316;">Scrap</span><span style="color: #0f7b4f; font-size: 14px; font-weight: 700;">.co.uk</span>
+                      <a href="https://myautoscrap.co.uk" target="_blank" style="text-decoration: none; color: #0f7b4f;">
+                        <span style="color: #0f7b4f;">Auto</span><span class="brand-scrap" style="color: #000000;">Scrap</span><span style="color: #0f7b4f; font-size: 14px; font-weight: 700;">.co.uk</span>
+                      </a>
                     </div>
                     <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">
                       The UK's Trusted Scrap & Salvage Network
