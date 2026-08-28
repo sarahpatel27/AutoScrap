@@ -86,6 +86,14 @@ export async function calculateQuote(data) {
 export async function submitEnquiry(data) {
   const reference = `MAS-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 90000) + 10000)}`;
 
+  if (typeof FormData !== 'undefined' && data instanceof FormData) {
+    if (!data.has('reference')) {
+      data.append('reference', reference);
+    }
+    const saved = await saveEnquiry(data);
+    return saved || { reference };
+  }
+
   const fullData = {
     reference,
     ...data,

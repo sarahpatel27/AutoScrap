@@ -105,7 +105,7 @@ export default function Step1HighValueForm({
   };
 
   // Photo Upload Handler with validation (Max 8 images, max 10MB each)
-  const handlePhotoUpload = async (e) => {
+  const handlePhotoUpload = (e) => {
     setPhotoError('');
     const files = Array.from(e.target.files || []);
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
@@ -118,37 +118,6 @@ export default function Step1HighValueForm({
       showToast(msg, 'error');
       return;
     }
-
-    const readFileAsCompressedDataURL = (file, maxDimension = 1200, quality = 0.8) => {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            let { width, height } = img;
-            if (width > maxDimension || height > maxDimension) {
-              if (width > height) {
-                height = Math.round((height * maxDimension) / width);
-                width = maxDimension;
-              } else {
-                width = Math.round((width * maxDimension) / height);
-                height = maxDimension;
-              }
-            }
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            resolve(canvas.toDataURL('image/jpeg', quality));
-          };
-          img.onerror = (err) => reject(err);
-          img.src = e.target.result;
-        };
-        reader.onerror = (err) => reject(err);
-        reader.readAsDataURL(file);
-      });
-    };
 
     try {
       const validNewPhotos = [];
@@ -166,13 +135,13 @@ export default function Step1HighValueForm({
           return;
         }
 
-        const base64Url = await readFileAsCompressedDataURL(file);
+        const previewUrl = URL.createObjectURL(file);
         validNewPhotos.push({
           id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          file,
           name: file.name,
           size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-          url: base64Url,
-          previewUrl: base64Url,
+          previewUrl,
         });
       }
 
@@ -187,6 +156,10 @@ export default function Step1HighValueForm({
   };
 
   const handleRemovePhoto = (photoId) => {
+    const photoToRemove = photos.find((p) => p.id === photoId);
+    if (photoToRemove?.previewUrl && photoToRemove.previewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(photoToRemove.previewUrl);
+    }
     const updated = photos.filter((p) => p.id !== photoId);
     setPhotos(updated);
     update('photos', updated);

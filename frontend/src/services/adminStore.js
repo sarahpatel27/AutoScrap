@@ -151,10 +151,16 @@ export function getEnquiries() {
 
 export async function saveEnquiry(enquiryData) {
   try {
+    const isFormData = typeof FormData !== 'undefined' && enquiryData instanceof FormData;
+    const headers = isFormData
+      ? getAuthHeaders() // Let browser set Content-Type with multipart boundary
+      : getAuthHeaders({ 'Content-Type': 'application/json' });
+    const body = isFormData ? enquiryData : JSON.stringify(enquiryData);
+
     const res = await fetch(getApiUrl('/api/enquiries'), {
       method: 'POST',
-      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(enquiryData),
+      headers,
+      body,
     });
     if (res.ok) {
       const saved = await res.json();

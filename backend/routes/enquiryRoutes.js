@@ -16,9 +16,10 @@ const {
   deleteManyHighValueEnquiries,
 } = require('../controllers/enquiryController');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { handleOptionalPhotoUpload } = require('../middleware/uploadMiddleware');
 
-// Public customer submission endpoint
-router.post('/', createEnquiry);
+// Public customer submission endpoint (handles both standard JSON & multipart photo uploads)
+router.post('/', handleOptionalPhotoUpload, createEnquiry);
 
 // Protected admin & dealer endpoints
 router.get('/', authenticateToken, getEnquiries);
