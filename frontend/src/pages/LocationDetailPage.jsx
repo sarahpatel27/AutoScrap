@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router';
-import { locations, faqs } from '../data/siteData';
+import { faqs, formatCityLocation } from '../data/siteData';
+import { fetchSupportedCities } from '../services/adminStore';
 import SEO from '../components/Seo';
 import { getLocalBusinessSchema, getBreadcrumbSchema, getFaqPageSchema } from '../config/seo.config';
 import QuoteFlow from '../components/QuoteFlow';
@@ -12,7 +14,38 @@ const secondaryButtonClass =
 
 export default function LocationDetailPage() {
   const { slug } = useParams();
-  const location = locations.find((l) => l.slug.toLowerCase() === slug?.toLowerCase());
+  const [location, setLocation] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadCityDetail() {
+      setLoading(true);
+      try {
+        const cities = await fetchSupportedCities({ active: 'true' });
+        const matched = (cities || []).find(
+          (c) => (c.slug || c.name.toLowerCase()).toLowerCase() === slug?.toLowerCase(),
+        );
+        if (matched) {
+          setLocation(formatCityLocation(matched));
+        } else {
+          setLocation(null);
+        }
+      } catch (err) {
+        console.error('Error finding city detail:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadCityDetail();
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[50vh] flex items-center justify-center text-sm font-bold text-gray-500">
+        Loading coverage details...
+      </div>
+    );
+  }
 
   if (!location) {
     return <Navigate to="/areas-we-cover" replace />;

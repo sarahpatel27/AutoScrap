@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { TARGET_CITIES } from '../../utils/cityHelper';
-import { fetchUsers, createDealerUser, deleteDealerUser } from '../../services/adminStore';
+import { fetchUsers, createDealerUser, deleteDealerUser, fetchSupportedCities } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 export default function UserManagementSection() {
   const [users, setUsers] = useState([]);
+  const [supportedCities, setSupportedCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -21,20 +21,24 @@ export default function UserManagementSection() {
   const [name, setName] = useState('');
   const [assignedCity, setAssignedCity] = useState('');
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const data = await fetchUsers();
-      setUsers(data || []);
+      const [usersData, citiesData] = await Promise.all([
+        fetchUsers(),
+        fetchSupportedCities({ active: 'true' }),
+      ]);
+      setUsers(usersData || []);
+      setSupportedCities(citiesData || []);
     } catch (err) {
-      console.error('Failed to load users:', err);
+      console.error('Failed to load users / cities:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadUsers();
+    loadData();
   }, []);
 
   const handleCreateAccount = async (e) => {
@@ -44,11 +48,14 @@ export default function UserManagementSection() {
     setSubmitting(true);
 
     try {
+      const selectedCityObj = supportedCities.find((c) => c.name === assignedCity);
+
       const updatedList = await createDealerUser({
         email,
         password,
         name: name || undefined,
-        assignedCity: assignedCity || null,
+        assignedCity: selectedCityObj ? selectedCityObj.name : null,
+        cityId: selectedCityObj ? selectedCityObj.id : null,
       });
 
       setUsers(updatedList);
@@ -145,9 +152,9 @@ export default function UserManagementSection() {
                 className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-[#0f7b4f] focus:bg-white"
               >
                 <option value="">🛡️ Super Administrator (All Cities Access)</option>
-                {TARGET_CITIES.map((city) => (
-                  <option key={city} value={city}>
-                    📍 {city} Dealer
+                {supportedCities.map((c) => (
+                  <option key={c.id || c.name} value={c.name}>
+                    📍 {c.name} Dealer
                   </option>
                 ))}
               </select>
@@ -219,7 +226,7 @@ export default function UserManagementSection() {
 
             <button
               type="button"
-              onClick={loadUsers}
+              onClick={loadData}
               disabled={loading}
               title="Refresh List"
               aria-label="Refresh Dealer Accounts List"
@@ -238,7 +245,7 @@ export default function UserManagementSection() {
                   d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
                 />
               </svg>
-              <span>{loading ? 'Refreshing...' : 'Refresh List'}</span>
+              <span>{loading ? '' : ''}</span>
             </button>
           </div>
 
@@ -268,15 +275,23 @@ export default function UserManagementSection() {
                       </td>
 
                       <td className="px-3.5 py-3.5 whitespace-nowrap">
-                        {u.assignedCity ? (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-black text-amber-900 uppercase">
-                            📍 {u.assignedCity} Dealer
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-900 uppercase">
-                            🛡️ Super Admin
-                          </span>
-                        )}
+                        <div className="flex flex-col items-start gap-1">
+                          {u.assignedCity ? (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-black text-amber-900 uppercase">
+                              📍 {u.assignedCity} Dealer
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-900 uppercase">
+                              🛡️ Super Admin
+                            </span>
+                          )}
+
+                          {u.isActive === false && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.2 text-[9px] font-extrabold text-red-700">
+                              🔒 Deactivated (City Removed)
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-3.5 py-3.5 text-right whitespace-nowrap">
@@ -286,7 +301,7 @@ export default function UserManagementSection() {
                             onClick={() => openDeleteModal(u)}
                             className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1 text-[11px] font-extrabold text-red-700 hover:bg-red-100 transition cursor-pointer"
                           >
-                            🗑️ Delete
+                            🗑️ Remove
                           </button>
                         ) : (
                           <span className="text-[10px] text-gray-400 font-bold">Protected</span>

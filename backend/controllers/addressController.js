@@ -1,4 +1,4 @@
-const { determineServiceArea } = require('../utils/postcodeHelper');
+const { resolveSupportedCity } = require('../utils/postcodeHelper');
 
 async function lookupAddress(req, res) {
   try {
@@ -57,13 +57,17 @@ async function lookupAddress(req, res) {
     const postTown = firstFormatted.PostTown || adminDistrict || '';
     const postcode = addressDetailsObj.Postcode || firstFormatted.Postcode || cleanPostcode;
 
-    const matchedServiceArea = determineServiceArea({
+    const cityResolution = await resolveSupportedCity({
       addressList: rawList,
       locationDetails,
       postcode: cleanPostcode,
+      postTown,
+      adminDistrict,
     });
 
-    const isSupported = Boolean(matchedServiceArea);
+    const isSupported = cityResolution.isSupported;
+    const matchedServiceArea = cityResolution.matchedCityName;
+    const ratePerTon = cityResolution.ratePerTon;
 
     const addresses = rawList.map((item, idx) => ({
       udprn: item.Udprn || idx + 1,
@@ -77,6 +81,7 @@ async function lookupAddress(req, res) {
       adminDistrict,
       isSupported,
       matchedServiceArea,
+      ratePerTon,
       addresses,
     });
   } catch (err) {

@@ -19,3 +19,9 @@ yarn-error.log*
 # System files
 .DS_Store
 Thumbs.db
+
+# Uploaded Assets
+uploads/high-value/*
+backend/uploads/high-value/*
+!backend/uploads/high-value/.gitkeep
+!uploads/high-value/.gitkeep

@@ -2,7 +2,14 @@ const { prisma } = require('../config/db');
 const { getCityFromPostcode } = require('../utils/postcodeHelper');
 const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
 const { anonymizeEnquiryForDealer } = require('../utils/dealerAnonymizer');
-const { autoResolveExpiredBids } = require('../services/biddingAutoResolver');
+const { autoResolveExpiredBids, processMidwayBiddingNotifications } = require('../services/biddingAutoResolver');
+const {
+  sendStandardEnquiryEmail,
+  sendHighValueEnquiryEmail,
+  sendStandardEnquiryStatusEmail,
+} = require('../services/enquiryNotificationService');
+const { sendWinningDealerAndCustomerNotifications } = require('../services/emailService');
+
 
 async function getEnquiries(req, res) {
   try {
@@ -23,7 +30,7 @@ async function getEnquiries(req, res) {
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'Pending',
       postcode: row.postcode,
-      city: row.city || getCityFromPostcode(row.postcode, row.customer?.collectionAddress),
+      city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,
       customer: row.customer,
@@ -42,6 +49,7 @@ async function getHighValueEnquiries(req, res) {
   try {
     const user = req.user;
     await autoResolveExpiredBids();
+    await processMidwayBiddingNotifications();
 
     const rows = await prisma.highValueEnquiry.findMany({
       where: {
@@ -153,7 +161,7 @@ async function getPastEnquiries(req, res) {
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'archived',
       postcode: row.postcode,
-      city: row.city || getCityFromPostcode(row.postcode, row.customer?.collectionAddress),
+      city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,
       customer: row.customer,
@@ -313,14 +321,64 @@ async function deleteManyHighValueEnquiries(req, res) {
 
 async function createEnquiry(req, res) {
   try {
-    const enquiryData = req.body;
+    const enquiryData = req.body || {};
     const existingId = enquiryData.id || enquiryData.enquiry?.id;
 
-    const postcode = enquiryData.postcode || enquiryData.customer?.collectionPostcode || '';
-    const address = enquiryData.customer?.collectionAddress || '';
-    const city = getCityFromPostcode(postcode, address);
+    // Helper to safely parse stringified JSON or keep object
+    const parseJsonField = (val, fallback = {}) => {
+      if (!val) return fallback;
+      if (typeof val === 'object') return val;
+      try {
+        return JSON.parse(val);
+      } catch {
+        return fallback;
+      }
+    };
 
-    const isHighValueReq = enquiryData.isHighValue || (enquiryData.vehicle?.year && Number(enquiryData.vehicle.year) > 2015);
+    const customerObj = parseJsonField(enquiryData.customer, {
+      fullName: enquiryData.customerName || '',
+      email: enquiryData.customerEmail || '',
+      phone: enquiryData.customerPhone || '',
+      collectionAddress: enquiryData.collectionAddress || '',
+      additionalAddressDetails: enquiryData.additionalAddressDetails || '',
+    });
+
+    const vehicleObj = parseJsonField(enquiryData.vehicle, {
+      registration: enquiryData.registration || '',
+      make: enquiryData.make || '',
+      model: enquiryData.model || '',
+      year: enquiryData.year || '',
+      fuelType: enquiryData.fuelType || '',
+      engineSize: enquiryData.engineSize || '',
+      colour: enquiryData.colour || '',
+    });
+
+    const conditionObj = parseJsonField(enquiryData.condition, enquiryData.vehicleCondition || 'Good');
+    const bankObj = parseJsonField(enquiryData.bank, {});
+    const quoteObj = parseJsonField(enquiryData.quote, {});
+
+    const postcode = enquiryData.postcode || customerObj.collectionPostcode || '';
+    const address = customerObj.collectionAddress || enquiryData.collectionAddress || '';
+    const city = await getCityFromPostcode(postcode, address);
+
+    // Type conversion helpers
+    const toInteger = (val, fallback = null) => {
+      if (val === null || val === undefined || val === '') return fallback;
+      const num = parseInt(val, 10);
+      return isNaN(num) ? fallback : num;
+    };
+
+    const toNumber = (val, fallback = 0) => {
+      if (val === null || val === undefined || val === '') return fallback;
+      const num = parseFloat(val);
+      return isNaN(num) ? fallback : num;
+    };
+
+    const isHighValueReq =
+      String(enquiryData.isHighValue) === 'true' ||
+      enquiryData.isHighValue === true ||
+      (vehicleObj?.year && Number(vehicleObj.year) > 2015) ||
+      (enquiryData.year && Number(enquiryData.year) > 2015);
 
     // If existing enquiry ID provided, try updating HighValueEnquiry or Enquiry accordingly
     if (existingId) {
@@ -332,11 +390,11 @@ async function createEnquiry(req, res) {
           const updatedHV = await prisma.highValueEnquiry.update({
             where: { id: numericId },
             data: {
-              customerName: enquiryData.customer?.fullName || existingHV.customerName,
-              customerEmail: enquiryData.customer?.email || existingHV.customerEmail,
-              customerPhone: enquiryData.customer?.phone || existingHV.customerPhone,
-              customer: enquiryData.customer || existingHV.customer || {},
-              bank: enquiryData.bank || existingHV.bank || {},
+              customerName: customerObj.fullName || existingHV.customerName,
+              customerEmail: customerObj.email || existingHV.customerEmail,
+              customerPhone: customerObj.phone || existingHV.customerPhone,
+              customer: customerObj,
+              bank: bankObj,
               postcode: postcode || existingHV.postcode,
               city: city || existingHV.city,
             },
@@ -349,8 +407,8 @@ async function createEnquiry(req, res) {
             status: updatedHV.status,
             postcode: updatedHV.postcode,
             city: updatedHV.city,
-            vehicle: enquiryData.vehicle,
-            customer: updatedHV.customer || enquiryData.customer,
+            vehicle: vehicleObj,
+            customer: updatedHV.customer || customerObj,
             bank: updatedHV.bank,
             estimatedValue: Number(updatedHV.estimatedValue),
             customerExpectedValue: Number(updatedHV.customerExpectedValue),
@@ -364,11 +422,11 @@ async function createEnquiry(req, res) {
           const updatedRow = await prisma.enquiry.update({
             where: { id: numericId },
             data: {
-              bank: enquiryData.bank || {},
-              customer: enquiryData.customer || {},
-              condition: enquiryData.condition || {},
-              vehicle: enquiryData.vehicle || {},
-              quote: enquiryData.quote || {},
+              bank: bankObj,
+              customer: customerObj,
+              condition: conditionObj,
+              vehicle: vehicleObj,
+              quote: quoteObj,
               postcode,
               city,
             },
@@ -391,17 +449,32 @@ async function createEnquiry(req, res) {
       }
     }
 
+    // Process uploaded photos strictly from multer files
+    const photos = (req.files && Array.isArray(req.files))
+      ? req.files.map((file) => ({
+          name: file.originalname,
+          filename: file.filename,
+          size: file.size,
+          mimetype: file.mimetype,
+          url: `/uploads/high-value/${file.filename}`,
+        }))
+      : [];
+
     // Check if this is a High-Value Enquiry (>2015)
     if (isHighValueReq) {
       const reference =
         enquiryData.reference ||
         `MAS-HV-${new Date().getFullYear()}-${Math.floor(Math.random() * 90000) + 10000}`;
 
-      const estimatedValue = Number(enquiryData.estimatedValue || enquiryData.quote?.finalValue || 1250);
-      const customerExpectedValue = enquiryData.valuePreference === 'CUSTOM_VALUE'
-        ? Number(enquiryData.customerExpectedValue || estimatedValue)
-        : estimatedValue;
+      const rawEstimated = enquiryData.estimatedValue || quoteObj?.finalValue || 1250;
+      const estimatedValue = toNumber(rawEstimated, 1250);
       const valuePreference = enquiryData.valuePreference || 'ESTIMATED_VALUE';
+      const customerExpectedValue = valuePreference === 'CUSTOM_VALUE'
+        ? toNumber(enquiryData.customerExpectedValue || estimatedValue, estimatedValue)
+        : estimatedValue;
+
+      const yearVal = toInteger(vehicleObj.year || enquiryData.year, new Date().getFullYear());
+      const mileageVal = toInteger(enquiryData.mileage || vehicleObj.mileage, null);
 
       const { calculateBiddingDeadline } = require('../config/biddingConfig');
       const now = new Date();
@@ -410,28 +483,35 @@ async function createEnquiry(req, res) {
       const highValueRecord = await prisma.highValueEnquiry.create({
         data: {
           reference,
-          customerName: enquiryData.customer?.fullName || 'Anonymous Customer',
-          customerEmail: enquiryData.customer?.email || 'no-email@autoscrap.co.uk',
-          customerPhone: enquiryData.customer?.phone || '',
-          customer: enquiryData.customer || {},
-          registration: enquiryData.registration || enquiryData.vehicle?.registration || '',
-          make: enquiryData.vehicle?.make || 'Unknown Make',
-          model: enquiryData.vehicle?.model || 'Unknown Model',
-          year: Number(enquiryData.vehicle?.year || new Date().getFullYear()),
-          mileage: enquiryData.mileage ? Number(enquiryData.mileage) : null,
-          condition: enquiryData.vehicleCondition || 'Good',
-          photos: enquiryData.photos || [],
+          customerName: customerObj.fullName || enquiryData.customerName || 'Anonymous Customer',
+          customerEmail: customerObj.email || enquiryData.customerEmail || 'no-email@autoscrap.co.uk',
+          customerPhone: customerObj.phone || enquiryData.customerPhone || '',
+          customer: customerObj,
+          registration: vehicleObj.registration || enquiryData.registration || '',
+          make: vehicleObj.make || enquiryData.make || 'Unknown Make',
+          model: vehicleObj.model || enquiryData.model || 'Unknown Model',
+          year: yearVal,
+          mileage: mileageVal,
+          condition: typeof conditionObj === 'string' ? conditionObj : (enquiryData.vehicleCondition || 'Good'),
+          photos: photos,
           postcode,
           city,
           area: city,
           estimatedValue,
           customerExpectedValue,
           valuePreference,
-          bank: enquiryData.bank || {},
+          bank: bankObj,
           status: 'BIDDING',
           biddingStartAt: now,
           biddingEndsAt: biddingEndsAt,
         },
+      });
+
+      // Asynchronously dispatch notification emails for High-Value Enquiry Bidding Start
+      sendHighValueEnquiryEmail(highValueRecord, {
+        ...enquiryData,
+        customer: customerObj,
+        vehicle: vehicleObj,
       });
 
       return res.status(201).json({
@@ -442,8 +522,9 @@ async function createEnquiry(req, res) {
         status: highValueRecord.status,
         postcode: highValueRecord.postcode,
         city: highValueRecord.city,
-        vehicle: enquiryData.vehicle,
-        customer: enquiryData.customer,
+        vehicle: vehicleObj,
+        customer: customerObj,
+        photos: highValueRecord.photos,
         estimatedValue: Number(highValueRecord.estimatedValue),
         customerExpectedValue: Number(highValueRecord.customerExpectedValue),
         valuePreference: highValueRecord.valuePreference,
@@ -465,15 +546,19 @@ async function createEnquiry(req, res) {
         status: 'Pending',
         postcode,
         city,
-        vehicle: enquiryData.vehicle || {},
-        condition: enquiryData.condition || {},
-        customer: enquiryData.customer || {},
-        bank: enquiryData.bank || {},
-        quote: enquiryData.quote || {},
+        vehicle: vehicleObj || enquiryData.vehicle || {},
+        condition: typeof conditionObj === 'object' ? conditionObj : { overallCondition: conditionObj },
+        customer: customerObj || enquiryData.customer || {},
+        bank: bankObj || enquiryData.bank || {},
+        quote: quoteObj || enquiryData.quote || {},
       },
     });
 
+    // Asynchronously dispatch notification emails to Customer, City Dealer & Super Admin
+    sendStandardEnquiryEmail(createdRow);
+
     res.status(201).json({
+
       id: String(createdRow.id),
       reference: createdRow.reference,
       date: createdRow.date,
@@ -511,14 +596,21 @@ async function updateEnquiryStatus(req, res) {
       currentCustomer.notes = notes;
     }
 
+    const newStatus = status || targetEnquiry.status;
+
     // Update single record using prisma.enquiry.update
-    await prisma.enquiry.update({
+    const updatedRecord = await prisma.enquiry.update({
       where: { id: numericId },
       data: {
-        status: status || targetEnquiry.status,
+        status: newStatus,
         customer: currentCustomer,
       },
     });
+
+    // Send customer notification email if status is updated to Accepted or Collected
+    if (newStatus && (newStatus.toLowerCase() === 'accepted' || newStatus.toLowerCase() === 'collected')) {
+      sendStandardEnquiryStatusEmail(updatedRecord, newStatus);
+    }
 
     const all = await prisma.enquiry.findMany({
       where: {
@@ -571,6 +663,20 @@ async function updateBulkEnquiryStatus(req, res) {
         status,
       },
     });
+
+    // Trigger status emails for bulk update if status is Accepted or Collected
+    if (status && (status.toLowerCase() === 'accepted' || status.toLowerCase() === 'collected')) {
+      const affectedEnquiries = await prisma.enquiry.findMany({
+        where: {
+          id: {
+            in: numericIds,
+          },
+        },
+      });
+      affectedEnquiries.forEach((item) => {
+        sendStandardEnquiryStatusEmail(item, status);
+      });
+    }
 
     const all = await prisma.enquiry.findMany({
       where: {
@@ -700,6 +806,10 @@ async function placeDealerBid(req, res) {
     const user = req.user;
     if (!user) {
       return res.status(401).json({ error: 'Authentication required to place a bid.' });
+    }
+
+    if (user.isActive === false) {
+      return res.status(403).json({ error: 'Your dealer account has been deactivated because coverage for your assigned city was removed.' });
     }
 
     const { enquiryId, amount } = req.body;
@@ -879,6 +989,15 @@ async function selectWinningDealer(req, res) {
         bid: updatedBid,
         dealer: targetBid.dealer,
       };
+    });
+
+    // Asynchronously dispatch notifications to the winning dealer (with customer details) and customer (with dealer details)
+    sendWinningDealerAndCustomerNotifications({
+      enquiry: result.enquiry,
+      winningBid: result.bid,
+      winningDealer: result.dealer,
+    }).catch((err) => {
+      console.error(`[EnquiryController] Winner notification failed for ref ${result.enquiry.reference}:`, err.message);
     });
 
     res.status(200).json({

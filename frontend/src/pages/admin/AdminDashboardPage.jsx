@@ -9,6 +9,8 @@ import AccountSettingsSection from '../../components/admin/AccountSettingsSectio
 import ContactSubmissionsSection from '../../components/admin/ContactSubmissionsSection';
 import HighValueBiddingSection from '../../components/admin/HighValueBiddingSection';
 import DealerBiddingDashboard from '../../components/admin/DealerBiddingDashboard';
+import CitiesManagementSection from '../../components/admin/CitiesManagementSection';
+import PromotionalEmailsSection from '../../components/admin/PromotionalEmailsSection';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchEnquiries,
@@ -38,6 +40,10 @@ export default function AdminDashboardPage() {
         return 'past';
       case '/admin/scrap-rates':
         return 'pricing';
+      case '/admin/promotional-emails':
+        return 'promotions';
+      case '/admin/cities':
+        return 'cities';
       case '/admin/contact-messages':
         return 'contacts';
       case '/admin/dealer-accounts':
@@ -53,7 +59,7 @@ export default function AdminDashboardPage() {
   const activeTab = getTabFromPath(location.pathname);
 
   // Automatic URL protection: If a non-super admin tries to directly access restricted routes via URL, redirect to dashboard
-  if (user && !isSuperAdmin && (activeTab === 'contacts' || activeTab === 'users')) {
+  if (user && !isSuperAdmin && (activeTab === 'contacts' || activeTab === 'users' || activeTab === 'cities' || activeTab === 'promotions')) {
     return <Navigate to="/admin/dashboard" replace />;
   }
   const [enquiries, setEnquiries] = useState([]);
@@ -143,6 +149,7 @@ export default function AdminDashboardPage() {
               {activeTab === 'high-value' && (user?.role === 'City Dealer' ? 'Dealer Territory Bidding' : 'High Value Bidding Management')}
               {activeTab === 'enquiries' && 'Scrap Car Enquiries'}
               {activeTab === 'past' && 'Past Enquiries (Archived / Deleted)'}
+              {activeTab === 'promotions' && 'Promotional Email Campaigns (Super Admin)'}
               {activeTab === 'contacts' && 'Website Contact Messages (Super Admin Only)'}
               {activeTab === 'users' && 'Dealer Accounts Manager'}
               {activeTab === 'settings' && 'Account Settings'}
@@ -151,6 +158,8 @@ export default function AdminDashboardPage() {
             <p className="text-[11px] sm:text-xs text-gray-500 font-medium">
               {activeTab === 'past'
                 ? 'Read-only record repository of soft-deleted and historical scrap car enquiries.'
+                : activeTab === 'promotions'
+                ? 'Send customized marketing, price boost updates, and announcements to unique verified customers.'
                 : activeTab === 'contacts'
                 ? 'Exclusive Super Admin view of public inquiries submitted through the Contact Us page.'
                 : activeTab === 'users'
@@ -294,6 +303,14 @@ export default function AdminDashboardPage() {
               </div>
             )}
           </div>
+        )}
+
+        {activeTab === 'promotions' && (
+          <PromotionalEmailsSection />
+        )}
+
+        {activeTab === 'cities' && (
+          <CitiesManagementSection />
         )}
 
         {activeTab === 'contacts' && (

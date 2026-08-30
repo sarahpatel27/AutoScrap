@@ -6,3 +6,12 @@ export function getApiUrl(path) {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return `${BASE_URL}${cleanPath}`;
 }
+
+export function getImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('blob:') || url.startsWith('data:')) {
+    return url;
+  }
+  const cleanPath = url.startsWith('/') ? url : `/${url}`;
+  return BASE_URL ? `${BASE_URL}${cleanPath}` : cleanPath;
+}

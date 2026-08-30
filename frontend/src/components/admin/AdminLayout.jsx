@@ -17,6 +17,8 @@ export default function AdminLayout({ activeTab, children }) {
     { id: 'pricing', label: 'Scrap Rate Rules', icon: '⚙️', path: '/admin/scrap-rates' },
     ...(isSuperAdmin
       ? [
+          { id: 'promotions', label: 'Promotional Emails', icon: '📣', path: '/admin/promotional-emails' },
+          { id: 'cities', label: 'Cities & Coverage', icon: '🏙️', path: '/admin/cities' },
           { id: 'contacts', label: 'Contact Messages', icon: '📬', path: '/admin/contact-messages' },
           { id: 'users', label: 'Dealer Accounts', icon: '👤', path: '/admin/dealer-accounts' },
         ]

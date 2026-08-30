@@ -15,15 +15,7 @@ function getAuthHeaders(extraHeaders = {}) {
 
 let cachedPricing = {
   defaultPricePerTonne: 235,
-  cityRates: {
-    Doncaster: 235,
-    Leicester: 240,
-    Peterborough: 230,
-    London: 260,
-    Cambridge: 245,
-    Liverpool: 238,
-    Manchester: 245,
-  },
+  cityRates: {},
 };
 
 let cachedEnquiries = [];
@@ -159,10 +151,16 @@ export function getEnquiries() {
 
 export async function saveEnquiry(enquiryData) {
   try {
+    const isFormData = typeof FormData !== 'undefined' && enquiryData instanceof FormData;
+    const headers = isFormData
+      ? getAuthHeaders() // Let browser set Content-Type with multipart boundary
+      : getAuthHeaders({ 'Content-Type': 'application/json' });
+    const body = isFormData ? enquiryData : JSON.stringify(enquiryData);
+
     const res = await fetch(getApiUrl('/api/enquiries'), {
       method: 'POST',
-      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(enquiryData),
+      headers,
+      body,
     });
     if (res.ok) {
       const saved = await res.json();
@@ -360,15 +358,7 @@ export async function savePricingConfig(config) {
 export function resetPricingConfig() {
   savePricingConfig({
     defaultPricePerTonne: 235,
-    cityRates: {
-      Doncaster: 235,
-      Leicester: 240,
-      Peterborough: 230,
-      London: 260,
-      Cambridge: 245,
-      Liverpool: 238,
-      Manchester: 245,
-    },
+    cityRates: {},
   });
   return cachedPricing;
 }
@@ -465,3 +455,120 @@ export async function deleteContactSubmission(id) {
   }
   return data;
 }
+
+// ----------------------------------------------------
+// Supported Cities Management APIs
+// ----------------------------------------------------
+
+export async function fetchSupportedCities(query = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (query.active !== undefined) params.append('active', query.active);
+
+    const queryString = params.toString() ? `?${params.toString()}` : '';
+    const res = await fetch(getApiUrl(`/api/cities${queryString}`), {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('Error fetching supported cities:', err);
+  }
+  return [];
+}
+
+export async function fetchCityOptions(search = '') {
+  try {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    params.append('limit', '20');
+    params.append('excludeAdded', 'true');
+
+    const res = await fetch(getApiUrl(`/api/cities/options?${params.toString()}`), {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('Error fetching city options:', err);
+  }
+  return [];
+}
+
+export async function createSupportedCity(cityData) {
+  const res = await fetch(getApiUrl('/api/cities'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(cityData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to add supported city.');
+  }
+  return data;
+}
+
+export async function updateSupportedCity(id, updateData) {
+  const res = await fetch(getApiUrl(`/api/cities/${id}`), {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(updateData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update city.');
+  }
+  return data;
+}
+
+export async function deleteSupportedCity(id) {
+  const res = await fetch(getApiUrl(`/api/cities/${id}`), {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to deactivate city.');
+  }
+  return data;
+}
+
+export async function fetchCustomerAudience() {
+  const res = await fetch(getApiUrl('/api/promotions/customers'), {
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to fetch customer audience.');
+  }
+  return data;
+}
+
+export async function previewPromotionalCampaign(payload) {
+  const res = await fetch(getApiUrl('/api/promotions/preview'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to generate preview.');
+  }
+  return data;
+}
+
+export async function sendPromotionalCampaign(payload) {
+  const res = await fetch(getApiUrl('/api/promotions/send'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to send campaign.');
+  }
+  return data;
+}
+

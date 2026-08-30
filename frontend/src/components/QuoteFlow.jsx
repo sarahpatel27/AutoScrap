@@ -106,7 +106,13 @@ export default function QuoteFlow({ compact = false }) {
           const vehicle = await lookupVehicle(formattedReg);
           const highValue = isHighValueVehicle(vehicle?.year);
 
-          const quote = await calculateQuote({ vehicle, postcode: addressRes.postcode });
+          const quote = await calculateQuote({
+            vehicle,
+            postcode: addressRes.postcode,
+            matchedServiceArea: addressRes.matchedServiceArea,
+            ratePerTon: addressRes.ratePerTon,
+            postTown: addressRes.postTown,
+          });
 
           if (highValue) {
             setData((prev) => ({
@@ -250,7 +256,26 @@ export default function QuoteFlow({ compact = false }) {
 
       const vehicle = await lookupVehicle(registration);
       const highValue = isHighValueVehicle(vehicle?.year);
-      const quote = await calculateQuote({ vehicle, postcode: cleanPostcode });
+
+      let quote;
+      try {
+        quote = await calculateQuote({
+          vehicle,
+          postcode: cleanPostcode,
+          matchedServiceArea: addressRes.matchedServiceArea,
+          ratePerTon: addressRes.ratePerTon,
+          postTown: addressRes.postTown,
+        });
+
+        if (!quote || !quote.pricePerTonne || quote.pricePerTonne <= 0) {
+          throw new Error(`Scrap valuation rate is currently unavailable for ${addressRes.matchedServiceArea || 'this location'}. Please contact support.`);
+        }
+      } catch (quoteErr) {
+        const msg = quoteErr.message || 'Scrap pricing is currently unavailable for this area. Please contact support.';
+        setError(msg);
+        showToast(msg, 'error');
+        return;
+      }
 
       if (highValue) {
         // High-Value Vehicle (> 2015): Route into separate high-value form with pre-calculated quote
@@ -365,14 +390,18 @@ export default function QuoteFlow({ compact = false }) {
       const estimatedVal = Number(formDataPayload.estimatedValue || estimatedQuote.finalValue || 1250);
       const expectedVal = Number(formDataPayload.customerExpectedValue || estimatedVal);
       const pref = formDataPayload.valuePreference || 'ESTIMATED_VALUE';
+      const effectivePostcode = formDataPayload.postcode || data.customer.collectionPostcode || data.postcode || '';
+      const mileageVal = formDataPayload.mileage || data.mileage || '';
+      const conditionVal = formDataPayload.vehicleCondition || data.vehicleCondition || 'Good';
+      const photosArray = formDataPayload.photos || data.photos || [];
 
       const formattedData = {
         ...data,
         isHighValue: true,
-        mileage: formDataPayload.mileage || data.mileage,
-        vehicleCondition: formDataPayload.vehicleCondition || data.vehicleCondition || 'Good',
-        photos: formDataPayload.photos || data.photos || [],
-        postcode: formDataPayload.postcode || data.postcode,
+        mileage: mileageVal,
+        vehicleCondition: conditionVal,
+        photos: photosArray,
+        postcode: effectivePostcode,
         estimatedValue: estimatedVal,
         customerExpectedValue: expectedVal,
         valuePreference: pref,
@@ -382,11 +411,52 @@ export default function QuoteFlow({ compact = false }) {
         },
         customer: {
           ...data.customer,
-          collectionPostcode: formDataPayload.postcode || data.customer.collectionPostcode || data.postcode,
+          collectionPostcode: effectivePostcode,
         },
       };
 
-      const enquiry = await submitEnquiry(formattedData);
+      // Build FormData payload for multipart submission
+      const formData = new FormData();
+      formData.append('isHighValue', 'true');
+      formData.append('customerName', data.customer?.fullName || '');
+      formData.append('customerEmail', data.customer?.email || '');
+      formData.append('customerPhone', data.customer?.phone || '');
+      formData.append('collectionAddress', data.customer?.collectionAddress || '');
+      if (data.customer?.additionalAddressDetails) {
+        formData.append('additionalAddressDetails', data.customer.additionalAddressDetails);
+      }
+      formData.append('customer', JSON.stringify(formattedData.customer));
+      if (data.bank) {
+        formData.append('bank', JSON.stringify(data.bank));
+      }
+      formData.append('registration', data.registration || data.vehicle?.registration || '');
+      formData.append('make', data.vehicle?.make || '');
+      formData.append('model', data.vehicle?.model || '');
+      formData.append('year', String(data.vehicle?.year || ''));
+      if (data.vehicle?.fuelType) formData.append('fuelType', data.vehicle.fuelType);
+      if (data.vehicle?.engineSize) formData.append('engineSize', data.vehicle.engineSize);
+      if (data.vehicle?.colour) formData.append('colour', data.vehicle.colour);
+      if (data.vehicle) formData.append('vehicle', JSON.stringify(data.vehicle));
+      if (mileageVal) formData.append('mileage', String(mileageVal));
+      formData.append('condition', conditionVal);
+      formData.append('vehicleCondition', conditionVal);
+      formData.append('postcode', effectivePostcode);
+      if (formDataPayload.city || data.city) formData.append('city', formDataPayload.city || data.city);
+      formData.append('estimatedValue', String(estimatedVal));
+      formData.append('customerExpectedValue', String(expectedVal));
+      formData.append('valuePreference', pref);
+      if (formattedData.quote) {
+        formData.append('quote', JSON.stringify(formattedData.quote));
+      }
+
+      // Append each photo file individually
+      photosArray.forEach((photo) => {
+        if (photo.file instanceof File) {
+          formData.append('photos', photo.file);
+        }
+      });
+
+      const enquiry = await submitEnquiry(formData);
 
       setData((previousData) => ({
         ...previousData,

@@ -13,16 +13,39 @@ model User {
   password     String       @db.VarChar(255)
   name         String       @db.VarChar(100)
   role         String       @default("City Dealer") @db.VarChar(30)
+  cityId       Int?         @map("city_id")
   assignedCity String?      @map("assigned_city") @db.VarChar(50)
+  isActive     Boolean      @default(true) @map("is_active")
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
   bids         DealerBid[]
+
+  city         City?        @relation(fields: [cityId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
 
+model City {
+  id        Int          @id @default(autoincrement())
+  name      String       @unique @db.VarChar(50)
+  slug      String       @unique @db.VarChar(50)
+  isActive  Boolean      @default(true) @map("is_active")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  pricing   CityPricing?
+  users     User[]
+
+  @@map("cities")
+}
+
 model CityPricing {
-  city          String @id @db.VarChar(50)
-  pricePerTonne Int    @default(235) @map("price_per_tonne")
+  id            Int      @id @default(autoincrement())
+  cityId        Int      @unique @map("city_id")
+  pricePerTonne Decimal  @default(235.00) @map("price_per_tonne") @db.Decimal(10, 2)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  city          City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
   @@map("city_pricing")
 }

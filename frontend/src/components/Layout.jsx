@@ -47,14 +47,6 @@ export default function Layout() {
       <header className="sticky top-0 z-50 h-[78px] border-b border-slate-200 bg-white max-[720px]:h-[68px]">
         <div className={`${containerClass} flex h-full items-center justify-between`}>
           <Link className={`${logoClass} text-[#13231d] group`} onClick={() => setOpen(false)} to="/">
-            <div className="h-18 w-18 shrink-0 grid place-items-center rounded-xl transition group-hover:scale-105 group-hover:border-[#0f7b4f]">
-              <DotLottiePlayer
-                src="https://lottie.host/c78223f3-d214-4a12-b45f-48228af2ccc5/Ewgj71DZ1P.lottie"
-                loop
-                autoplay
-                style={{ width: '100%', height: '100%' }}
-              />
-            </div>
             <span>
               MyAuto<span className="text-[#0f7b4f]">Scrap</span>
             </span>
@@ -114,14 +106,6 @@ export default function Layout() {
         <div className={`${containerClass} grid gap-[50px] max-[720px]:grid-cols-1 min-[721px]:max-[1000px]:grid-cols-2 min-[1001px]:grid-cols-[2fr_1fr_1fr_1.4fr]`}>
           <div className={footerColumnClass}>
             <div className={`${logoClass} mb-3 text-white`}>
-              <div className="h-10 w-10 shrink-0 grid place-items-center rounded-xl bg-white/10 p-0.5 border border-white/20">
-                <DotLottiePlayer
-                  src="https://lottie.host/c78223f3-d214-4a12-b45f-48228af2ccc5/Ewgj71DZ1P.lottie"
-                  loop
-                  autoplay
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
               <span>
                 MyAuto<span className="text-[#0f7b4f]">Scrap</span>
               </span>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { selectWinnerDealer } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
+import { getImageUrl } from '../../config/api';
 
 export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinnerSelected }) {
   const [activePhoto, setActivePhoto] = useState(null);
@@ -154,7 +155,8 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
 
             <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
               {photos.map((photo, idx) => {
-                const imgUrl = typeof photo === 'string' ? photo : (photo.previewUrl || photo.url);
+                const rawUrl = typeof photo === 'string' ? photo : (photo.previewUrl || photo.url);
+                const imgUrl = getImageUrl(rawUrl);
                 return (
                   <div
                     key={idx}

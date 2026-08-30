@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { submitDealerBid, markEnquiryAsPurchased } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
 import Pagination from './Pagination';
+import { getImageUrl } from '../../config/api';
 
 export function isEnquiryEnded(item) {
   if (!item) return true;
@@ -193,7 +194,8 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
           paginatedEnquiries.map((item) => {
             const photos = Array.isArray(item.photos) ? item.photos : [];
             const hasPhotos = photos.length > 0;
-            const previewPhoto = hasPhotos ? (photos[0].previewUrl || photos[0].url) : null;
+            const rawPreview = hasPhotos ? (photos[0].previewUrl || photos[0].url) : null;
+            const previewPhoto = getImageUrl(rawPreview);
             const expectedPrice = Number(item.customerExpectedValue || item.estimatedValue || 0);
 
             // Bidding Status Indicators
@@ -533,15 +535,19 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                   📷 Vehicle Photos ({selectedEnquiry.photos.length})
                 </h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {selectedEnquiry.photos.map((photo, idx) => (
-                    <img
-                      key={idx}
-                      src={photo.previewUrl || photo.url}
-                      alt={`Vehicle photo ${idx + 1}`}
-                      onClick={() => setActivePhoto(photo.previewUrl || photo.url)}
-                      className="h-28 w-full rounded-xl object-cover border border-slate-200 cursor-pointer hover:opacity-90"
-                    />
-                  ))}
+                  {selectedEnquiry.photos.map((photo, idx) => {
+                    const rawUrl = typeof photo === 'string' ? photo : (photo.previewUrl || photo.url);
+                    const imgUrl = getImageUrl(rawUrl);
+                    return (
+                      <img
+                        key={idx}
+                        src={imgUrl}
+                        alt={`Vehicle photo ${idx + 1}`}
+                        onClick={() => setActivePhoto(imgUrl)}
+                        className="h-28 w-full rounded-xl object-cover border border-slate-200 cursor-pointer hover:opacity-90"
+                      />
+                    );
+                  })}
                 </div>
               </div>
             )}
