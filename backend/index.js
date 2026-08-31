@@ -17,8 +17,18 @@ const promotionRoutes = require('./routes/promotionRoutes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+const corsOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors(
+    corsOrigins.length
+      ? { origin: corsOrigins, credentials: true }
+      : undefined
+  )
+);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -52,7 +62,6 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/promotions', promotionRoutes);
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`🚀 Express Backend server running on http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Express Backend server running on 0.0.0.0:${PORT}`);
 });
