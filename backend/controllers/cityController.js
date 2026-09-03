@@ -137,13 +137,13 @@ async function createCity(req, res) {
       return res.status(400).json({ error: 'City name is required.' });
     }
 
-    // Match against official 76-city master list
+    // Match against official UK cities and counties master list
     const masterCity = UK_CITIES.find(
       (c) => normalizeLocationString(c) === cleanInputName,
     );
     if (!masterCity) {
       return res.status(400).json({
-        error: `"${name}" is not a recognized UK city in the official 76-city master list.`,
+        error: `"${name}" is not a recognized UK city or county in the official master list.`,
       });
     }
 
@@ -282,7 +282,7 @@ async function updateCity(req, res) {
       );
       if (!masterCity) {
         return res.status(400).json({
-          error: `"${name}" is not a recognized UK city in the official 76-city master list.`,
+          error: `"${name}" is not a recognized UK city or county in the official master list.`,
         });
       }
       validName = masterCity;

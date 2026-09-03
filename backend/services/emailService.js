@@ -12,6 +12,7 @@ const { superAdminBiddingEndedNoBidsTemplate } = require('../templates/emails/su
 const { dealerWinningBiddingNotificationTemplate } = require('../templates/emails/dealerWinningBiddingNotification');
 const { customerDealerSelectedNotificationTemplate } = require('../templates/emails/customerDealerSelectedNotification');
 const { superAdminWinnerSelectedNotificationTemplate } = require('../templates/emails/superAdminWinnerSelectedNotification');
+const { accountCredentialsTemplate } = require('../templates/emails/accountCredentials');
 const { prisma } = require('../config/db');
 
 const DEFAULT_FROM = process.env.SMTP_FROM || 'notifications@myautoscrap.co.uk';
@@ -768,6 +769,45 @@ async function sendWinningDealerAndCustomerNotifications({
   }
 }
 
+/**
+ * Trigger email when a new user / dealer account is generated from Admin Panel
+ */
+async function sendAccountCreatedNotification({
+  name,
+  email,
+  password,
+  role,
+  assignedCity,
+}) {
+  try {
+    if (!email || !email.includes('@')) {
+      console.warn('[EmailService] Cannot send account creation email: Invalid email address');
+      return { success: false, error: 'Invalid email address' };
+    }
+
+    const template = accountCredentialsTemplate({
+      name,
+      email,
+      password,
+      role,
+      assignedCity,
+      loginUrl: process.env.ADMIN_PORTAL_URL || 'https://www.myautoscrap.co.uk/admin/login',
+    });
+
+    const result = await sendEmail({
+      to: email,
+      subject: template.subject,
+      html: template.html,
+    });
+
+    console.log(`[EmailService] Account credentials email sent to ${email} (Role: ${role})`);
+    return result;
+  } catch (error) {
+    console.error(`[EmailService] Failed to send account credentials email to ${email}:`, error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 module.exports = {
   sendEmail,
   sendEnquiryCreatedNotifications,
@@ -778,4 +818,6 @@ module.exports = {
   sendMidwayActiveBidsNotification,
   sendSuperAdminBiddingEndedNoBidsNotification,
   sendWinningDealerAndCustomerNotifications,
+  sendAccountCreatedNotification,
 };
+

@@ -116,6 +116,16 @@ const CITY_ALIASES = {
   "southend": "Southend-on-Sea",
   "southend on sea": "Southend-on-Sea",
 
+  // Bedfordshire & Luton aliases
+  "luton": "Bedfordshire",
+  "bedfordshire": "Bedfordshire",
+  "central bedfordshire": "Bedfordshire",
+  "bedford": "Bedfordshire",
+  "dunstable": "Bedfordshire",
+  "houghton regis": "Bedfordshire",
+  "leighton buzzard": "Bedfordshire",
+  "biggleswade": "Bedfordshire",
+
   // St Albans
   "st albans": "St Albans",
   "st. albans": "St Albans",
@@ -125,6 +135,7 @@ const CITY_ALIASES = {
  * Outward postcode prefix mapping
  */
 const POSTCODE_AREA_PREFIX_MAP = {
+  lu: "Bedfordshire",
   dn: "Doncaster",
   le: "Leicester",
   pe: "Peterborough",
@@ -223,8 +234,13 @@ async function resolveSupportedCity(addressData = {}) {
   if (address) candidates.push(address);
 
   for (const item of addressList) {
-    const pt = item.FormattedAddressLines?.PostTown || item.postTown;
+    const lines = item.FormattedAddressLines || {};
+    const county = lines.County || item.county;
+    if (county) candidates.push(county);
+    const pt = lines.PostTown || item.postTown;
     if (pt) candidates.push(pt);
+    const locality = lines.Locality || item.locality;
+    if (locality) candidates.push(locality);
     const summary = item.SummaryAddress || item.summaryAddress;
     if (summary) candidates.push(summary);
   }
@@ -275,7 +291,8 @@ async function resolveSupportedCity(addressData = {}) {
         normCityName === targetToSearch ||
         normCityName === norm ||
         targetToSearch.includes(normCityName) ||
-        norm.includes(normCityName)
+        norm.includes(normCityName) ||
+        normCityName.includes(targetToSearch)
       ) {
         return {
           isSupported: true,
