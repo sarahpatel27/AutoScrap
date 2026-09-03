@@ -160,7 +160,7 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                 <th className="py-3.5 px-4 min-w-[110px] sm:min-w-0">Location</th>
                 <th className="py-3.5 px-4 bg-amber-50/50 min-w-[210px] sm:min-w-0">Valuation Comparison</th>
                 <th className="py-3.5 px-4 min-w-[130px] sm:min-w-0">Bids & Timer</th>
-                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4 min-w-[150px] ">Status</th>
                 <th className="py-3.5 px-4 text-right min-w-[120px] sm:min-w-0">Actions</th>
               </tr>
             </thead>

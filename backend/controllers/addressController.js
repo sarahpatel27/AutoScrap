@@ -55,6 +55,7 @@ async function lookupAddress(req, res) {
 
     const firstFormatted = rawList[0]?.FormattedAddressLines || {};
     const postTown = firstFormatted.PostTown || adminDistrict || '';
+    const adminCounty = firstFormatted.County || onsGeography.AdminCounty?.Name || '';
     const postcode = addressDetailsObj.Postcode || firstFormatted.Postcode || cleanPostcode;
 
     const cityResolution = await resolveSupportedCity({
@@ -63,6 +64,7 @@ async function lookupAddress(req, res) {
       postcode: cleanPostcode,
       postTown,
       adminDistrict,
+      adminCounty,
     });
 
     const isSupported = cityResolution.isSupported;

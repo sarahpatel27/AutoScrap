@@ -358,8 +358,10 @@ async function createEnquiry(req, res) {
     const quoteObj = parseJsonField(enquiryData.quote, {});
 
     const postcode = enquiryData.postcode || customerObj.collectionPostcode || '';
-    const address = customerObj.collectionAddress || enquiryData.collectionAddress || '';
-    const city = await getCityFromPostcode(postcode, address);
+    let city = enquiryData.city || enquiryData.matchedServiceArea;
+    if (!city || city === 'Other' || city === 'Unassigned') {
+      city = await getCityFromPostcode(postcode, address);
+    }
 
     // Type conversion helpers
     const toInteger = (val, fallback = null) => {

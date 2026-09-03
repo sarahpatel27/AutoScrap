@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { prisma } = require('../config/db');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
+const { sendAccountCreatedNotification } = require('../services/emailService');
 
 async function login(req, res) {
   try {
@@ -183,6 +184,17 @@ async function createUser(req, res) {
       },
     });
 
+    // Send account creation email with credentials, role, and portal URL
+    sendAccountCreatedNotification({
+      name: accountName,
+      email: cleanEmail,
+      password,
+      role,
+      assignedCity: resolvedCityName,
+    }).catch((emailErr) => {
+      console.error('[AuthController] Failed to send account creation email:', emailErr.message);
+    });
+
     const allUsers = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
@@ -210,14 +222,14 @@ async function createUser(req, res) {
 async function deleteUser(req, res) {
   try {
     if (req.user.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Only Super Administrators can delete dealer accounts.' });
+      return res.status(403).json({ error: 'Only Super Administrators can delete user accounts.' });
     }
 
     const { id } = req.params;
     const numericId = parseInt(id, 10);
 
     if (numericId === req.user.id) {
-      return res.status(400).json({ error: 'You cannot delete your own active account.' });
+      return res.status(400).json({ error: 'You cannot delete your own currently logged-in account.' });
     }
 
     await prisma.user.delete({
@@ -226,13 +238,8 @@ async function deleteUser(req, res) {
 
     const allUsers = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        assignedCity: true,
-        createdAt: true,
+      include: {
+        city: true,
       },
     });
 
@@ -242,7 +249,9 @@ async function deleteUser(req, res) {
         email: u.email,
         name: u.name,
         role: u.role,
-        assignedCity: u.assignedCity,
+        isActive: u.isActive !== false,
+        cityId: u.cityId || u.city?.id || null,
+        assignedCity: u.city?.name || u.assignedCity || null,
         createdAt: u.createdAt,
       }))
     );
