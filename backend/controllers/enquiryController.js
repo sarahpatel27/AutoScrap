@@ -397,9 +397,18 @@ async function createEnquiry(req, res) {
     const quoteObj = parseJsonField(enquiryData.quote, {});
 
     const postcode = enquiryData.postcode || customerObj.collectionPostcode || '';
-    let city = enquiryData.city || enquiryData.matchedServiceArea;
+    const collectionAddress =
+      customerObj.collectionAddress ||
+      enquiryData.collectionAddress ||
+      enquiryData.address ||
+      '';
+    let city =
+      enquiryData.city ||
+      quoteObj?.city ||
+      enquiryData.matchedServiceArea ||
+      enquiryData.postTown;
     if (!city || city === 'Other' || city === 'Unassigned') {
-      city = await getCityFromPostcode(postcode, address);
+      city = await getCityFromPostcode(postcode, collectionAddress);
     }
 
     // Type conversion helpers
