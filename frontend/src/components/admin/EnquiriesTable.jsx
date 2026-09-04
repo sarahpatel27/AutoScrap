@@ -16,7 +16,9 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   const [dbCities, setDbCities] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [cityFilter, setCityFilter] = useState(user?.assignedCity || 'All');
+  const [cityFilter, setCityFilter] = useState(
+    isDealer && dealerDistricts.length > 0 ? 'All' : (user?.assignedCity || 'All')
+  );
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkStatus, setBulkStatus] = useState('Contacted');
@@ -45,10 +47,12 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   }, []);
 
   useEffect(() => {
-    if (user?.assignedCity) {
+    if (isDealer && dealerDistricts.length > 0) {
+      setCityFilter('All');
+    } else if (user?.assignedCity) {
       setCityFilter(user.assignedCity);
     }
-  }, [user]);
+  }, [user, isDealer, dealerDistricts.length]);
 
   // Reset to page 1 whenever filters or search term change
   useEffect(() => {
@@ -84,7 +88,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
       }
     }
 
-    const matchesCity = cityFilter === 'All' || itemCity === cityFilter;
+    const matchesCity = (isDealer && dealerDistricts.length > 0) || cityFilter === 'All' || itemCity === cityFilter;
 
     const term = searchTerm.toLowerCase().trim();
     if (!term) return matchesCity;
