@@ -95,11 +95,19 @@ export default function Layout() {
       </main>
 
       <a
-        aria-label="WhatsApp"
-        className="fixed bottom-5 right-5 z-30 grid h-[54px] w-[54px] place-items-center rounded-full bg-[#25d366] font-black text-[#083d24] shadow-[0_18px_50px_rgba(13,52,37,0.11)]"
+        aria-label="Chat on WhatsApp"
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_4px_18px_rgba(37,211,102,0.42)] transition-all duration-200 hover:scale-105 hover:bg-[#22bf5b] hover:shadow-[0_6px_24px_rgba(37,211,102,0.55)] active:scale-95 focus:outline-none focus:ring-4 focus:ring-[#25D366]/30"
         href="https://wa.me/447714423293"
+        rel="noopener noreferrer"
+        target="_blank"
       >
-        WA
+        <svg
+          aria-hidden="true"
+          className="h-8 w-8 fill-current"
+          viewBox="0 0 24 24"
+        >
+          <path d="M12.004 2C6.478 2 1.996 6.478 1.996 12c0 1.928.547 3.73 1.498 5.267L2 22l4.877-1.46c1.478.878 3.208 1.385 5.05 1.385 5.526 0 10.008-4.478 10.008-10S17.53 2 12.004 2zm0 18.25c-1.636 0-3.176-.474-4.48-1.29l-.322-.202-2.89.865.88-2.808-.216-.339A8.17 8.17 0 013.754 12c0-4.55 3.7-8.25 8.25-8.25 4.55 0 8.25 3.7 8.25 8.25 0 4.55-3.7 8.25-8.25 8.25zm3.385-5.915c-.144.405-.837.774-1.17.825-.333.05-.733.075-2.207-.534-1.884-.777-3.08-2.695-3.174-2.82-.094-.125-.765-1.017-.765-1.94 0-.922.483-1.376.655-1.564.172-.188.375-.235.5-.235.125 0 .25 0 .36.006.115.006.27-.044.423.324.156.375.532 1.298.578 1.392.047.094.078.204.016.329-.063.125-.094.204-.188.313-.094.11-.197.245-.282.329-.094.094-.192.196-.082.384.11.188.487.804 1.045 1.301.718.64 1.324.838 1.512.932.188.094.297.078.407-.047.11-.125.469-.547.594-.735.125-.188.25-.156.422-.094.172.063 1.094.516 1.282.61.188.094.313.141.359.219.047.078.047.453-.097.858z" />
+        </svg>
       </a>
 
       <footer className="bg-[#0b241b] pt-16 text-white">
