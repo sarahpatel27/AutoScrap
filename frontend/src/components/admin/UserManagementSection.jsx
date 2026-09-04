@@ -5,7 +5,6 @@ import {
   createDealerUser,
   deleteDealerUser,
   updateDealerCoverage,
-  fetchSupportedCities,
 } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
@@ -13,7 +12,6 @@ import DeleteConfirmationModal from './DeleteConfirmationModal';
 export default function UserManagementSection() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
-  const [supportedCities, setSupportedCities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -35,21 +33,17 @@ export default function UserManagementSection() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
-  const [assignedCity, setAssignedCity] = useState('');
+  const [accountRole, setAccountRole] = useState('City Dealer'); // 'City Dealer' or 'Super Admin'
   const [postcodeInput, setPostcodeInput] = useState('');
   const [coveredPostcodes, setCoveredPostcodes] = useState([]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [usersData, citiesData] = await Promise.all([
-        fetchUsers(),
-        fetchSupportedCities({ active: 'true' }),
-      ]);
+      const usersData = await fetchUsers();
       setUsers(usersData || []);
-      setSupportedCities(citiesData || []);
     } catch (err) {
-      console.error('Failed to load users / cities:', err);
+      console.error('Failed to load users:', err);
     } finally {
       setLoading(false);
     }
@@ -92,19 +86,18 @@ export default function UserManagementSection() {
     setSubmitting(true);
 
     try {
-      const selectedCityObj = supportedCities.find((c) => c.name === assignedCity);
-
       const updatedList = await createDealerUser({
         email,
         password,
         name: name || undefined,
-        assignedCity: selectedCityObj ? selectedCityObj.name : null,
-        cityId: selectedCityObj ? selectedCityObj.id : null,
-        coveredPostcodes,
+        role: accountRole,
+        coveredPostcodes: accountRole === 'City Dealer' ? coveredPostcodes : [],
       });
 
       setUsers(updatedList);
-      const msg = `Account successfully created for ${assignedCity ? `${assignedCity} Dealer` : email}! Coverage: ${coveredPostcodes.length > 0 ? coveredPostcodes.join(', ') : 'All/Unrestricted'}.`;
+      const msg = accountRole === 'City Dealer'
+        ? `Dealer account created for ${email}! Coverage: ${coveredPostcodes.length > 0 ? coveredPostcodes.join(', ') : 'All/Unrestricted'}.`
+        : `Super Administrator account created for ${email}!`;
       setSuccess(msg);
       showToast(msg, 'success');
 
@@ -112,7 +105,6 @@ export default function UserManagementSection() {
       setEmail('');
       setPassword('');
       setName('');
-      setAssignedCity('');
       setCoveredPostcodes([]);
       setPostcodeInput('');
     } catch (err) {
@@ -180,10 +172,10 @@ export default function UserManagementSection() {
           <span className="text-2xl">👤</span>
           <div>
             <h2 className="text-sm sm:text-base font-black uppercase tracking-wider font-['Manrope']">
-              City Dealer Account Manager
+              Dealer Account Manager
             </h2>
             <p className="text-xs text-[#0f7b4f] font-medium leading-relaxed">
-              Super Administrators can create dedicated portal accounts for specific City Dealers across the UK or manage existing credentials.
+              Super Administrators can create dedicated portal accounts for Dealers by outward postcode districts across the UK or manage existing credentials.
             </p>
           </div>
         </div>
@@ -206,88 +198,86 @@ export default function UserManagementSection() {
         <div className="lg:col-span-5 rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-xs space-y-4 h-fit">
           <div>
             <h3 className="text-base font-black text-slate-900 font-['Manrope']">
-              ➕ Create New City Account
+              ➕ Create New Account
             </h3>
             <p className="text-xs text-gray-500 font-medium mt-0.5">
-              Generate login credentials and assign to a specific city territory.
+              Generate login credentials and configure outward district postcode coverage.
             </p>
           </div>
 
           <form onSubmit={handleCreateAccount} className="space-y-3.5">
             <div>
               <label className="block text-xs font-extrabold text-slate-700 mb-1">
-                Assigned City Territory
+                Account Type
               </label>
               <select
-                value={assignedCity}
-                onChange={(e) => setAssignedCity(e.target.value)}
+                value={accountRole}
+                onChange={(e) => setAccountRole(e.target.value)}
                 className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs font-bold text-slate-900 outline-none focus:border-[#0f7b4f] focus:bg-white"
               >
-                <option value="">🛡️ Super Administrator (All Cities Access)</option>
-                {supportedCities.map((c) => (
-                  <option key={c.id || c.name} value={c.name}>
-                    📍 {c.name} Dealer
-                  </option>
-                ))}
+                <option value="City Dealer">🏷️ Dealer Account (Postcode Coverage)</option>
+                <option value="Super Admin">🛡️ Super Administrator (Full System Access)</option>
               </select>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-extrabold text-slate-700">
-                  Covered Outward Districts (Postal Coverage)
-                </label>
-                <span className="text-[10px] text-gray-400 font-semibold">e.g. PE1, PE2, SW1A</span>
-              </div>
-              
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={postcodeInput}
-                  onChange={(e) => setPostcodeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddPostcode();
-                    }
-                  }}
-                  placeholder="Type district (e.g. PE1) & press Add"
-                  className="flex-1 rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2 text-xs font-medium uppercase outline-none focus:border-[#0f7b4f] focus:bg-white"
-                />
-                <button
-                  type="button"
-                  onClick={handleAddPostcode}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition cursor-pointer shrink-0"
-                >
-                  ➕ Add
-                </button>
-              </div>
-
-              {coveredPostcodes.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5 mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
-                  {coveredPostcodes.map((dist) => (
-                    <span
-                      key={dist}
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-100 border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-900"
-                    >
-                      <span>📮 {dist}</span>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePostcode(dist)}
-                        className="text-emerald-700 hover:text-red-600 font-black cursor-pointer"
-                        title={`Remove ${dist}`}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+            {accountRole === 'City Dealer' && (
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-extrabold text-slate-700">
+                    Covered Outward Districts (Postal Coverage)
+                  </label>
+                  <span className="text-[10px] text-gray-400 font-semibold">e.g. PE1, PE2, SW1A</span>
                 </div>
-              ) : (
-                <p className="text-[11px] text-gray-400 italic mt-1.5">
-                  No specific districts added yet. Admin can assign single or multiple districts.
-                </p>
-              )}
-            </div>
+                
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={postcodeInput}
+                    onChange={(e) => setPostcodeInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddPostcode();
+                      }
+                    }}
+                    placeholder="Type district (e.g. PE1) & press Add"
+                    className="flex-1 rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2 text-xs font-medium uppercase outline-none focus:border-[#0f7b4f] focus:bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddPostcode}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition cursor-pointer shrink-0"
+                  >
+                    ➕ Add
+                  </button>
+                </div>
+
+                {coveredPostcodes.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5 mt-2 p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                    {coveredPostcodes.map((dist) => (
+                      <span
+                        key={dist}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-100 border border-emerald-300 px-2 py-1 text-xs font-black text-emerald-900"
+                      >
+                        <span>📮 {dist}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePostcode(dist)}
+                          className="text-emerald-700 hover:text-red-600 font-black cursor-pointer"
+                          title={`Remove ${dist}`}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-400 italic mt-1.5">
+                    No specific districts added yet. Admin can assign single or multiple districts.
+                  </p>
+                )}
+              </div>
+            )}
 
             <div>
               <label className="block text-xs font-extrabold text-slate-700 mb-1">
@@ -297,7 +287,7 @@ export default function UserManagementSection() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={assignedCity ? `${assignedCity} Dealer` : (coveredPostcodes.length > 0 ? `${coveredPostcodes.join('/')} Dealer` : 'Admin User')}
+                placeholder={accountRole === 'City Dealer' ? (coveredPostcodes.length > 0 ? `${coveredPostcodes.join('/')} Dealer` : 'Dealer Name') : 'Super Administrator'}
                 className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs font-medium outline-none focus:border-[#0f7b4f] focus:bg-white"
               />
             </div>
@@ -311,7 +301,7 @@ export default function UserManagementSection() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={assignedCity ? `${assignedCity.toLowerCase()}@autoscrap.co.uk` : 'dealer@autoscrap.co.uk'}
+                placeholder={accountRole === 'City Dealer' ? 'dealer@autoscrap.co.uk' : 'admin@autoscrap.co.uk'}
                 className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs font-medium outline-none focus:border-[#0f7b4f] focus:bg-white"
               />
             </div>
@@ -425,13 +415,9 @@ export default function UserManagementSection() {
 
                       <td className="px-3.5 py-3.5">
                         <div className="flex flex-col items-start gap-1">
-                          {u.assignedCity ? (
-                            <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-black text-amber-900 uppercase">
-                              📍 {u.assignedCity} Dealer
-                            </span>
-                          ) : u.role === 'City Dealer' ? (
+                          {u.role === 'City Dealer' ? (
                             <span className="inline-flex items-center gap-1 rounded-md bg-blue-100 border border-blue-300 px-2 py-0.5 text-[10px] font-black text-blue-900 uppercase">
-                              📍 Postcode Dealer
+                              🏷️ Dealer Account
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-black text-emerald-900 uppercase">
@@ -610,7 +596,7 @@ export default function UserManagementSection() {
         subtitle="Account Revocation Confirmation"
         warningText={
           userToDelete
-            ? `The account for ${userToDelete.name} (${userToDelete.email} - ${userToDelete.role}${userToDelete.assignedCity ? ` / ${userToDelete.assignedCity}` : ''}) will be permanently deleted from the database.`
+            ? `The account for ${userToDelete.name} (${userToDelete.email} - ${userToDelete.role}${userToDelete.coveredPostcodes?.length > 0 ? ` / Districts: ${userToDelete.coveredPostcodes.join(', ')}` : ''}) will be permanently deleted from the database.`
             : 'This account will be permanently deleted.'
         }
         onConfirm={handleConfirmDeleteUser}

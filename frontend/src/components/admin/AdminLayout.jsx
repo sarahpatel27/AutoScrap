@@ -53,9 +53,9 @@ export default function AdminLayout({ activeTab, children }) {
                 <span className="font-extrabold tracking-tight text-white whitespace-nowrap">
                   MyAuto<span className="text-[#0f7b4f]">Scrap</span>
                 </span>
-                {user?.assignedCity ? (
+                {user?.role === 'City Dealer' ? (
                   <span className="rounded-md bg-amber-400 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-slate-950 uppercase shadow-xs shrink-0 whitespace-nowrap">
-                    📍 {user.assignedCity}
+                    📮 {user.coveredPostcodes && user.coveredPostcodes.length > 0 ? user.coveredPostcodes.join(', ') : 'Dealer'}
                   </span>
                 ) : (
                   <span className="rounded-md bg-[#dff46b] px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-[#082d1c] shrink-0 whitespace-nowrap">

@@ -129,7 +129,7 @@ async function createUser(req, res) {
       return res.status(403).json({ error: 'Only Super Administrators can create dealer accounts.' });
     }
 
-    const { email, password, name, assignedCity, cityId, coveredPostcodes } = req.body;
+    const { email, password, name, assignedCity, cityId, coveredPostcodes, role: requestedRole } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
@@ -145,7 +145,7 @@ async function createUser(req, res) {
       return res.status(400).json({ error: 'An account with this email address already exists.' });
     }
 
-    // Resolve active city if provided
+    // Resolve active city if provided (for legacy compatibility)
     let resolvedCityId = null;
     let resolvedCityName = null;
 
@@ -153,11 +153,10 @@ async function createUser(req, res) {
       const cityRec = await prisma.city.findUnique({
         where: { id: parseInt(cityId, 10) },
       });
-      if (!cityRec || !cityRec.isActive) {
-        return res.status(400).json({ error: 'Selected city is not an active supported city in AutoScrap.' });
+      if (cityRec && cityRec.isActive) {
+        resolvedCityId = cityRec.id;
+        resolvedCityName = cityRec.name;
       }
-      resolvedCityId = cityRec.id;
-      resolvedCityName = cityRec.name;
     } else if (assignedCity && assignedCity.trim()) {
       const cityRec = await prisma.city.findFirst({
         where: {
@@ -181,8 +180,11 @@ async function createUser(req, res) {
     postcodesArray = Array.from(new Set(postcodesArray));
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const role = (resolvedCityName || postcodesArray.length > 0) ? 'City Dealer' : 'Super Admin';
-    const accountName = name || (resolvedCityName ? `${resolvedCityName} Dealer` : (postcodesArray.length > 0 ? `${postcodesArray.join('/')} Dealer` : 'Administrator'));
+    const role = requestedRole
+      ? (requestedRole === 'Super Admin' ? 'Super Admin' : 'City Dealer')
+      : ((resolvedCityName || postcodesArray.length > 0) ? 'City Dealer' : 'City Dealer');
+
+    const accountName = name || (postcodesArray.length > 0 ? `${postcodesArray.join('/')} Dealer` : (role === 'City Dealer' ? 'Dealer Account' : 'Administrator'));
 
     await prisma.user.create({
       data: {
@@ -202,7 +204,7 @@ async function createUser(req, res) {
       email: cleanEmail,
       password,
       role,
-      assignedCity: resolvedCityName || (postcodesArray.length > 0 ? postcodesArray.join(', ') : 'UK'),
+      assignedCity: postcodesArray.length > 0 ? postcodesArray.join(', ') : (role === 'City Dealer' ? 'Dealer Coverage' : 'National'),
     }).catch((emailErr) => {
       console.error('[AuthController] Failed to send account creation email:', emailErr.message);
     });
