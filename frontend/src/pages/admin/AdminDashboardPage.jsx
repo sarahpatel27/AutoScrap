@@ -309,9 +309,9 @@ export default function AdminDashboardPage() {
           <PromotionalEmailsSection />
         )}
 
-        {activeTab === 'cities' && (
+        {/* {activeTab === 'cities' && (
           <CitiesManagementSection />
-        )}
+        )} */}
 
         {activeTab === 'contacts' && (
           <ContactSubmissionsSection />
