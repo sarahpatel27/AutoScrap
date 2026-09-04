@@ -2,7 +2,7 @@
 	email {$ACME_EMAIL}
 }
 
-{$DOMAIN} {
+myautoscrap.co.uk, www.myautoscrap.co.uk {
 	encode gzip
 
 	request_body {
