@@ -13,13 +13,14 @@ model User {
   password     String       @db.VarChar(255)
   name         String       @db.VarChar(100)
   role         String       @default("City Dealer") @db.VarChar(30)
-  cityId       Int?         @map("city_id")
-  assignedCity String?      @map("assigned_city") @db.VarChar(50)
-  isActive     Boolean      @default(true) @map("is_active")
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
-  bids         DealerBid[]
+  cityId           Int?         @map("city_id")
+  assignedCity     String?      @map("assigned_city") @db.VarChar(50)
+  coveredPostcodes String[]     @default([]) @map("covered_postcodes")
+  isActive         Boolean      @default(true) @map("is_active")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  bids             DealerBid[]
 
-  city         City?        @relation(fields: [cityId], references: [id], onDelete: SetNull)
+  city             City?        @relation(fields: [cityId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
@@ -48,6 +49,16 @@ model CityPricing {
   city          City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
   @@map("city_pricing")
+}
+
+model DistrictPricing {
+  id            Int      @id @default(autoincrement())
+  district      String   @unique @db.VarChar(10)
+  pricePerTonne Decimal  @default(235.00) @map("price_per_tonne") @db.Decimal(10, 2)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("district_pricing")
 }
 
 model Enquiry {

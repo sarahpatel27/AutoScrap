@@ -107,25 +107,40 @@ async function sendEnquiryCreatedNotifications({
     );
   }
 
-  // 2. Fetch Dealers & Admins to notify
+  // 2. Fetch Dealers & Admins to notify based on Outward District Postcode Coverage
   try {
-    const users = await prisma.user.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { role: 'Super Admin' },
-          {
-            role: 'City Dealer',
-            ...(city ? { assignedCity: { equals: city, mode: 'insensitive' } } : {}),
-          },
-        ],
-      },
+    const { extractOutwardCode } = require('../utils/postcodeHelper');
+    const outwardDistrict = extractOutwardCode(postcode);
+
+    const [allCityDealers, superAdmins] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: 'City Dealer',
+        },
+      }),
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: 'Super Admin',
+        },
+      }),
+    ]);
+
+    // Match dealers who explicitly cover this outward district (or fallback to assignedCity if none configured)
+    const cityDealers = allCityDealers.filter((dealer) => {
+      if (!dealer.email) return false;
+      const list = (dealer.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+      if (list.length > 0) {
+        return list.includes(outwardDistrict);
+      }
+      if (dealer.assignedCity && city) {
+        return dealer.assignedCity.trim().toLowerCase() === city.trim().toLowerCase();
+      }
+      return false;
     });
 
-    const superAdmins = users.filter((u) => u.role === 'Super Admin' && u.email);
-    const cityDealers = users.filter((u) => u.role === 'City Dealer' && u.email);
-
-    // 3. Send to Assigned City Dealer(s)
+    // 3. Send to Assigned District Dealer(s)
     cityDealers.forEach((dealer) => {
       const dealerTemplate = dealerEnquiryTemplate({
         reference,

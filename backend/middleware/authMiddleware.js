@@ -24,6 +24,8 @@ async function authenticateToken(req, res, next) {
         name: true,
         role: true,
         assignedCity: true,
+        coveredPostcodes: true,
+        isActive: true,
       },
     });
 

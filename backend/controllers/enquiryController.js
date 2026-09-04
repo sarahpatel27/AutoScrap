@@ -1,5 +1,5 @@
 const { prisma } = require('../config/db');
-const { getCityFromPostcode } = require('../utils/postcodeHelper');
+const { getCityFromPostcode, extractOutwardCode } = require('../utils/postcodeHelper');
 const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
 const { anonymizeEnquiryForDealer } = require('../utils/dealerAnonymizer');
 const { autoResolveExpiredBids, processMidwayBiddingNotifications } = require('../services/biddingAutoResolver');
@@ -13,6 +13,7 @@ const { sendWinningDealerAndCustomerNotifications } = require('../services/email
 
 async function getEnquiries(req, res) {
   try {
+    const user = req.user;
     const rows = await prisma.enquiry.findMany({
       where: {
         status: {
@@ -24,12 +25,32 @@ async function getEnquiries(req, res) {
       },
     });
 
-    const enquiries = rows.map((row) => ({
+    let eligibleRows = rows;
+
+    if (user && user.role === 'City Dealer') {
+      const covered = (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+
+      if (covered.length > 0) {
+        eligibleRows = rows.filter((row) => {
+          const outward = extractOutwardCode(row.postcode);
+          return covered.includes(outward);
+        });
+      } else if (user.assignedCity) {
+        eligibleRows = rows.filter((row) => {
+          return row.city && row.city.trim().toLowerCase() === user.assignedCity.trim().toLowerCase();
+        });
+      } else {
+        eligibleRows = [];
+      }
+    }
+
+    const enquiries = eligibleRows.map((row) => ({
       id: String(row.id),
       reference: row.reference,
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'Pending',
       postcode: row.postcode,
+      outwardDistrict: extractOutwardCode(row.postcode),
       city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,
@@ -155,12 +176,30 @@ async function getPastEnquiries(req, res) {
       }),
     ]);
 
-    const enquiries = standardRows.map((row) => ({
+    let eligibleStandardRows = standardRows;
+    if (user && user.role === 'City Dealer') {
+      const covered = (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+      if (covered.length > 0) {
+        eligibleStandardRows = standardRows.filter((row) => {
+          const outward = extractOutwardCode(row.postcode);
+          return covered.includes(outward);
+        });
+      } else if (user.assignedCity) {
+        eligibleStandardRows = standardRows.filter((row) => {
+          return row.city && row.city.trim().toLowerCase() === user.assignedCity.trim().toLowerCase();
+        });
+      } else {
+        eligibleStandardRows = [];
+      }
+    }
+
+    const enquiries = eligibleStandardRows.map((row) => ({
       id: String(row.id),
       reference: row.reference,
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'archived',
       postcode: row.postcode,
+      outwardDistrict: extractOutwardCode(row.postcode),
       city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,

@@ -108,7 +108,119 @@ async function updatePricing(req, res) {
   }
 }
 
+async function getDistrictPricing(req, res) {
+  try {
+    const rows = await prisma.districtPricing.findMany({
+      orderBy: { district: 'asc' },
+    });
+
+    const districtRates = {};
+    for (const row of rows) {
+      districtRates[row.district] = Number(row.pricePerTonne);
+    }
+
+    // Also get all distinct districts covered by active dealers
+    const activeDealers = await prisma.user.findMany({
+      where: { role: 'City Dealer', isActive: true },
+      select: { coveredPostcodes: true },
+    });
+
+    const coveredSet = new Set();
+    for (const d of activeDealers) {
+      for (const p of (d.coveredPostcodes || [])) {
+        if (p && p.trim()) coveredSet.add(p.trim().toUpperCase());
+      }
+    }
+
+    const activeDistricts = Array.from(coveredSet).sort();
+
+    res.json({
+      defaultPricePerTonne: 235,
+      districtRates,
+      activeDistricts,
+      districts: rows.map((r) => ({
+        id: r.id,
+        district: r.district,
+        pricePerTonne: Number(r.pricePerTonne),
+        updatedAt: r.updatedAt,
+      })),
+    });
+  } catch (err) {
+    console.error('Get District Pricing Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function updateDistrictPricing(req, res) {
+  try {
+    const user = req.user;
+    if (!user || user.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Forbidden: Only Super Administrators can update district scrap pricing.' });
+    }
+
+    const { districtRates, district, pricePerTonne } = req.body;
+
+    if (district && pricePerTonne !== undefined) {
+      const cleanDistrict = String(district).trim().toUpperCase();
+      const numRate = Number(pricePerTonne);
+      if (cleanDistrict && !isNaN(numRate) && numRate > 0) {
+        await prisma.districtPricing.upsert({
+          where: { district: cleanDistrict },
+          update: { pricePerTonne: numRate },
+          create: { district: cleanDistrict, pricePerTonne: numRate },
+        });
+      }
+    }
+
+    if (districtRates && typeof districtRates === 'object') {
+      for (const [dist, rate] of Object.entries(districtRates)) {
+        const cleanDist = String(dist).trim().toUpperCase();
+        const numRate = Number(rate);
+        if (cleanDist && !isNaN(numRate) && numRate > 0) {
+          await prisma.districtPricing.upsert({
+            where: { district: cleanDist },
+            update: { pricePerTonne: numRate },
+            create: { district: cleanDist, pricePerTonne: numRate },
+          });
+        }
+      }
+    }
+
+    return getDistrictPricing(req, res);
+  } catch (err) {
+    console.error('Update District Pricing Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function deleteDistrictPricing(req, res) {
+  try {
+    const user = req.user;
+    if (!user || user.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Forbidden: Only Super Administrators can delete district pricing.' });
+    }
+
+    const { district } = req.params;
+    if (!district) {
+      return res.status(400).json({ error: 'District parameter is required.' });
+    }
+
+    const cleanDistrict = String(district).trim().toUpperCase();
+    await prisma.districtPricing.deleteMany({
+      where: { district: cleanDistrict },
+    });
+
+    return getDistrictPricing(req, res);
+  } catch (err) {
+    console.error('Delete District Pricing Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 module.exports = {
   getPricing,
   updatePricing,
+  getDistrictPricing,
+  updateDistrictPricing,
+  deleteDistrictPricing,
 };

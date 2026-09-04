@@ -10,7 +10,8 @@ import { fetchSupportedCities } from '../../services/adminStore';
 
 export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
-  const isDealer = !!user?.assignedCity;
+  const isDealer = user?.role === 'City Dealer';
+  const dealerDistricts = (user?.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
 
   const [dbCities, setDbCities] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,10 +69,19 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
 
   const baseEnquiries = enquiries.filter((e) => {
     const itemCity = e.city || 'Other';
+    const itemDistrict = (e.outwardDistrict || (e.postcode || '').trim().toUpperCase().split(' ')[0] || '').trim().toUpperCase();
 
-    // Dealer scope constraint
-    if (isDealer && itemCity !== user.assignedCity) {
-      return false;
+    // Dealer scope constraint:
+    // If dealer has coveredPostcodes, filter by outward district
+    // If legacy dealer with only assignedCity, filter by assignedCity
+    if (isDealer) {
+      if (dealerDistricts.length > 0) {
+        if (!dealerDistricts.includes(itemDistrict)) {
+          return false;
+        }
+      } else if (user?.assignedCity && itemCity.toLowerCase() !== user.assignedCity.toLowerCase()) {
+        return false;
+      }
     }
 
     const matchesCity = cityFilter === 'All' || itemCity === cityFilter;
@@ -306,13 +316,15 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
         {isDealer ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl sm:rounded-2xl border border-amber-300 bg-amber-50 p-3 sm:px-4 sm:py-3 text-amber-900">
             <div className="flex items-start gap-2">
-              <span className="text-lg sm:text-xl shrink-0 mt-0.5">📍</span>
+              <span className="text-lg sm:text-xl shrink-0 mt-0.5">📮</span>
               <div>
                 <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-950">
-                  {user.assignedCity} Dealer View
+                  {dealerDistricts.length > 0 ? 'District Postcode Coverage View' : `${user?.assignedCity || 'Dealer'} View`}
                 </span>
                 <p className="text-xs text-amber-800 font-medium leading-tight">
-                  Showing customer scrap enquiries strictly assigned to the <strong>{user.assignedCity}</strong> territory.
+                  {dealerDistricts.length > 0
+                    ? `Showing customer scrap enquiries strictly covering your assigned districts: ${dealerDistricts.join(', ')}.`
+                    : `Showing customer scrap enquiries assigned to ${user?.assignedCity || 'your territory'}.`}
                 </p>
               </div>
             </div>
@@ -680,8 +692,11 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                           📍 {itemCity}
                         </span>
                         {e.postcode && (
-                          <span className="font-mono text-[10px] text-gray-500 uppercase">
-                            ({e.postcode})
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-gray-500 uppercase">
+                            <span className="rounded bg-blue-50 border border-blue-200 px-1 py-0.2 text-[9px] font-black text-blue-800">
+                              📮 {e.outwardDistrict || e.postcode.split(' ')[0]}
+                            </span>
+                            <span>{e.postcode}</span>
                           </span>
                         )}
                       </div>

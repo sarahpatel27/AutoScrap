@@ -58,7 +58,8 @@ async function login(req, res) {
       email: user.email,
       role: user.role,
       assignedCity: user.assignedCity,
-      avatar: user.assignedCity ? '📍' : '🛡️',
+      coveredPostcodes: user.coveredPostcodes || [],
+      avatar: user.role === 'City Dealer' ? '📍' : '🛡️',
     };
 
     res.json({
@@ -81,7 +82,8 @@ async function getCurrentUser(req, res) {
         email: user.email,
         role: user.role,
         assignedCity: user.assignedCity,
-        avatar: user.assignedCity ? '📍' : '🛡️',
+        coveredPostcodes: user.coveredPostcodes || [],
+        avatar: user.role === 'City Dealer' ? '📍' : '🛡️',
       },
     });
   } catch (err) {
@@ -111,6 +113,7 @@ async function getUsers(req, res) {
         isActive: u.isActive !== false,
         cityId: u.cityId || u.city?.id || null,
         assignedCity: u.city?.name || u.assignedCity || null,
+        coveredPostcodes: u.coveredPostcodes || [],
         createdAt: u.createdAt,
       }))
     );
@@ -126,7 +129,7 @@ async function createUser(req, res) {
       return res.status(403).json({ error: 'Only Super Administrators can create dealer accounts.' });
     }
 
-    const { email, password, name, assignedCity, cityId } = req.body;
+    const { email, password, name, assignedCity, cityId, coveredPostcodes } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required.' });
@@ -142,7 +145,7 @@ async function createUser(req, res) {
       return res.status(400).json({ error: 'An account with this email address already exists.' });
     }
 
-    // Resolve active city
+    // Resolve active city if provided
     let resolvedCityId = null;
     let resolvedCityName = null;
 
@@ -162,16 +165,24 @@ async function createUser(req, res) {
           isActive: true,
         },
       });
-      if (!cityRec) {
-        return res.status(400).json({ error: `City "${assignedCity}" is not an active supported city in AutoScrap.` });
+      if (cityRec) {
+        resolvedCityId = cityRec.id;
+        resolvedCityName = cityRec.name;
       }
-      resolvedCityId = cityRec.id;
-      resolvedCityName = cityRec.name;
     }
 
+    // Process covered outward district postcodes
+    let postcodesArray = [];
+    if (Array.isArray(coveredPostcodes)) {
+      postcodesArray = coveredPostcodes.map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+    } else if (typeof coveredPostcodes === 'string') {
+      postcodesArray = coveredPostcodes.split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
+    }
+    postcodesArray = Array.from(new Set(postcodesArray));
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const role = resolvedCityName ? 'City Dealer' : 'Super Admin';
-    const accountName = name || (resolvedCityName ? `${resolvedCityName} Dealer` : 'Administrator');
+    const role = (resolvedCityName || postcodesArray.length > 0) ? 'City Dealer' : 'Super Admin';
+    const accountName = name || (resolvedCityName ? `${resolvedCityName} Dealer` : (postcodesArray.length > 0 ? `${postcodesArray.join('/')} Dealer` : 'Administrator'));
 
     await prisma.user.create({
       data: {
@@ -181,6 +192,7 @@ async function createUser(req, res) {
         role,
         cityId: resolvedCityId,
         assignedCity: resolvedCityName,
+        coveredPostcodes: postcodesArray,
       },
     });
 
@@ -190,7 +202,7 @@ async function createUser(req, res) {
       email: cleanEmail,
       password,
       role,
-      assignedCity: resolvedCityName,
+      assignedCity: resolvedCityName || (postcodesArray.length > 0 ? postcodesArray.join(', ') : 'UK'),
     }).catch((emailErr) => {
       console.error('[AuthController] Failed to send account creation email:', emailErr.message);
     });
@@ -208,13 +220,90 @@ async function createUser(req, res) {
         email: u.email,
         name: u.name,
         role: u.role,
+        isActive: u.isActive !== false,
         cityId: u.cityId || u.city?.id || null,
         assignedCity: u.city?.name || u.assignedCity || null,
+        coveredPostcodes: u.coveredPostcodes || [],
         createdAt: u.createdAt,
       }))
     );
   } catch (err) {
     console.error('Create User Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function updateDealerCoverage(req, res) {
+  try {
+    if (req.user.role !== 'Super Admin') {
+      return res.status(403).json({ error: 'Only Super Administrators can update dealer coverage.' });
+    }
+
+    const { id } = req.params;
+    const numericId = parseInt(id, 10);
+    if (isNaN(numericId)) {
+      return res.status(400).json({ error: 'Invalid dealer user ID.' });
+    }
+
+    const { coveredPostcodes, name, assignedCity, isActive } = req.body;
+
+    const existingUser = await prisma.user.findUnique({
+      where: { id: numericId },
+    });
+
+    if (!existingUser) {
+      return res.status(404).json({ error: 'Dealer account not found.' });
+    }
+
+    const updateData = {};
+
+    if (coveredPostcodes !== undefined) {
+      let postcodesArray = [];
+      if (Array.isArray(coveredPostcodes)) {
+        postcodesArray = coveredPostcodes.map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+      } else if (typeof coveredPostcodes === 'string') {
+        postcodesArray = coveredPostcodes.split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
+      }
+      updateData.coveredPostcodes = Array.from(new Set(postcodesArray));
+    }
+
+    if (name !== undefined && name.trim()) {
+      updateData.name = name.trim();
+    }
+
+    if (assignedCity !== undefined) {
+      updateData.assignedCity = assignedCity ? assignedCity.trim() : null;
+    }
+
+    if (isActive !== undefined) {
+      updateData.isActive = Boolean(isActive);
+    }
+
+    await prisma.user.update({
+      where: { id: numericId },
+      data: updateData,
+    });
+
+    const allUsers = await prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { city: true },
+    });
+
+    res.json(
+      allUsers.map((u) => ({
+        id: String(u.id),
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        isActive: u.isActive !== false,
+        cityId: u.cityId || u.city?.id || null,
+        assignedCity: u.city?.name || u.assignedCity || null,
+        coveredPostcodes: u.coveredPostcodes || [],
+        createdAt: u.createdAt,
+      }))
+    );
+  } catch (err) {
+    console.error('Update Dealer Coverage Error:', err);
     res.status(500).json({ error: err.message });
   }
 }
@@ -307,6 +396,7 @@ module.exports = {
   getCurrentUser,
   getUsers,
   createUser,
+  updateDealerCoverage,
   deleteUser,
   changePassword,
 };

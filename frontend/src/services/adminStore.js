@@ -402,6 +402,58 @@ export async function deleteDealerUser(id) {
   return data;
 }
 
+export async function updateDealerCoverage(id, updateData) {
+  const res = await fetch(getApiUrl(`/api/auth/users/${id}/coverage`), {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(updateData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update dealer coverage.');
+  }
+  return data;
+}
+
+export async function fetchDistrictPricing() {
+  try {
+    const res = await fetch(getApiUrl('/api/pricing/districts'), {
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.error('Error fetching district pricing:', err);
+  }
+  return { defaultPricePerTonne: 235, districtRates: {}, activeDistricts: [], districts: [] };
+}
+
+export async function saveDistrictPricing(payload) {
+  const res = await fetch(getApiUrl('/api/pricing/districts'), {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update district pricing.');
+  }
+  return data;
+}
+
+export async function deleteDistrictPricing(district) {
+  const res = await fetch(getApiUrl(`/api/pricing/districts/${encodeURIComponent(district)}`), {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to delete district pricing.');
+  }
+  return data;
+}
+
 export async function changeUserPassword(currentPassword, newPassword) {
   const res = await fetch(getApiUrl('/api/auth/change-password'), {
     method: 'POST',
