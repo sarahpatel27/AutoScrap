@@ -144,7 +144,7 @@ async function sendEnquiryCreatedNotifications({
     cityDealers.forEach((dealer) => {
       const dealerTemplate = dealerEnquiryTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,
@@ -159,7 +159,7 @@ async function sendEnquiryCreatedNotifications({
           to: dealer.email,
           subject: dealerTemplate.subject,
           html: dealerTemplate.html,
-        }).catch((err) => console.error(`[EmailService] City dealer email failed for ${dealer.email}:`, err))
+        }).catch((err) => console.error(`[EmailService] Dealer email failed for ${dealer.email}:`, err))
       );
     });
 
@@ -257,7 +257,7 @@ async function sendHighValueEnquiryCreatedNotifications({
 
       const dealerTemplate = dealerHighValueBiddingTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,
@@ -429,7 +429,7 @@ async function sendMidwayNoBidsNotification({
     cityDealers.forEach((dealer) => {
       const dealerTemplate = dealerBiddingNoBidsMidwayTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,
@@ -522,7 +522,7 @@ async function sendMidwayActiveBidsNotification({
     cityDealers.forEach((dealer) => {
       const dealerTemplate = dealerBiddingActiveBidsMidwayTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,

@@ -36,7 +36,9 @@ function superAdminWinnerSelectedNotificationTemplate({
 
   const dealerName = dealer?.name || 'Valued Partner';
   const dealerEmail = dealer?.email || 'N/A';
-  const dealerCity = dealer?.assignedCity || city || 'UK';
+  const dealerAreas = dealer?.coveredPostcodes && dealer.coveredPostcodes.length > 0
+    ? dealer.coveredPostcodes.join(', ')
+    : (dealer?.assignedCity || city || 'UK');
 
   const contentHtml = `
     <!-- Top Alert Card (Emerald / Forest Green Super Admin Alert) -->
@@ -90,8 +92,8 @@ function superAdminWinnerSelectedNotificationTemplate({
           </td>
         </tr>
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Operating Area</td>
-          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${dealerCity}</td>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Assigned Areas</td>
+          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${dealerAreas}</td>
         </tr>
         <tr>
           <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Winning Bid</td>

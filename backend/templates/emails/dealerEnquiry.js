@@ -1,10 +1,10 @@
 /**
- * New Car Enquiry Notification Email Template for City Dealer & Super Admin
+ * New Car Enquiry Notification Email Template for Dealer & Super Admin
  * Engineered for 100% readability across Light and Dark email clients (iOS Mail, Gmail, Outlook).
  */
 function dealerEnquiryTemplate({
   reference,
-  recipientRole = 'City Dealer', // 'City Dealer' | 'Super Admin'
+  recipientRole = 'Dealer', // 'Dealer' | 'Super Admin'
   recipientName = '',
   vehicle,
   quoteAmount,
@@ -25,19 +25,19 @@ function dealerEnquiryTemplate({
   const collectionAddress = customer?.collectionAddress || '';
 
   const isSuperAdmin = recipientRole === 'Super Admin';
-  const headingTitle = isSuperAdmin ? 'New Car Enquiry (Super Admin)' : `New Car Enquiry - ${city || 'Territory'}`;
+  const headingTitle = isSuperAdmin ? 'New Car Enquiry (Super Admin)' : `New Car Enquiry - ${city || 'Assigned Area'}`;
 
   const contentHtml = `
     <!-- Top Alert Card (Clean Emerald Theme with high contrast) -->
     <div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-left: 5px solid #0f7b4f; border-radius: 8px; padding: 18px 20px; margin-bottom: 24px;">
       <div style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
-        ${recipientRole} Notification
+        ${recipientRole === 'City Dealer' ? 'Dealer' : recipientRole} Notification
       </div>
       <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 800; color: #0f7b4f;">
         ${headingTitle}
       </h1>
       <div style="font-size: 13px; color: #166534; font-weight: 500;">
-        Ref: <strong style="color: #0f7b4f; font-weight: 800;">${reference}</strong> • Territory: <strong>${city || 'UK'}</strong>
+        Ref: <strong style="color: #0f7b4f; font-weight: 800;">${reference}</strong> • Area: <strong>${city || 'UK'}</strong>
       </div>
     </div>
 
@@ -64,7 +64,7 @@ function dealerEnquiryTemplate({
           <td style="padding: 8px 0; color: #0f7b4f; font-weight: 800; font-size: 16px;">${formattedQuote}</td>
         </tr>
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">City / Postcode</td>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Area / Postcode</td>
           <td style="padding: 8px 0; color: #0f172a;">${city || 'Unassigned'} (${postcode || 'N/A'})</td>
         </tr>
         ${collectionAddress ? `

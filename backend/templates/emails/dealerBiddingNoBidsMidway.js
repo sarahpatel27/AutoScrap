@@ -3,7 +3,7 @@
  */
 function dealerBiddingNoBidsMidwayTemplate({
   reference,
-  recipientRole = 'City Dealer',
+  recipientRole = 'Dealer',
   recipientName = '',
   vehicle,
   condition,
@@ -50,7 +50,7 @@ function dealerBiddingNoBidsMidwayTemplate({
         No Bids Placed So Far — 24 Hours Remaining
       </h1>
       <div style="font-size: 13px; color: #78350f; font-weight: 500;">
-        Ref: <strong style="color: #92400e; font-weight: 800;">${reference}</strong> • Territory: <strong>${city || 'UK'}</strong>
+        Ref: <strong style="color: #92400e; font-weight: 800;">${reference}</strong> • Area: <strong>${city || 'UK'}</strong>
       </div>
     </div>
 
@@ -99,7 +99,7 @@ function dealerBiddingNoBidsMidwayTemplate({
           <td style="padding: 8px 0; color: #0f7b4f; font-weight: 800; font-size: 16px;">${formattedValuation}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Location</td>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Area / Postcode</td>
           <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${city || 'Unassigned'} (${postcode || 'N/A'})</td>
         </tr>
       </table>

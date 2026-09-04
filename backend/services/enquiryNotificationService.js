@@ -18,7 +18,7 @@ const {
 
 /**
  * Dispatches notification emails for Standard Enquiries (<= 2015)
- * Sends to: Customer, Assigned City Dealer, Super Admin
+ * Sends to: Customer, Assigned Dealer, Super Admin
  * 
  * @param {Object} enquiry - Created Prisma enquiry record or enquiry payload
  */

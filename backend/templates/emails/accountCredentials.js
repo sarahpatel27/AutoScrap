@@ -1,6 +1,6 @@
 /**
  * Account Generated / Credentials Notification Email Template
- * Sent to newly created Super Admins and City Dealers.
+ * Sent to newly created Super Admins and Dealers.
  */
 function accountCredentialsTemplate({
   name,
@@ -13,7 +13,7 @@ function accountCredentialsTemplate({
   const isSuperAdmin = role === 'Super Admin';
   const roleDisplay = isSuperAdmin
     ? 'Super Administrator'
-    : `City Dealer (${assignedCity || 'All UK'})`;
+    : `Dealer (${assignedCity || 'All UK'})`;
 
   const roleBadgeBg = isSuperAdmin ? '#ecfdf5' : '#fef3c7';
   const roleBadgeBorder = isSuperAdmin ? '#6ee7b7' : '#fcd34d';
@@ -53,8 +53,8 @@ function accountCredentialsTemplate({
         </tr>
         ${assignedCity ? `
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Assigned City:</td>
-          <td style="padding: 9px 0; color: #0f7b4f; font-weight: 800;">📍 ${assignedCity}</td>
+          <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Assigned Areas:</td>
+          <td style="padding: 9px 0; color: #0f7b4f; font-weight: 800;">📮 ${assignedCity}</td>
         </tr>
         ` : ''}
         <tr style="border-bottom: 1px solid #edf2f7;">

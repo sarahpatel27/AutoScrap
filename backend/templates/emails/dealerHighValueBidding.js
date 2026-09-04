@@ -3,7 +3,7 @@
  */
 function dealerHighValueBiddingTemplate({
   reference,
-  recipientRole = 'City Dealer', // 'City Dealer' | 'Super Admin'
+  recipientRole = 'Dealer', // 'Dealer' | 'Super Admin'
   recipientName = '',
   vehicle,
   condition,
@@ -43,7 +43,7 @@ function dealerHighValueBiddingTemplate({
   const isSuperAdmin = recipientRole === 'Super Admin';
   const headingTitle = isSuperAdmin
     ? 'New High-Value Enquiry Bidding Started'
-    : `New High-Value Car Available for Bidding - ${city || 'Territory'}`;
+    : `New High-Value Car Available for Bidding - ${city || 'Assigned Area'}`;
 
   const customerName = customer?.fullName || customer?.name || 'N/A';
   const customerPhone = customer?.phone || 'N/A';
@@ -53,13 +53,13 @@ function dealerHighValueBiddingTemplate({
     <!-- Top Alert Card (High-Contrast Emerald/Green Theme) -->
     <div style="background-color: #f0fdf4; border: 1.5px solid #86efac; border-left: 5px solid #0f7b4f; border-radius: 8px; padding: 18px 20px; margin-bottom: 24px;">
       <div style="font-size: 11px; font-weight: 800; color: #166534; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
-        ${recipientRole} Bidding Alert
+        ${recipientRole === 'City Dealer' ? 'Dealer' : recipientRole} Bidding Alert
       </div>
       <h1 style="margin: 0 0 6px 0; font-size: 20px; font-weight: 800; color: #0f7b4f;">
         ${headingTitle}
       </h1>
       <div style="font-size: 13px; color: #166534; font-weight: 500;">
-        Ref: <strong style="color: #0f7b4f; font-weight: 800;">${reference}</strong> • Territory: <strong>${city || 'UK'}</strong>
+        Ref: <strong style="color: #0f7b4f; font-weight: 800;">${reference}</strong> • Area: <strong>${city || 'UK'}</strong>
       </div>
     </div>
 
@@ -104,7 +104,7 @@ function dealerHighValueBiddingTemplate({
           <td style="padding: 8px 0; color: #0f7b4f; font-weight: 800; font-size: 16px;">${formattedValuation}</td>
         </tr>
         <tr>
-          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Location</td>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Area / Postcode</td>
           <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${city || 'Unassigned'} (${postcode || 'N/A'})</td>
         </tr>
       </table>
