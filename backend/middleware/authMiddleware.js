@@ -40,6 +40,36 @@ async function authenticateToken(req, res, next) {
   }
 }
 
+async function optionalAuthenticateToken(req, res, next) {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (token) {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          assignedCity: true,
+          coveredPostcodes: true,
+          isActive: true,
+        },
+      });
+
+      if (user && user.isActive) {
+        req.user = user;
+      }
+    }
+  } catch (err) {
+    // Soft ignore for optional token check
+  }
+  next();
+}
+
 async function requireSuperAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'Super Admin') {
     return res.status(403).json({ error: 'Forbidden: Only Super Administrators can perform this action.' });
@@ -49,6 +79,7 @@ async function requireSuperAdmin(req, res, next) {
 
 module.exports = {
   authenticateToken,
+  optionalAuthenticateToken,
   requireSuperAdmin,
   JWT_SECRET,
 };

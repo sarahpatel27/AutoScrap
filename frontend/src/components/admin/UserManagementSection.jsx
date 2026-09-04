@@ -229,7 +229,7 @@ export default function UserManagementSection() {
                   <span className="text-[10px] text-gray-400 font-semibold">e.g. PE1, PE2, SW1A</span>
                 </div>
                 
-                <div className="flex gap-2">
+                <div className="flex gap-2 ">
                   <input
                     type="text"
                     value={postcodeInput}

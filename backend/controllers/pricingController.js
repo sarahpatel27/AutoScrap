@@ -110,7 +110,14 @@ async function updatePricing(req, res) {
 
 async function getDistrictPricing(req, res) {
   try {
+    const user = req.user;
+    const isDealer = user && user.role === 'City Dealer';
+    const dealerCovered = isDealer
+      ? (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean)
+      : null;
+
     const rows = await prisma.districtPricing.findMany({
+      where: dealerCovered !== null ? { district: { in: dealerCovered } } : undefined,
       orderBy: { district: 'asc' },
     });
 
@@ -119,20 +126,25 @@ async function getDistrictPricing(req, res) {
       districtRates[row.district] = Number(row.pricePerTonne);
     }
 
-    // Also get all distinct districts covered by active dealers
-    const activeDealers = await prisma.user.findMany({
-      where: { role: 'City Dealer', isActive: true },
-      select: { coveredPostcodes: true },
-    });
+    let activeDistricts = [];
+    if (isDealer) {
+      // Dealer strictly only sees their own assigned outward districts
+      activeDistricts = (dealerCovered || []).slice().sort();
+    } else {
+      // Super Admin or public: distinct districts covered by all active dealers
+      const activeDealers = await prisma.user.findMany({
+        where: { role: 'City Dealer', isActive: true },
+        select: { coveredPostcodes: true },
+      });
 
-    const coveredSet = new Set();
-    for (const d of activeDealers) {
-      for (const p of (d.coveredPostcodes || [])) {
-        if (p && p.trim()) coveredSet.add(p.trim().toUpperCase());
+      const coveredSet = new Set();
+      for (const d of activeDealers) {
+        for (const p of (d.coveredPostcodes || [])) {
+          if (p && p.trim()) coveredSet.add(p.trim().toUpperCase());
+        }
       }
+      activeDistricts = Array.from(coveredSet).sort();
     }
-
-    const activeDistricts = Array.from(coveredSet).sort();
 
     res.json({
       defaultPricePerTonne: 235,
@@ -154,15 +166,33 @@ async function getDistrictPricing(req, res) {
 async function updateDistrictPricing(req, res) {
   try {
     const user = req.user;
-    if (!user || user.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Forbidden: Only Super Administrators can update district scrap pricing.' });
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required to update scrap pricing.' });
     }
+
+    const isSuperAdmin = user.role === 'Super Admin';
+    const isDealer = user.role === 'City Dealer';
+
+    if (!isSuperAdmin && !isDealer) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to update scrap pricing.' });
+    }
+
+    const dealerCovered = isDealer
+      ? (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean)
+      : null;
 
     const { districtRates, district, pricePerTonne } = req.body;
 
     if (district && pricePerTonne !== undefined) {
       const cleanDistrict = String(district).trim().toUpperCase();
       const numRate = Number(pricePerTonne);
+
+      if (isDealer && (!dealerCovered || !dealerCovered.includes(cleanDistrict))) {
+        return res.status(403).json({
+          error: `Forbidden: You are only authorized to set scrap rates for your own assigned postcode districts (${(dealerCovered || []).join(', ')}).`,
+        });
+      }
+
       if (cleanDistrict && !isNaN(numRate) && numRate > 0) {
         await prisma.districtPricing.upsert({
           where: { district: cleanDistrict },
@@ -176,6 +206,13 @@ async function updateDistrictPricing(req, res) {
       for (const [dist, rate] of Object.entries(districtRates)) {
         const cleanDist = String(dist).trim().toUpperCase();
         const numRate = Number(rate);
+
+        if (isDealer && (!dealerCovered || !dealerCovered.includes(cleanDist))) {
+          return res.status(403).json({
+            error: `Forbidden: You are only authorized to set scrap rates for your own assigned postcode districts (${(dealerCovered || []).join(', ')}).`,
+          });
+        }
+
         if (cleanDist && !isNaN(numRate) && numRate > 0) {
           await prisma.districtPricing.upsert({
             where: { district: cleanDist },
@@ -196,8 +233,15 @@ async function updateDistrictPricing(req, res) {
 async function deleteDistrictPricing(req, res) {
   try {
     const user = req.user;
-    if (!user || user.role !== 'Super Admin') {
-      return res.status(403).json({ error: 'Forbidden: Only Super Administrators can delete district pricing.' });
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required to delete district pricing.' });
+    }
+
+    const isSuperAdmin = user.role === 'Super Admin';
+    const isDealer = user.role === 'City Dealer';
+
+    if (!isSuperAdmin && !isDealer) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to delete district pricing.' });
     }
 
     const { district } = req.params;
@@ -206,6 +250,16 @@ async function deleteDistrictPricing(req, res) {
     }
 
     const cleanDistrict = String(district).trim().toUpperCase();
+
+    if (isDealer) {
+      const dealerCovered = (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+      if (!dealerCovered.includes(cleanDistrict)) {
+        return res.status(403).json({
+          error: 'Forbidden: You cannot delete pricing for a district you do not cover.',
+        });
+      }
+    }
+
     await prisma.districtPricing.deleteMany({
       where: { district: cleanDistrict },
     });

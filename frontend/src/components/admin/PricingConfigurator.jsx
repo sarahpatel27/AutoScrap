@@ -11,7 +11,7 @@ import { showToast } from './ToastContainer';
 export default function PricingConfigurator({ pricing, onSavePricing, onResetPricing }) {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'Super Admin';
-  const dealerDistricts = (user?.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase());
+  const dealerDistricts = (user?.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
 
   const [activeTab, setActiveTab] = useState('district'); // 'district' | 'city'
   
@@ -35,16 +35,32 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
   const [rateInput, setRateInput] = useState('235');
   const [savedMessage, setSavedMessage] = useState(false);
 
+  const visibleDistricts = isSuperAdmin
+    ? Array.from(
+        new Set([
+          ...(districtData.activeDistricts || []),
+          ...Object.keys(districtData.districtRates || {}),
+          ...dealerDistricts,
+        ])
+      ).sort()
+    : dealerDistricts;
+
   const loadDistrictPricingData = async () => {
     setLoadingDistricts(true);
     try {
       const data = await fetchDistrictPricing();
       setDistrictData(data || { defaultPricePerTonne: 235, districtRates: {}, activeDistricts: [] });
       
-      const activeList = data.activeDistricts || [];
-      const initialDist = dealerDistricts[0] || activeList[0] || (Object.keys(data.districtRates || {})[0]) || 'PE1';
+      const available = isSuperAdmin
+        ? (data.activeDistricts || [])
+        : dealerDistricts;
+      const initialDist = available.includes(selectedDistrict)
+        ? selectedDistrict
+        : (available[0] || '');
       setSelectedDistrict(initialDist);
-      setDistrictRateInput(String(data.districtRates?.[initialDist] ?? data.defaultPricePerTonne ?? 235));
+      if (initialDist) {
+        setDistrictRateInput(String(data.districtRates?.[initialDist] ?? data.defaultPricePerTonne ?? 235));
+      }
     } catch (err) {
       console.error('Error fetching district pricing:', err);
     } finally {
@@ -232,73 +248,111 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
       )}
 
       {activeTab === 'district' && (
-        <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
-          <div className="space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-xs lg:col-span-2">
-            <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between border-b border-gray-100 pb-4">
-              <div>
-                <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                  <span>📮 District Scrap Rate:</span>
-                  <span className="text-[#0f7b4f]">{selectedDistrict}</span>
-                </h3>
+        !isSuperAdmin && visibleDistricts.length === 0 ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:p-8 text-center space-y-2.5">
+            <span className="text-3xl sm:text-4xl">📮</span>
+            <h4 className="text-base font-black text-amber-950">No Postcode Districts Assigned</h4>
+            <p className="text-xs text-amber-800 max-w-md mx-auto leading-relaxed">
+              Your dealer account currently does not have any outward postcode districts assigned. Please contact the Super Administrator to assign your coverage areas before configuring scrap rates.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+            <div className="space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-xs lg:col-span-2">
+              <div className="flex flex-col gap-2.5 border-b border-gray-100 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                    <span>📮 District Scrap Rate:</span>
+                    <span className="text-[#0f7b4f]">{selectedDistrict || 'None Selected'}</span>
+                  </h3>
+
+                  {visibleDistricts.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-gray-600">Select:</span>
+                      <select
+                        value={selectedDistrict}
+                        onChange={(e) => handleDistrictChange(e.target.value)}
+                        className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs font-black text-slate-900 outline-none focus:border-[#0f7b4f]"
+                      >
+                        {visibleDistricts.map((dist) => (
+                          <option key={dist} value={dist}>{dist}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick district pills */}
+                {visibleDistricts.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                    {visibleDistricts.map((dist) => {
+                      const currentRate = districtData.districtRates[dist] ?? districtData.defaultPricePerTonne ?? 235;
+                      const isSelected = selectedDistrict === dist;
+                      return (
+                        <button
+                          key={dist}
+                          type="button"
+                          onClick={() => handleDistrictChange(dist)}
+                          className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-black transition cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#0b2e21] text-[#dff46b] shadow-sm'
+                              : 'bg-emerald-50 text-[#0f7b4f] border border-emerald-200 hover:bg-emerald-100'
+                          }`}
+                        >
+                          <span>📮 {dist}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-white text-slate-800 border border-emerald-100'
+                          }`}>
+                            £{currentRate}/t
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              {allKnownDistricts.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-gray-600">Select:</span>
-                  <select
-                    value={selectedDistrict}
-                    onChange={(e) => handleDistrictChange(e.target.value)}
-                    className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs font-black text-slate-900 outline-none focus:border-[#0f7b4f]"
-                  >
-                    {allKnownDistricts.map((dist) => (
-                      <option key={dist} value={dist}>{dist}</option>
-                    ))}
-                  </select>
+              <form onSubmit={handleSaveCurrentDistrict} className="space-y-4">
+                <div className="rounded-2xl border border-[#c9e8d8] bg-[#edf7f2] p-4 sm:p-5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-extrabold uppercase text-[#0f7b4f]">
+                      Price Per Tonne (£)
+                    </label>
+                  </div>
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <span className="text-2xl font-black text-[#0b2e21]">£</span>
+                    <input
+                      type="number"
+                      step="any"
+                      disabled={savingDistrict || !selectedDistrict}
+                      value={districtRateInput}
+                      onChange={(e) => setDistrictRateInput(e.target.value)}
+                      className="w-full rounded-xl border border-emerald-300 bg-white px-4 py-3 text-2xl font-black text-slate-900 outline-none focus:border-[#0f7b4f]"
+                    />
+                  </div>
                 </div>
-              )}
-            </div>
 
-            <form onSubmit={handleSaveCurrentDistrict} className="space-y-4">
-              <div className="rounded-2xl border border-[#c9e8d8] bg-[#edf7f2] p-4 sm:p-5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-extrabold uppercase text-[#0f7b4f]">
-                    Price Per Tonne (£)
-                  </label>
-                </div>
-                <div className="mt-2.5 flex items-center gap-2">
-                  <span className="text-2xl font-black text-[#0b2e21]">£</span>
-                  <input
-                    type="number"
-                    step="any"
-                    disabled={!isSuperAdmin}
-                    value={districtRateInput}
-                    onChange={(e) => setDistrictRateInput(e.target.value)}
-                    className="w-full rounded-xl border border-emerald-300 bg-white px-4 py-3 text-2xl font-black text-slate-900 outline-none focus:border-[#0f7b4f]"
-                  />
-                </div>
-              </div>
-
-              {isSuperAdmin && (
                 <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="submit"
-                    className="rounded-xl bg-[#0f7b4f] px-6 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#075b3a]"
+                    disabled={savingDistrict || !selectedDistrict}
+                    className="rounded-xl bg-[#0f7b4f] px-6 py-2.5 text-xs font-extrabold text-white transition hover:bg-[#075b3a] cursor-pointer active:scale-95 disabled:opacity-50"
                   >
-                    Save Rate
+                    {savingDistrict ? 'Saving...' : `Save Rate for ${selectedDistrict}`}
                   </button>
                 </div>
-              )}
-            </form>
-          </div>
+              </form>
+            </div>
 
-          <div className="space-y-4 rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 p-6 shadow-xs h-fit">
-            <h4 className="text-sm font-black text-slate-900">Live Preview</h4>
-            <div className="rounded-2xl bg-[#0b2e21] p-4 text-center text-white">
-              <div className="text-3xl font-black text-[#dff46b]">£{sampleBase}</div>
-              <p className="text-xs text-[#c8ded4] mt-1">Quote for {selectedDistrict}</p>
+            <div className="space-y-4 rounded-2xl sm:rounded-3xl border border-gray-200 bg-gray-50 p-6 shadow-xs h-fit">
+              <h4 className="text-sm font-black text-slate-900">Live Preview</h4>
+              <div className="rounded-2xl bg-[#0b2e21] p-4 text-center text-white">
+                <div className="text-3xl font-black text-[#dff46b]">£{sampleBase}</div>
+                <p className="text-xs text-[#c8ded4] mt-1">Quote for {selectedDistrict || 'Selected District'}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )
       )}
 
       {activeTab === 'city' && (

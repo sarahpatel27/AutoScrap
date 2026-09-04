@@ -7,9 +7,9 @@ const {
   updateDistrictPricing,
   deleteDistrictPricing,
 } = require('../controllers/pricingController');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { authenticateToken, optionalAuthenticateToken } = require('../middleware/authMiddleware');
 
-router.get('/districts', getDistrictPricing);
+router.get('/districts', optionalAuthenticateToken, getDistrictPricing);
 router.post('/districts', authenticateToken, updateDistrictPricing);
 router.put('/districts', authenticateToken, updateDistrictPricing);
 router.delete('/districts/:district', authenticateToken, deleteDistrictPricing);

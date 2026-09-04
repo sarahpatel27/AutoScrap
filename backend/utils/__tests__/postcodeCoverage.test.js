@@ -92,3 +92,72 @@ describe('Dealer Postcode Coverage Matching Logic', () => {
     assert.equal(matches.length, 0);
   });
 });
+
+describe('Dealer District Scrap Rate Isolation and Authorization', () => {
+  const dealer = {
+    id: 4,
+    name: 'Peterborough Dealer',
+    role: 'City Dealer',
+    coveredPostcodes: ['PE1', 'PE2'],
+  };
+
+  const allDistrictPricing = {
+    PE1: 245.5,
+    PE2: 240.0,
+    CB1: 235.0,
+    SW1A: 260.0,
+    M1: 250.0,
+  };
+
+  function canDealerUpdateDistrict(user, targetDistrict) {
+    if (user.role === 'Super Admin') return true;
+    if (user.role === 'City Dealer') {
+      const covered = (user.coveredPostcodes || []).map((p) => p.toUpperCase());
+      return covered.includes(targetDistrict.toUpperCase());
+    }
+    return false;
+  }
+
+  function getVisibleDistrictPricing(user, districtRates) {
+    if (user.role === 'Super Admin') return districtRates;
+    if (user.role === 'City Dealer') {
+      const covered = new Set((user.coveredPostcodes || []).map((p) => p.toUpperCase()));
+      const filtered = {};
+      for (const [k, v] of Object.entries(districtRates)) {
+        if (covered.has(k.toUpperCase())) {
+          filtered[k] = v;
+        }
+      }
+      return filtered;
+    }
+    return {};
+  }
+
+  it('allows dealer to update scrap rate for their own assigned district PE1', () => {
+    assert.equal(canDealerUpdateDistrict(dealer, 'PE1'), true);
+    assert.equal(canDealerUpdateDistrict(dealer, 'pe2'), true);
+  });
+
+  it('FORBIDS dealer from updating scrap rate for another town/district (CB1, SW1A, M1)', () => {
+    assert.equal(canDealerUpdateDistrict(dealer, 'CB1'), false);
+    assert.equal(canDealerUpdateDistrict(dealer, 'SW1A'), false);
+    assert.equal(canDealerUpdateDistrict(dealer, 'M1'), false);
+    assert.equal(canDealerUpdateDistrict(dealer, 'PE15'), false);
+  });
+
+  it('strictly isolates pricing visibility so dealer can ONLY see their own districts', () => {
+    const visible = getVisibleDistrictPricing(dealer, allDistrictPricing);
+    assert.deepEqual(Object.keys(visible).sort(), ['PE1', 'PE2']);
+    assert.equal(visible.CB1, undefined);
+    assert.equal(visible.SW1A, undefined);
+    assert.equal(visible.M1, undefined);
+  });
+
+  it('allows Super Admin to view and update any district rate', () => {
+    const admin = { id: 1, role: 'Super Admin' };
+    assert.equal(canDealerUpdateDistrict(admin, 'CB1'), true);
+    assert.equal(canDealerUpdateDistrict(admin, 'SW1A'), true);
+    const visible = getVisibleDistrictPricing(admin, allDistrictPricing);
+    assert.equal(Object.keys(visible).length, 5);
+  });
+});
