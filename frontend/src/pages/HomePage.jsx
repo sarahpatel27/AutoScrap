@@ -187,25 +187,48 @@ export default function HomePage() {
             text="Search your postcode or explore our active service areas across the UK."
           />
 
-          <div className="grid gap-[22px] md:grid-cols-3">
-            {activeLocations.slice(0, 6).map((city) => (
-              <article
-                className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.04)] transition hover:-translate-y-1 hover:border-[#0f7b4f]/40"
-                key={city.name}
-              >
-                <div className="absolute top-1 right-4 font-['Manrope'] text-[3.4rem] font-black text-slate-100 select-none">
-                  {city.code}
-                </div>
-                <h3 className="relative mb-3.5 text-[1.18rem] font-black text-slate-900">{city.name}</h3>
-                <p className="relative text-sm text-slate-500 mb-4 leading-relaxed">
-                  {Array.isArray(city.areas) ? city.areas.slice(0, 4).join(', ') : city.areas}
-                </p>
-                <Link className="relative font-extrabold text-sm text-[#0f7b4f] hover:underline" to={`/areas-we-cover/${city.slug}`}>
-                  Get a local quote in {city.name} →
-                </Link>
-              </article>
-            ))}
-          </div>
+          {activeLocations.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
+              <p className="font-semibold m-0">Our active coverage areas are updated live based on verified local dealer availability.</p>
+              <Link className="mt-3 inline-block font-extrabold text-[#0f7b4f] hover:underline" to="/scrap-my-car">
+                Enter your postcode to check collection in your area →
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-[22px] md:grid-cols-3">
+              {activeLocations.slice(0, 6).map((city) => (
+                <article
+                  className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.04)] transition hover:-translate-y-1 hover:border-[#0f7b4f]/40"
+                  key={city.name}
+                >
+                  <div className="absolute top-1 right-4 font-['Manrope'] text-[3.4rem] font-black text-slate-100 select-none">
+                    {city.postcodes && city.postcodes.length > 0 ? city.postcodes[0] : city.code}
+                  </div>
+                  <h3 className="relative mb-2 text-[1.18rem] font-black text-slate-900">{city.name}</h3>
+
+                  {city.postcodes && city.postcodes.length > 0 && (
+                    <div className="relative mb-3 flex flex-wrap gap-1.5">
+                      {city.postcodes.map((pc) => (
+                        <span
+                          key={pc}
+                          className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-black text-[#0f7b4f] border border-emerald-200/80"
+                        >
+                          📮 {pc}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="relative text-sm text-slate-500 mb-4 leading-relaxed">
+                    {city.description || (Array.isArray(city.areas) ? city.areas.slice(0, 4).join(', ') : city.areas)}
+                  </p>
+                  <Link className="relative font-extrabold text-sm text-[#0f7b4f] hover:underline" to={`/areas-we-cover/${city.slug}`}>
+                    Get a local quote in {city.name} →
+                  </Link>
+                </article>
+              ))}
+            </div>
+          )}
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
             <Link className={`${primaryButtonClass} w-full text-center sm:w-auto`} to="/areas-we-cover">

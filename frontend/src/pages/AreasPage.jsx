@@ -99,23 +99,28 @@ export default function AreasPage() {
             <section className="bg-white py-[68px] sm:py-[92px]">
                 <div className={containerClass}>
                     <div className={centeredSectionTitleClass}>
-                        <span className={eyebrowClass}>Covered cities</span>
+                        <span className={eyebrowClass}>Active Coverage</span>
 
                         <h2 className="my-2 text-[clamp(30px,4vw,44px)]">
-                            Popular Collection Locations
+                            Active Collection Areas
                         </h2>
 
                         <p className="m-0 leading-[1.7] text-gray-500">
-                            Select a city to view its covered areas or begin a location-based
-                            scrap car quotation.
+                            Select an active city or district to view its covered postcodes and begin an instant scrap car quotation.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3.5 min-[1100px]:grid-cols-6 sm:grid-cols-3">
-                        {locationsList.map((location) => (
-                            <CityQuickLinkCard key={location.slug} location={location} />
-                        ))}
-                    </div>
+                    {locationsList.length === 0 ? (
+                        <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center text-slate-500">
+                            <p className="font-semibold m-0">Our active service areas are updated dynamically based on active dealer coverage.</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-3.5 min-[1100px]:grid-cols-6 sm:grid-cols-3">
+                            {locationsList.map((location) => (
+                                <CityQuickLinkCard key={location.slug} location={location} />
+                            ))}
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -123,15 +128,14 @@ export default function AreasPage() {
             <section className="bg-slate-50 py-[68px] sm:py-[92px]">
                 <div className={containerClass}>
                     <div className={sectionTitleClass}>
-                        <span className={eyebrowClass}>Local collection</span>
+                        <span className={eyebrowClass}>Verified dealer network</span>
 
                         <h2 className="my-2 text-[clamp(30px,4vw,44px)]">
-                            Browse Covered Areas
+                            Browse Covered Areas & Postcodes
                         </h2>
 
                         <p className="m-0 leading-[1.7] text-gray-500">
-                            Our collection network covers major cities and many surrounding
-                            districts.
+                            Our recovery network operates across active outward postcode districts with verified local dealer collection.
                         </p>
                     </div>
 

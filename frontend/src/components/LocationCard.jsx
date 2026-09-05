@@ -16,10 +16,17 @@ export default function LocationCard({ location }) {
                     📍
                 </div>
 
-                <div>
-                    <span className="text-[13px] font-extrabold uppercase tracking-[0.05em] text-[#0f7b4f]">
-                        Vehicle collection
-                    </span>
+                <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-[13px] font-extrabold uppercase tracking-[0.05em] text-[#0f7b4f]">
+                            Vehicle collection
+                        </span>
+                        {location.ratePerTon && (
+                            <span className="text-xs font-black text-[#0f7b4f] bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+                                £{location.ratePerTon}/tonne live rate
+                            </span>
+                        )}
+                    </div>
 
                     <h3 className="mt-[3px] mb-0 text-[26px]">
                         {location.city}
@@ -32,16 +39,26 @@ export default function LocationCard({ location }) {
             </p>
 
             <div className="flex-1">
-                <h4 className="mb-3 text-[15px]">Areas covered</h4>
+                <h4 className="mb-3 text-[15px] font-bold text-slate-800">Active Postcodes & Areas</h4>
 
                 <div className="flex flex-wrap gap-2">
-                    {location.areas.map((area) => (
+                    {location.postcodes && location.postcodes.length > 0 && location.postcodes.map((pc) => (
                         <span
-                            className="rounded-full bg-gray-100 px-[11px] py-[7px] text-[13px] text-gray-700"
-                            key={area}
+                            className="rounded-full bg-emerald-50 border border-emerald-300 px-[12px] py-[6px] text-[13px] font-black text-[#0f7b4f]"
+                            key={pc}
                         >
-                            {area}
+                            📮 {pc}
                         </span>
+                    ))}
+                    {location.areas && location.areas.map((area) => (
+                        (!location.postcodes || !location.postcodes.includes(area)) && (
+                            <span
+                                className="rounded-full bg-gray-100 px-[11px] py-[7px] text-[13px] text-gray-700"
+                                key={area}
+                            >
+                                {area}
+                            </span>
+                        )
                     ))}
                 </div>
             </div>

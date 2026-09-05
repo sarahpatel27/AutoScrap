@@ -116,7 +116,7 @@ export default function LocationDetailPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {location.areas.map((area) => (
               <div key={area} className="p-4 rounded-xl border border-slate-200 bg-slate-50 font-bold text-slate-800 flex items-center gap-2">
-                <span className="text-[#0f7b4f]">📍</span>
+                <span className="text-[#0f7b4f]">📮</span>
                 <span>{area}</span>
               </div>
             ))}

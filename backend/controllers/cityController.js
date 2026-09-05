@@ -1,6 +1,6 @@
 const UK_CITIES = require('../constants/ukCities');
 const { prisma } = require('../config/db');
-const { normalizeLocationString } = require('../utils/postcodeHelper');
+const { normalizeLocationString, extractOutwardCode, getCityNameFromOutwardCode } = require('../utils/postcodeHelper');
 
 /**
  * Helper to generate URL safe slug from city name.
@@ -67,51 +67,163 @@ async function getCityOptions(req, res) {
 async function getCities(req, res) {
   try {
     const { active } = req.query;
-    const where = {};
-    if (active === 'true') {
-      where.isActive = true;
-    } else if (active === 'false') {
-      where.isActive = false;
-    }
 
-    const [cities, users] = await Promise.all([
+    const [districtPricings, dbCities, activeDealers] = await Promise.all([
+      prisma.districtPricing.findMany(),
       prisma.city.findMany({
-        where,
-        include: {
-          pricing: true,
-        },
+        include: { pricing: true },
         orderBy: { name: 'asc' },
       }),
       prisma.user.findMany({
         where: {
           role: 'City Dealer',
-          assignedCity: { not: null },
+          isActive: true,
         },
-        select: { assignedCity: true },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          coveredPostcodes: true,
+          assignedCity: true,
+        },
       }),
     ]);
 
-    // Count dealers per city
-    const dealerCounts = {};
-    for (const u of users) {
-      if (u.assignedCity) {
-        const key = u.assignedCity.trim().toLowerCase();
-        dealerCounts[key] = (dealerCounts[key] || 0) + 1;
+    const districtPricingMap = new Map();
+    for (const dp of districtPricings) {
+      if (dp.district && dp.pricePerTonne) {
+        districtPricingMap.set(dp.district.trim().toUpperCase(), Number(dp.pricePerTonne));
       }
     }
 
-    const result = cities.map((c) => ({
-      id: c.id,
-      name: c.name,
-      slug: c.slug,
-      isActive: c.isActive,
-      ratePerTon: c.pricing ? Number(c.pricing.pricePerTonne) : 235,
-      dealerCount: dealerCounts[c.name.trim().toLowerCase()] || 0,
-      createdAt: c.createdAt,
-      updatedAt: c.updatedAt,
-    }));
+    const dbCityMap = new Map();
+    for (const c of dbCities) {
+      dbCityMap.set(c.name.trim().toLowerCase(), c);
+    }
 
-    res.json(result);
+    // Map to aggregate active cities based on active dealer coverage
+    const activeCityGroups = new Map();
+    function getActiveGroup(name) {
+      const key = name.trim().toLowerCase();
+      if (!activeCityGroups.has(key)) {
+        activeCityGroups.set(key, {
+          name: name.trim(),
+          slug: slugify(name),
+          postcodes: new Set(),
+          dealers: new Set(),
+          customRates: [],
+        });
+      }
+      return activeCityGroups.get(key);
+    }
+
+    for (const dealer of activeDealers) {
+      const pcs = (dealer.coveredPostcodes || [])
+        .map((p) => extractOutwardCode(p).toUpperCase())
+        .filter(Boolean);
+
+      if (pcs.length > 0) {
+        for (const pc of pcs) {
+          const cityName = getCityNameFromOutwardCode(pc) || (dealer.assignedCity ? dealer.assignedCity.trim() : pc);
+          const group = getActiveGroup(cityName);
+          group.postcodes.add(pc);
+          group.dealers.add(dealer.id);
+          if (districtPricingMap.has(pc)) {
+            group.customRates.push(districtPricingMap.get(pc));
+          }
+        }
+      } else if (dealer.assignedCity) {
+        const cityName = dealer.assignedCity.trim();
+        const group = getActiveGroup(cityName);
+        group.dealers.add(dealer.id);
+      }
+    }
+
+    // Format active cities
+    const activeResults = Array.from(activeCityGroups.values()).map((group) => {
+      const postcodesArray = Array.from(group.postcodes).sort();
+      const dbCity = dbCityMap.get(group.name.trim().toLowerCase());
+      const ratePerTon = group.customRates.length > 0
+        ? Math.max(...group.customRates)
+        : (dbCity?.pricing?.pricePerTonne ? Number(dbCity.pricing.pricePerTonne) : 235);
+      const postcodesText = postcodesArray.join(', ');
+      const code = postcodesArray.length > 0 ? postcodesArray.slice(0, 3).join(', ') : group.name.slice(0, 3).toUpperCase();
+
+      return {
+        id: dbCity?.id || group.slug,
+        name: group.name,
+        city: group.name,
+        slug: dbCity?.slug || group.slug,
+        isActive: true,
+        postcodes: postcodesArray,
+        code,
+        areas: postcodesArray.length > 0 ? postcodesArray : [`${group.name} Central`, 'Local Districts'],
+        ratePerTon,
+        dealerCount: group.dealers.size,
+        description: postcodesArray.length > 0
+          ? `Fast and free scrap car collection across ${group.name} covering ${postcodesText} and surrounding districts.`
+          : `Scrap car collection available across ${group.name} and surrounding areas.`,
+        createdAt: dbCity?.createdAt || new Date(),
+        updatedAt: dbCity?.updatedAt || new Date(),
+      };
+    }).sort((a, b) => a.name.localeCompare(b.name));
+
+    if (active === 'true') {
+      return res.json(activeResults);
+    }
+
+    if (active === 'false') {
+      const inactiveDbCities = dbCities
+        .filter((c) => !activeCityGroups.has(c.name.trim().toLowerCase()))
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          city: c.name,
+          slug: c.slug,
+          isActive: false,
+          postcodes: [],
+          code: c.name.slice(0, 3).toUpperCase(),
+          areas: [`${c.name} Central`],
+          ratePerTon: c.pricing ? Number(c.pricing.pricePerTonne) : 235,
+          dealerCount: 0,
+          description: `Scrap car collection in ${c.name}.`,
+          createdAt: c.createdAt,
+          updatedAt: c.updatedAt,
+        }));
+      return res.json(inactiveDbCities);
+    }
+
+    // Default: return all DB cities plus any active groups not in DB
+    const allDbFormatted = dbCities.map((c) => {
+      const activeGroup = activeCityGroups.get(c.name.trim().toLowerCase());
+      const postcodesArray = activeGroup ? Array.from(activeGroup.postcodes).sort() : [];
+      const code = postcodesArray.length > 0 ? postcodesArray.slice(0, 3).join(', ') : c.name.slice(0, 3).toUpperCase();
+      return {
+        id: c.id,
+        name: c.name,
+        city: c.name,
+        slug: c.slug,
+        isActive: activeGroup ? true : c.isActive,
+        postcodes: postcodesArray,
+        code,
+        areas: postcodesArray.length > 0 ? postcodesArray : [`${c.name} Central`],
+        ratePerTon: activeGroup && activeGroup.customRates.length > 0
+          ? Math.max(...activeGroup.customRates)
+          : (c.pricing ? Number(c.pricing.pricePerTonne) : 235),
+        dealerCount: activeGroup ? activeGroup.dealers.size : 0,
+        createdAt: c.createdAt,
+        updatedAt: c.updatedAt,
+      };
+    });
+
+    for (const act of activeResults) {
+      if (!allDbFormatted.some((c) => c.name.toLowerCase() === act.name.toLowerCase())) {
+        allDbFormatted.push(act);
+      }
+    }
+
+    allDbFormatted.sort((a, b) => a.name.localeCompare(b.name));
+    return res.json(allDbFormatted);
   } catch (err) {
     console.error('Get Cities Error:', err);
     res.status(500).json({ error: err.message });

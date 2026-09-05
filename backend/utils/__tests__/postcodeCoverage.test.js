@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { extractOutwardCode } = require('../postcodeHelper');
+const { extractOutwardCode, getCityNameFromOutwardCode } = require('../postcodeHelper');
 
 describe('UK Outward District Postcode Extraction', () => {
   it('correctly extracts outward code from standard UK postcodes with space', () => {
@@ -159,5 +159,54 @@ describe('Dealer District Scrap Rate Isolation and Authorization', () => {
     assert.equal(canDealerUpdateDistrict(admin, 'SW1A'), true);
     const visible = getVisibleDistrictPricing(admin, allDistrictPricing);
     assert.equal(Object.keys(visible).length, 5);
+  });
+});
+
+describe('Outward District to City Resolution & Active Coverage Aggregation', () => {
+  it('accurately resolves UK outward codes to their correct city/town names', () => {
+    assert.equal(getCityNameFromOutwardCode('PE1'), 'Peterborough');
+    assert.equal(getCityNameFromOutwardCode('PE29'), 'Peterborough');
+    assert.equal(getCityNameFromOutwardCode('M13'), 'Manchester');
+    assert.equal(getCityNameFromOutwardCode('SW1A'), 'London');
+    assert.equal(getCityNameFromOutwardCode('LE2'), 'Leicester');
+    assert.equal(getCityNameFromOutwardCode('DN4'), 'Doncaster');
+    assert.equal(getCityNameFromOutwardCode('B15'), 'Birmingham');
+    assert.equal(getCityNameFromOutwardCode('CB1'), 'Cambridge');
+    assert.equal(getCityNameFromOutwardCode('L1'), 'Liverpool');
+  });
+
+  it('aggregates active coverage dynamically so ONLY areas with active dealers are returned', () => {
+    const activeDealers = [
+      { id: 1, isActive: true, coveredPostcodes: ['PE1', 'PE2'] },
+      { id: 2, isActive: true, coveredPostcodes: ['LE1', 'LE2', 'LE3'] },
+      { id: 3, isActive: true, coveredPostcodes: ['M13', 'SW1A'] },
+      { id: 4, isActive: false, coveredPostcodes: ['DN1', 'DN2'] }, // Inactive dealer
+    ];
+
+    const activeGroups = new Map();
+    for (const dealer of activeDealers) {
+      if (!dealer.isActive) continue; // Inactive dealers are excluded
+      for (const pc of dealer.coveredPostcodes) {
+        const outcode = extractOutwardCode(pc);
+        const city = getCityNameFromOutwardCode(outcode);
+        if (!activeGroups.has(city)) {
+          activeGroups.set(city, { name: city, postcodes: new Set(), dealerCount: 0 });
+        }
+        const group = activeGroups.get(city);
+        group.postcodes.add(outcode);
+        group.dealerCount += 1;
+      }
+    }
+
+    assert.equal(activeGroups.has('Peterborough'), true);
+    assert.equal(activeGroups.has('Leicester'), true);
+    assert.equal(activeGroups.has('Manchester'), true);
+    assert.equal(activeGroups.has('London'), true);
+    assert.equal(activeGroups.has('Doncaster'), false); // Dealer 4 is inactive, must NOT show!
+
+    assert.deepEqual(Array.from(activeGroups.get('Peterborough').postcodes).sort(), ['PE1', 'PE2']);
+    assert.deepEqual(Array.from(activeGroups.get('Leicester').postcodes).sort(), ['LE1', 'LE2', 'LE3']);
+    assert.deepEqual(Array.from(activeGroups.get('Manchester').postcodes), ['M13']);
+    assert.deepEqual(Array.from(activeGroups.get('London').postcodes), ['SW1A']);
   });
 });
