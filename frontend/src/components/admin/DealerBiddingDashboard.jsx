@@ -3,6 +3,8 @@ import { submitDealerBid, markEnquiryAsPurchased } from '../../services/adminSto
 import { showToast } from './ToastContainer';
 import Pagination from './Pagination';
 import { getImageUrl } from '../../config/api';
+import { formatCityName, getCityFromPostcode } from '../../utils/cityHelper';
+import DateRangeFilter, { filterByDateRange } from './DateRangeFilter';
 
 export function isEnquiryEnded(item) {
   if (!item) return true;
@@ -18,6 +20,9 @@ export function isEnquiryEnded(item) {
 
 export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [datePreset, setDatePreset] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [activePhoto, setActivePhoto] = useState(null);
 
@@ -30,12 +35,14 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
   const [biddingLoading, setBiddingLoading] = useState(false);
   const [biddingError, setBiddingError] = useState('');
 
-  // Reset page to 1 when search term changes
+  // Reset page to 1 when search term or date filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [searchTerm, datePreset, customStartDate, customEndDate]);
 
-  const filteredEnquiries = enquiries.filter((item) => {
+  const dateFiltered = filterByDateRange(enquiries, datePreset, customStartDate, customEndDate);
+
+  const filteredEnquiries = dateFiltered.filter((item) => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -167,17 +174,40 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs">
-        <div className="relative w-full sm:w-80">
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search reg, make, model or city..."
-            className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/20 font-medium"
+      {/* Search & Date Filter Bar */}
+      <div className="flex flex-col gap-3 bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="relative w-full sm:w-80">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search reg, make, model or city..."
+              className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/20 font-medium"
+            />
+            <span className="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+          </div>
+
+          <span className="text-xs font-bold text-slate-500">
+            Showing {filteredEnquiries.length} {filteredEnquiries.length === 1 ? 'vehicle' : 'vehicles'}
+          </span>
+        </div>
+
+        {/* Date Filter Bar */}
+        <div className="pt-2 border-t border-gray-100">
+          <DateRangeFilter
+            preset={datePreset}
+            onPresetChange={setDatePreset}
+            customStart={customStartDate}
+            onCustomStartChange={setCustomStartDate}
+            customEnd={customEndDate}
+            onCustomEndChange={setCustomEndDate}
+            onReset={() => {
+              setDatePreset('all');
+              setCustomStartDate('');
+              setCustomEndDate('');
+            }}
           />
-          <span className="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
         </div>
       </div>
 
@@ -216,11 +246,19 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                 className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs transition hover:shadow-md hover:border-[#0f7b4f]/40 space-y-4"
               >
                 <div>
-                  {/* Top Bar: VRM Badge & Status */}
+                  {/* Top Bar: VRM Badge, Date & Status */}
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="rounded-md border border-amber-300 bg-[#f6cf3c] px-2.5 py-1 font-mono text-xs font-black text-black shadow-2xs">
-                      {item.registration}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="rounded-md border border-amber-300 bg-[#f6cf3c] px-2.5 py-1 font-mono text-xs font-black text-black shadow-2xs">
+                        {item.registration}
+                      </span>
+                      {(item.createdAt || item.date) && (
+                        <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                          <span>📅</span>
+                          <span>{new Date(item.createdAt || item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                        </span>
+                      )}
+                    </div>
                     <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                       isWinner
                         ? 'bg-emerald-100 text-emerald-800'
@@ -266,7 +304,7 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
                   {/* Approximate Location */}
                   <div className="mt-3 text-xs text-slate-600 font-medium flex items-center gap-1.5">
                     <span>📍</span>
-                    <span>Approx. Location: <strong>{item.city || item.area || 'UK'}</strong> ({item.postcode})</span>
+                    <span>Approx. Location: <strong>{formatCityName((!item.city || /^\d[a-zA-Z]{2}$/i.test(String(item.city).trim())) ? getCityFromPostcode(item.postcode, item.customer?.collectionAddress || item.address) : item.city) || 'UK'}</strong> ({item.postcode})</span>
                   </div>
 
                   {/* System Estimate vs Customer Expected */}

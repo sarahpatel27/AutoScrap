@@ -198,7 +198,7 @@ const POSTCODE_AREA_PREFIX_MAP = {
   ll: "Llandudno",
   ln: "Lincoln",
   ls: "Leeds",
-  lu: "Bedfordshire",
+  lu: "Luton",
   m: "Manchester",
   me: "Medway",
   mk: "Milton Keynes",
@@ -335,7 +335,11 @@ async function isDistrictCoveredByActiveDealer(outwardDistrict) {
 
 /**
  * Retrieves the scrap rate per tonne for a given outward district.
- * Checks district_pricing table first, falls back to default 235.00.
+ * 
+ * HIERARCHY:
+ * 1. Specific District Pricing override in district_pricing table (e.g. PE1 = 20.00).
+ * 2. Parent City Pricing fallback in city_pricing table (e.g. Peterborough = 100.00 -> PE2, PE3 inherit 100.00).
+ * 3. Base System Default (235.00).
  * 
  * @param {string} outwardDistrict 
  * @returns {Promise<number>}
@@ -345,11 +349,27 @@ async function getDistrictRate(outwardDistrict) {
   const cleanDistrict = outwardDistrict.trim().toUpperCase();
 
   try {
+    // 1. Direct district override in district_pricing
     const pricing = await prisma.districtPricing.findUnique({
       where: { district: cleanDistrict },
     });
     if (pricing && pricing.pricePerTonne) {
       return Number(pricing.pricePerTonne);
+    }
+
+    // 2. Parent City Pricing fallback
+    const parentCityName = getCityNameFromOutwardCode(cleanDistrict);
+    if (parentCityName) {
+      const city = await prisma.city.findFirst({
+        where: {
+          name: { equals: parentCityName, mode: 'insensitive' },
+          isActive: true,
+        },
+        include: { pricing: true },
+      });
+      if (city && city.pricing && city.pricing.pricePerTonne) {
+        return Number(city.pricing.pricePerTonne);
+      }
     }
   } catch (err) {
     console.error("Error fetching district rate:", err);
@@ -439,7 +459,8 @@ async function resolveSupportedCity(addressData = {}) {
   });
 
   let matchedCity = null;
-  let matchedCityName = postTown || outwardDistrict;
+  const fallbackCityName = getCityNameFromOutwardCode(outwardDistrict) || outwardDistrict;
+  let matchedCityName = postTown || fallbackCityName;
 
   if (activeCities && activeCities.length > 0) {
     for (const rawCandidate of candidates) {
@@ -467,10 +488,15 @@ async function resolveSupportedCity(addressData = {}) {
     }
   }
 
+  // Ensure matchedCityName is not a raw inward code (e.g. "1aa")
+  if (/^\d[a-zA-Z]{2}$/i.test(matchedCityName)) {
+    matchedCityName = fallbackCityName;
+  }
+
   return {
     isSupported: true,
     city: matchedCity,
-    matchedCityName: matchedCityName || outwardDistrict,
+    matchedCityName: matchedCityName || fallbackCityName || outwardDistrict,
     ratePerTon,
     outwardDistrict,
   };
@@ -489,18 +515,28 @@ async function determineServiceArea(addressDetails = {}) {
 }
 
 /**
- * Convenience helper to get city name from postcode / address
+ * Convenience helper to get city name from postcode / address.
+ * Strictly guarantees a clean city name and avoids inward codes (like "1aa").
  */
 async function getCityFromPostcode(postcode = "", address = "") {
   if (!postcode && !address) return "Unassigned";
 
+  const cleanPostcode = String(postcode || "").trim().toUpperCase();
+  const outward = extractOutwardCode(cleanPostcode || address);
+  const derivedCity = getCityNameFromOutwardCode(outward);
+
   const result = await resolveSupportedCity({
-    postcode,
+    postcode: cleanPostcode,
     address,
-    addressList: address ? [{ FormattedAddressLines: { PostTown: address } }] : [],
+    postTown: derivedCity,
+    addressList: address ? [{ FormattedAddressLines: { PostTown: derivedCity || address } }] : [],
   });
 
-  return result.isSupported ? result.matchedCityName : "Other";
+  const city = result.isSupported ? (result.matchedCityName || derivedCity) : derivedCity || "Other";
+  if (!city || /^\d[A-Za-z]{2}$/i.test(city) || /^[A-Za-z]{1,2}\d[A-Za-z\d]?$/i.test(city)) {
+    return derivedCity || "UK";
+  }
+  return city;
 }
 
 module.exports = {

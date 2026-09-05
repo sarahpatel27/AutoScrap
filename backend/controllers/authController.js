@@ -235,6 +235,31 @@ async function createUser(req, res) {
   }
 }
 
+async function pruneOrphanDistrictPricing() {
+  try {
+    const activeDealers = await prisma.user.findMany({
+      where: { role: 'City Dealer', isActive: true },
+      select: { coveredPostcodes: true },
+    });
+    const activeSet = new Set();
+    for (const d of activeDealers) {
+      for (const p of (d.coveredPostcodes || [])) {
+        if (p && p.trim()) activeSet.add(p.trim().toUpperCase());
+      }
+    }
+    const allActive = Array.from(activeSet);
+    if (allActive.length > 0) {
+      await prisma.districtPricing.deleteMany({
+        where: { district: { notIn: allActive } },
+      });
+    } else {
+      await prisma.districtPricing.deleteMany({});
+    }
+  } catch (err) {
+    console.error('Error pruning orphan district pricing:', err);
+  }
+}
+
 async function updateDealerCoverage(req, res) {
   try {
     if (req.user.role !== 'Super Admin') {
@@ -286,6 +311,9 @@ async function updateDealerCoverage(req, res) {
       data: updateData,
     });
 
+    // Immediately clean up any district pricing rows for districts that are no longer covered by active dealers
+    await pruneOrphanDistrictPricing();
+
     const allUsers = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
       include: { city: true },
@@ -326,6 +354,9 @@ async function deleteUser(req, res) {
     await prisma.user.delete({
       where: { id: numericId },
     });
+
+    // Immediately clean up any district pricing rows for districts that are no longer covered by active dealers
+    await pruneOrphanDistrictPricing();
 
     const allUsers = await prisma.user.findMany({
       orderBy: { createdAt: 'desc' },

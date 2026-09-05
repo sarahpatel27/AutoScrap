@@ -10,7 +10,12 @@ function customerCollectedEnquiryTemplate({
   collectionAddress,
   postcode,
   collectionDate,
+  isHighValue,
 }) {
+  const isHV = isHighValue !== undefined
+    ? Boolean(isHighValue)
+    : (typeof reference === 'string' && (reference.includes('-HV-') || reference.startsWith('HV-')));
+
   const reg = vehicle?.registration || 'N/A';
   const make = vehicle?.make || '';
   const model = vehicle?.model || '';
@@ -62,7 +67,7 @@ function customerCollectedEnquiryTemplate({
       </div>
     </div>
 
-    <!-- Vehicle & Settlement Summary -->
+    <!-- Vehicle ${isHV ? 'Summary' : '& Settlement Summary'} -->
     <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px;">
       <tbody>
         <tr style="border-bottom: 1px solid #e2e8f0;">
@@ -73,10 +78,12 @@ function customerCollectedEnquiryTemplate({
           <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Registration</td>
           <td style="padding: 11px 0; color: #0f172a; font-weight: 800; text-transform: uppercase;">${reg}</td>
         </tr>
+        ${!isHV ? `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Agreed Settlement</td>
           <td style="padding: 11px 0; color: #0f7b4f; font-weight: 800; font-size: 18px;">${formattedQuote}</td>
         </tr>
+        ` : ''}
         ${postcode || collectionAddress ? `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Collection Location</td>
@@ -97,7 +104,11 @@ function customerCollectedEnquiryTemplate({
       </div>
       <ul style="margin: 0; padding-left: 18px; color: #334155; font-size: 13.5px; line-height: 1.6;">
         <li style="margin-bottom: 6px;"><strong>DVLA Notification:</strong> The transfer/destruction record for your vehicle is processed in line with DVLA regulations. Retain your yellow slip (Section 9 / V5C/3) or driver handover confirmation for your records.</li>
+        ${!isHV ? `
         <li style="margin-bottom: 6px;"><strong>Payment:</strong> Your agreed payment of <strong>${formattedQuote}</strong> is issued via bank transfer. Depending on your bank, funds typically reflect immediately or within standard clearing times.</li>
+        ` : `
+        <li style="margin-bottom: 6px;"><strong>Payment:</strong> Payment is issued via direct bank transfer in accordance with your agreed vehicle transaction. Depending on your bank, funds typically reflect immediately or within standard clearing times.</li>
+        `}
         <li style="margin-bottom: 6px;"><strong>Road Tax Refund:</strong> If you had full remaining months on your vehicle tax, DVLA will automatically process a refund to the registered keeper.</li>
         <li style="margin-bottom: 0;"><strong>Insurance:</strong> Don't forget to cancel or transfer your vehicle insurance policy now that the collection is complete.</li>
       </ul>

@@ -62,6 +62,19 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     }
   }
 
+  const { extractOutwardCode, getCityNameFromOutwardCode } = require('./postcodeHelper');
+  const outwardDistrict = extractOutwardCode(row.postcode);
+  let resolvedCity = row.city;
+  if (
+    !resolvedCity ||
+    resolvedCity === 'Other' ||
+    resolvedCity === 'Unassigned' ||
+    /^\d[a-zA-Z]{2}$/i.test(String(resolvedCity).trim()) ||
+    /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(resolvedCity).trim())
+  ) {
+    resolvedCity = getCityNameFromOutwardCode(outwardDistrict) || row.area || 'UK';
+  }
+
   // Base anonymized object
   const payload = {
     id: String(row.id),
@@ -74,8 +87,9 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     condition: row.condition,
     photos: row.photos,
     postcode: row.postcode,
-    city: row.city,
-    area: row.area || row.city,
+    outwardDistrict: outwardDistrict || (row.postcode ? row.postcode.split(' ')[0] : ''),
+    city: resolvedCity,
+    area: resolvedCity,
     estimatedValue,
     customerExpectedValue,
     valuePreference: row.valuePreference,

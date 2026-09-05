@@ -1,6 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { extractOutwardCode, getCityNameFromOutwardCode } = require('../postcodeHelper');
+const { extractOutwardCode, getCityNameFromOutwardCode, getCityFromPostcode } = require('../postcodeHelper');
+const { anonymizeEnquiryForDealer } = require('../dealerAnonymizer');
 
 describe('UK Outward District Postcode Extraction', () => {
   it('correctly extracts outward code from standard UK postcodes with space', () => {
@@ -160,6 +161,106 @@ describe('Dealer District Scrap Rate Isolation and Authorization', () => {
     const visible = getVisibleDistrictPricing(admin, allDistrictPricing);
     assert.equal(Object.keys(visible).length, 5);
   });
+
+  it('excludes inactive districts from visible pricing when dealer is removed', () => {
+    // Active dealers currently only cover PE1, PE2, CB1
+    const activeDistricts = new Set(['PE1', 'PE2', 'CB1']);
+
+    function getActiveOnlyDistrictPricing(rates, activeSet) {
+      const result = {};
+      for (const [k, v] of Object.entries(rates)) {
+        if (activeSet.has(k.toUpperCase())) {
+          result[k] = v;
+        }
+      }
+      return result;
+    }
+
+    const visibleRates = getActiveOnlyDistrictPricing(allDistrictPricing, activeDistricts);
+    assert.deepEqual(Object.keys(visibleRates).sort(), ['CB1', 'PE1', 'PE2']);
+    assert.equal(visibleRates.SW1A, undefined); // Inactive district SW1A excluded
+    assert.equal(visibleRates.M1, undefined);   // Inactive district M1 excluded
+
+    // When dealer for PE2 is removed from territory
+    activeDistricts.delete('PE2');
+    const updatedVisibleRates = getActiveOnlyDistrictPricing(allDistrictPricing, activeDistricts);
+    assert.deepEqual(Object.keys(updatedVisibleRates).sort(), ['CB1', 'PE1']);
+    assert.equal(updatedVisibleRates.PE2, undefined); // PE2 no longer active, excluded from configuration
+  });
+
+  it('inherits parent city rate for districts without custom override while honoring specific district overrides', () => {
+    // City pricing table: Peterborough = £100, Cambridge = £90
+    const cityRates = {
+      peterborough: 100,
+      cambridge: 90,
+    };
+
+    // District pricing overrides: PE1 is specifically set to £20
+    const customDistrictOverrides = {
+      PE1: 20,
+    };
+
+    function resolveRateForDistrict(dist, overrides, cities, defaultBase = 235) {
+      const cleanDist = dist.trim().toUpperCase();
+      if (overrides[cleanDist] !== undefined) {
+        return overrides[cleanDist];
+      }
+      const parentCity = getCityNameFromOutwardCode(cleanDist);
+      if (parentCity && cities[parentCity.toLowerCase()] !== undefined) {
+        return cities[parentCity.toLowerCase()];
+      }
+      return defaultBase;
+    }
+
+    // PE1 has specific district override of 20
+    assert.equal(resolveRateForDistrict('PE1', customDistrictOverrides, cityRates), 20);
+
+    // PE2, PE3, PE4 have no district override, so they inherit parent city (Peterborough = 100)
+    assert.equal(resolveRateForDistrict('PE2', customDistrictOverrides, cityRates), 100);
+    assert.equal(resolveRateForDistrict('PE3', customDistrictOverrides, cityRates), 100);
+    assert.equal(resolveRateForDistrict('PE4', customDistrictOverrides, cityRates), 100);
+
+    // CB1 has no override, inherits Cambridge city rate of 90
+    assert.equal(resolveRateForDistrict('CB1', customDistrictOverrides, cityRates), 90);
+
+    // A district in an unpriced town falls back to system base default 235
+    assert.equal(resolveRateForDistrict('SW1A', customDistrictOverrides, cityRates), 235);
+  });
+
+  it('correctly maps Reading outward districts (RG1, RG2) and inherits city rate 180', () => {
+    assert.equal(getCityNameFromOutwardCode('RG1'), 'Reading');
+    assert.equal(getCityNameFromOutwardCode('RG2'), 'Reading');
+
+    const cityRates = {
+      reading: 180,
+    };
+    const customDistrictOverrides = {};
+
+    function resolveRateForDistrict(dist, overrides, cities, defaultBase = 235) {
+      const cleanDist = dist.trim().toUpperCase();
+      if (overrides[cleanDist] !== undefined) {
+        return overrides[cleanDist];
+      }
+      const parentCity = getCityNameFromOutwardCode(cleanDist);
+      if (parentCity && cities[parentCity.toLowerCase()] !== undefined) {
+        return cities[parentCity.toLowerCase()];
+      }
+      return defaultBase;
+    }
+
+    // RG2 inherits Reading city rate 180
+    assert.equal(resolveRateForDistrict('RG2', customDistrictOverrides, cityRates), 180);
+    assert.equal(resolveRateForDistrict('RG1', customDistrictOverrides, cityRates), 180);
+
+    // Custom override on RG2 to 195
+    customDistrictOverrides['RG2'] = 195;
+    assert.equal(resolveRateForDistrict('RG2', customDistrictOverrides, cityRates), 195);
+    assert.equal(resolveRateForDistrict('RG1', customDistrictOverrides, cityRates), 180);
+
+    // Deleting override on RG2 reverts back to Reading's 180
+    delete customDistrictOverrides['RG2'];
+    assert.equal(resolveRateForDistrict('RG2', customDistrictOverrides, cityRates), 180);
+  });
 });
 
 describe('Outward District to City Resolution & Active Coverage Aggregation', () => {
@@ -299,13 +400,13 @@ describe('Standard Enquiry Cancelled Status Email Generation', () => {
   });
 });
 
-describe('High-Value Enquiry Purchased / Collected Customer Email Generation', () => {
+describe('High-Value vs Standard Enquiry Purchased / Collected Customer Email Generation', () => {
   const { customerCollectedEnquiryTemplate } = require('../../templates/emails/customerCollectedEnquiry');
   const { sendHighValueEnquiryPurchasedEmail } = require('../../services/enquiryNotificationService');
 
-  it('generates accurate subject, agreed settlement, and vehicle details for collected customer email', () => {
+  it('generates accurate subject, agreed settlement, and vehicle details for standard scrap collected customer email', () => {
     const template = customerCollectedEnquiryTemplate({
-      reference: 'HV-2026-77889',
+      reference: 'MAS-2026-77889',
       customerName: 'Marcus Rashford',
       vehicle: {
         registration: 'MR19 BPS',
@@ -317,17 +418,52 @@ describe('High-Value Enquiry Purchased / Collected Customer Email Generation', (
       collectionAddress: '12 Old Trafford Way',
       postcode: 'M16 0RA',
       collectionDate: new Date('2026-09-05T12:00:00Z'),
+      isHighValue: false,
     });
 
-    assert.equal(template.subject, 'Vehicle Collected Successfully - Reference HV-2026-77889');
-    assert.ok(template.html.includes('HV-2026-77889'));
+    assert.equal(template.subject, 'Vehicle Collected Successfully - Reference MAS-2026-77889');
+    assert.ok(template.html.includes('MAS-2026-77889'));
     assert.ok(template.html.includes('MR19 BPS'));
     assert.ok(template.html.includes('Audi A4 (2019)'));
+    assert.ok(template.html.includes('Agreed Settlement'), 'Standard collected email MUST contain Agreed Settlement');
     assert.ok(template.html.includes('£4,850.00'));
     assert.ok(template.html.includes('Marcus Rashford'));
     assert.ok(template.html.includes('12 Old Trafford Way'));
     assert.ok(template.html.includes('M16 0RA'));
     assert.ok(template.html.includes('Your Vehicle Has Been Collected Successfully'));
+  });
+
+  it('strictly OMITS agreed settlement from email for High-Value enquiries when marked as purchased/collected', () => {
+    const template = customerCollectedEnquiryTemplate({
+      reference: 'MAS-HV-2026-77889',
+      customerName: 'Marcus Rashford',
+      vehicle: {
+        registration: 'MR19 BPS',
+        make: 'Audi',
+        model: 'A4',
+        year: 2019,
+      },
+      quoteAmount: 4850.00,
+      collectionAddress: '12 Old Trafford Way',
+      postcode: 'M16 0RA',
+      collectionDate: new Date('2026-09-05T12:00:00Z'),
+      isHighValue: true,
+    });
+
+    assert.equal(template.subject, 'Vehicle Collected Successfully - Reference MAS-HV-2026-77889');
+    assert.ok(template.html.includes('MAS-HV-2026-77889'));
+    assert.ok(template.html.includes('MR19 BPS'));
+    assert.ok(template.html.includes('Audi A4 (2019)'));
+    assert.ok(template.html.includes('Marcus Rashford'));
+    assert.ok(template.html.includes('12 Old Trafford Way'));
+    assert.ok(template.html.includes('M16 0RA'));
+    assert.ok(template.html.includes('Your Vehicle Has Been Collected Successfully'));
+
+    // Strictly ensure "agreed settlement" does NOT appear anywhere in the high-value email
+    assert.ok(
+      !template.html.toLowerCase().includes('agreed settlement'),
+      'High-Value enquiry collected email must NOT contain Agreed Settlement'
+    );
   });
 
   it('sendHighValueEnquiryPurchasedEmail safely processes high-value record without error', async () => {
@@ -426,5 +562,59 @@ describe('Dealer Bidding Timer Termination Upon Winner Selection', () => {
     assert.ok(anonymized.timeRemaining.includes('h '));
   });
 });
+
+describe('High-Value Enquiry City Resolution and Inward Postcode Protection', () => {
+  it('correctly resolves UK outward codes without returning inward code', () => {
+    assert.equal(getCityNameFromOutwardCode('LU1'), 'Luton');
+    assert.equal(getCityNameFromOutwardCode('LU2'), 'Luton');
+    assert.equal(getCityNameFromOutwardCode('MK9'), 'Milton Keynes');
+    assert.equal(getCityNameFromOutwardCode('IP1'), 'Ipswich');
+    assert.equal(getCityNameFromOutwardCode('PE1'), 'Peterborough');
+  });
+
+  it('resolves city asynchronously via getCityFromPostcode without returning inward code 1aa', async () => {
+    const luton = await getCityFromPostcode('LU1 1AA', 'Royal Mail, Luton Delivery Office, LU1 1AA');
+    assert.equal(luton, 'Luton');
+    assert.notEqual(luton.toLowerCase(), '1aa');
+
+    const mk = await getCityFromPostcode('MK9 1AA', 'Midsummer Blvd, Milton Keynes, MK9 1AA');
+    assert.equal(mk, 'Milton Keynes');
+    assert.notEqual(mk.toLowerCase(), '1aa');
+
+    const ipswich = await getCityFromPostcode('IP1 1AA', 'Crown Street, Ipswich, IP1 1AA');
+    assert.equal(ipswich, 'Ipswich');
+    assert.notEqual(ipswich.toLowerCase(), '1aa');
+  });
+
+  it('anonymizer sanitizes legacy 1aa city records and derives proper city and outwardDistrict', () => {
+    const legacyRow = {
+      id: 999,
+      reference: 'MAS-HV-2026-LEGACY',
+      status: 'BIDDING',
+      postcode: 'LU1 1AA',
+      city: '1aa',
+      area: '1aa',
+      registration: 'LU12 CAR',
+      make: 'BMW',
+      model: '3 Series',
+      year: 2018,
+      mileage: 45000,
+      condition: 'Good',
+      estimatedValue: 3500,
+      customerExpectedValue: 3800,
+      createdAt: new Date(),
+      bids: [],
+    };
+
+    const user = { id: 1, role: 'Super Admin' };
+    const anonymized = anonymizeEnquiryForDealer(legacyRow, user);
+
+    assert.equal(anonymized.city, 'Luton');
+    assert.equal(anonymized.area, 'Luton');
+    assert.equal(anonymized.outwardDistrict, 'LU1');
+    assert.notEqual(anonymized.city.toLowerCase(), '1aa');
+  });
+});
+
 
 

@@ -60,7 +60,7 @@ export default function Step1HighValueForm({
 
   // UK Postcode regex validation
   const ukPostcodeRegex = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i;
-  const detectedCity = getCityFromPostcode(postcode, customer.collectionAddress);
+  const detectedCity = data.postTown || data.matchedServiceArea || data.quote?.city || getCityFromPostcode(postcode, customer.collectionAddress);
 
   // Mileage Validation
   const handleMileageChange = (e) => {
@@ -261,6 +261,8 @@ export default function Step1HighValueForm({
         photos,
         postcode: postcode.trim(),
         city: detectedCity,
+        postTown: data.postTown || '',
+        matchedServiceArea: data.matchedServiceArea || '',
         estimatedValue,
         customerExpectedValue,
         valuePreference,

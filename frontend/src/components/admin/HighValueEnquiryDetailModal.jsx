@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { selectWinnerDealer } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
 import { getImageUrl } from '../../config/api';
+import { formatCityName, getCityFromPostcode } from '../../utils/cityHelper';
 
 export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinnerSelected }) {
   const [activePhoto, setActivePhoto] = useState(null);
@@ -191,7 +192,12 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
               <div><span className="text-slate-500 block">Year</span><strong className="text-slate-900">{enquiry.year}</strong></div>
               <div><span className="text-slate-500 block">Mileage</span><strong className="text-slate-900">{enquiry.mileage ? `${Number(enquiry.mileage).toLocaleString('en-GB')} miles` : 'N/A'}</strong></div>
               <div><span className="text-slate-500 block">Condition</span><strong className="text-slate-900">{enquiry.condition || 'Good'}</strong></div>
-              <div><span className="text-slate-500 block">Location</span><strong className="text-slate-900">{enquiry.postcode} ({enquiry.city || enquiry.area || 'UK'})</strong></div>
+              <div>
+                <span className="text-slate-500 block">Location</span>
+                <strong className="text-slate-900">
+                  {formatCityName((!enquiry.city || /^\d[a-zA-Z]{2}$/i.test(String(enquiry.city).trim())) ? getCityFromPostcode(enquiry.postcode, enquiry.customer?.collectionAddress || enquiry.address) : enquiry.city) || 'UK'} ({enquiry.postcode})
+                </strong>
+              </div>
             </div>
           </div>
 

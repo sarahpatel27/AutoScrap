@@ -227,6 +227,7 @@ async function sendHighValueEnquiryCreatedNotifications({
       customerExpectedValue,
       valuePreference,
       postcode,
+      city,
     });
 
     sendPromises.push(
@@ -366,6 +367,7 @@ async function sendCustomerVehicleCollectedNotification({
   city,
   bank,
   collectionDate,
+  isHighValue = false,
 }) {
   const customerEmail = customer?.email?.trim();
   const customerName = customer?.fullName || 'Valued Customer';
@@ -378,6 +380,10 @@ async function sendCustomerVehicleCollectedNotification({
     return { success: false, error: 'No valid customer email' };
   }
 
+  const isHV = isHighValue !== undefined
+    ? Boolean(isHighValue)
+    : (typeof reference === 'string' && (reference.includes('-HV-') || reference.startsWith('HV-')));
+
   const template = customerCollectedEnquiryTemplate({
     reference,
     customerName,
@@ -386,6 +392,7 @@ async function sendCustomerVehicleCollectedNotification({
     collectionAddress,
     postcode: postCodeVal,
     collectionDate: collectionDate || new Date(),
+    isHighValue: isHV,
   });
 
   return sendEmail({

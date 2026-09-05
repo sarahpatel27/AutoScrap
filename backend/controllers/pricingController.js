@@ -1,4 +1,5 @@
 const { prisma } = require('../config/db');
+const { getCityNameFromOutwardCode } = require('../utils/postcodeHelper');
 
 async function getPricing(req, res) {
   try {
@@ -54,8 +55,13 @@ async function updatePricing(req, res) {
           return res.status(403).json({ error: 'Forbidden: Insufficient permissions to modify scrap rates.' });
         }
 
-        // Verify city is an existing supported city
-        const city = await prisma.city.findFirst({
+        const numericRate = Number(rate);
+        if (isNaN(numericRate) || numericRate < 0) {
+          continue;
+        }
+
+        // Find or dynamically create the City record so pricing is properly persisted
+        let city = await prisma.city.findFirst({
           where: {
             name: {
               equals: cityName.trim(),
@@ -65,13 +71,26 @@ async function updatePricing(req, res) {
         });
 
         if (!city) {
-          // Do not allow pricing for unsupported cities
-          continue;
-        }
+          const rawSlug = cityName
+            .trim()
+            .toLowerCase()
+            .replace(/[\s\W-]+/g, '-')
+            .replace(/^-+|-+$/g, '') || 'city';
+          const existingSlug = await prisma.city.findUnique({ where: { slug: rawSlug } });
+          const finalSlug = existingSlug ? `${rawSlug}-${Math.floor(Math.random() * 10000)}` : rawSlug;
 
-        const numericRate = Number(rate);
-        if (isNaN(numericRate) || numericRate < 0) {
-          continue;
+          city = await prisma.city.create({
+            data: {
+              name: cityName.trim(),
+              slug: finalSlug,
+              isActive: true,
+            },
+          });
+        } else if (!city.isActive) {
+          city = await prisma.city.update({
+            where: { id: city.id },
+            data: { isActive: true },
+          });
         }
 
         await prisma.cityPricing.upsert({
@@ -116,39 +135,98 @@ async function getDistrictPricing(req, res) {
       ? (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean)
       : null;
 
-    const rows = await prisma.districtPricing.findMany({
-      where: dealerCovered !== null ? { district: { in: dealerCovered } } : undefined,
-      orderBy: { district: 'asc' },
+    // 1. Determine all active outward districts across all active City Dealers
+    const activeDealers = await prisma.user.findMany({
+      where: { role: 'City Dealer', isActive: true },
+      select: { coveredPostcodes: true },
     });
 
-    const districtRates = {};
-    for (const row of rows) {
-      districtRates[row.district] = Number(row.pricePerTonne);
+    const activeSet = new Set();
+    for (const d of activeDealers) {
+      for (const p of (d.coveredPostcodes || [])) {
+        if (p && p.trim()) activeSet.add(p.trim().toUpperCase());
+      }
     }
+    const allActiveDistricts = Array.from(activeSet).sort();
+
+    // 2. Automatically delete/cleanup orphaned district_pricing rows for districts that are no longer active
+    if (allActiveDistricts.length > 0) {
+      await prisma.districtPricing.deleteMany({
+        where: {
+          district: { notIn: allActiveDistricts },
+        },
+      });
+    } else {
+      await prisma.districtPricing.deleteMany({});
+    }
+
+    // 3. Query district pricing rows strictly for active districts
+    let allowedDistricts = allActiveDistricts;
+    if (isDealer) {
+      allowedDistricts = (dealerCovered || []).filter((d) => activeSet.has(d));
+    }
+
+    const rows = allowedDistricts.length > 0
+      ? await prisma.districtPricing.findMany({
+          where: { district: { in: allowedDistricts } },
+          orderBy: { district: 'asc' },
+        })
+      : [];
 
     let activeDistricts = [];
     if (isDealer) {
-      // Dealer strictly only sees their own assigned outward districts
-      activeDistricts = (dealerCovered || []).slice().sort();
+      activeDistricts = (dealerCovered || []).filter((d) => activeSet.has(d)).sort();
     } else {
-      // Super Admin or public: distinct districts covered by all active dealers
-      const activeDealers = await prisma.user.findMany({
-        where: { role: 'City Dealer', isActive: true },
-        select: { coveredPostcodes: true },
-      });
+      activeDistricts = allActiveDistricts;
+    }
 
-      const coveredSet = new Set();
-      for (const d of activeDealers) {
-        for (const p of (d.coveredPostcodes || [])) {
-          if (p && p.trim()) coveredSet.add(p.trim().toUpperCase());
+    // Also fetch active city pricings to supply default rates from parent cities
+    const activeCities = await prisma.city.findMany({
+      where: { isActive: true },
+      include: { pricing: true },
+    });
+    const cityRateMap = new Map();
+    for (const c of activeCities) {
+      if (c.pricing?.pricePerTonne) {
+        cityRateMap.set(c.name.trim().toLowerCase(), Number(c.pricing.pricePerTonne));
+      }
+    }
+
+    const customRowMap = new Map();
+    for (const row of rows) {
+      customRowMap.set(row.district, Number(row.pricePerTonne));
+    }
+
+    const districtRates = {};
+    const districtOrigins = {}; // 'custom' | 'city' | 'default'
+    const districtParentCities = {};
+
+    for (const dist of activeDistricts) {
+      const parentCity = getCityNameFromOutwardCode(dist);
+      if (parentCity) {
+        districtParentCities[dist] = parentCity;
+      }
+
+      if (customRowMap.has(dist)) {
+        districtRates[dist] = customRowMap.get(dist);
+        districtOrigins[dist] = 'custom';
+      } else {
+        const cityRate = parentCity ? cityRateMap.get(parentCity.toLowerCase()) : null;
+        if (cityRate !== undefined && cityRate !== null) {
+          districtRates[dist] = cityRate;
+          districtOrigins[dist] = 'city';
+        } else {
+          districtRates[dist] = 235;
+          districtOrigins[dist] = 'default';
         }
       }
-      activeDistricts = Array.from(coveredSet).sort();
     }
 
     res.json({
       defaultPricePerTonne: 235,
       districtRates,
+      districtOrigins,
+      districtParentCities,
       activeDistricts,
       districts: rows.map((r) => ({
         id: r.id,
@@ -177,6 +255,19 @@ async function updateDistrictPricing(req, res) {
       return res.status(403).json({ error: 'Forbidden: You do not have permission to update scrap pricing.' });
     }
 
+    // Determine currently active districts across all active dealers
+    const activeDealers = await prisma.user.findMany({
+      where: { role: 'City Dealer', isActive: true },
+      select: { coveredPostcodes: true },
+    });
+
+    const activeSet = new Set();
+    for (const d of activeDealers) {
+      for (const p of (d.coveredPostcodes || [])) {
+        if (p && p.trim()) activeSet.add(p.trim().toUpperCase());
+      }
+    }
+
     const dealerCovered = isDealer
       ? (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean)
       : null;
@@ -186,6 +277,12 @@ async function updateDistrictPricing(req, res) {
     if (district && pricePerTonne !== undefined) {
       const cleanDistrict = String(district).trim().toUpperCase();
       const numRate = Number(pricePerTonne);
+
+      if (!activeSet.has(cleanDistrict)) {
+        return res.status(400).json({
+          error: `District ${cleanDistrict} is not currently active. An active dealer must cover this district before scrap rates can be configured.`,
+        });
+      }
 
       if (isDealer && (!dealerCovered || !dealerCovered.includes(cleanDistrict))) {
         return res.status(403).json({
@@ -206,6 +303,10 @@ async function updateDistrictPricing(req, res) {
       for (const [dist, rate] of Object.entries(districtRates)) {
         const cleanDist = String(dist).trim().toUpperCase();
         const numRate = Number(rate);
+
+        if (!activeSet.has(cleanDist)) {
+          continue; // Ignore inactive districts
+        }
 
         if (isDealer && (!dealerCovered || !dealerCovered.includes(cleanDist))) {
           return res.status(403).json({

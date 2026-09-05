@@ -441,7 +441,10 @@ export default function QuoteFlow({ compact = false }) {
       formData.append('condition', conditionVal);
       formData.append('vehicleCondition', conditionVal);
       formData.append('postcode', effectivePostcode);
-      if (formDataPayload.city || data.city) formData.append('city', formDataPayload.city || data.city);
+      const effectiveCity = data.postTown || data.matchedServiceArea || data.quote?.city || formDataPayload.city || data.city;
+      if (effectiveCity) formData.append('city', effectiveCity);
+      if (data.postTown || formDataPayload.postTown) formData.append('postTown', data.postTown || formDataPayload.postTown);
+      if (data.matchedServiceArea || formDataPayload.matchedServiceArea) formData.append('matchedServiceArea', data.matchedServiceArea || formDataPayload.matchedServiceArea);
       formData.append('estimatedValue', String(estimatedVal));
       formData.append('customerExpectedValue', String(expectedVal));
       formData.append('valuePreference', pref);

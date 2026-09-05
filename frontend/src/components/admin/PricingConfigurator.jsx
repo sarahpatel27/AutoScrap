@@ -33,8 +33,6 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
   });
   const [selectedDistrict, setSelectedDistrict] = useState(dealerDistricts[0] || 'PE1');
   const [districtRateInput, setDistrictRateInput] = useState('235');
-  const [newDistrictCode, setNewDistrictCode] = useState('');
-  const [newDistrictRate, setNewDistrictRate] = useState('235');
   const [loadingDistricts, setLoadingDistricts] = useState(true);
   const [savingDistrict, setSavingDistrict] = useState(false);
 
@@ -45,15 +43,11 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
   const [rateInput, setRateInput] = useState('235');
   const [savedMessage, setSavedMessage] = useState(false);
 
+  const activeDistrictsList = districtData.activeDistricts || [];
+
   const visibleDistricts = isSuperAdmin
-    ? Array.from(
-        new Set([
-          ...(districtData.activeDistricts || []),
-          ...Object.keys(districtData.districtRates || {}),
-          ...dealerDistricts,
-        ])
-      ).sort()
-    : dealerDistricts;
+    ? activeDistrictsList
+    : dealerDistricts.filter((d) => activeDistrictsList.includes(d));
 
   const loadDistrictPricingData = async () => {
     setLoadingDistricts(true);
@@ -61,15 +55,19 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
       const data = await fetchDistrictPricing();
       setDistrictData(data || { defaultPricePerTonne: 235, districtRates: {}, activeDistricts: [] });
       
+      const activeList = data?.activeDistricts || [];
       const available = isSuperAdmin
-        ? (data.activeDistricts || [])
-        : dealerDistricts;
+        ? activeList
+        : dealerDistricts.filter((d) => activeList.includes(d));
+
       const initialDist = available.includes(selectedDistrict)
         ? selectedDistrict
         : (available[0] || '');
       setSelectedDistrict(initialDist);
       if (initialDist) {
         setDistrictRateInput(String(data.districtRates?.[initialDist] ?? data.defaultPricePerTonne ?? 235));
+      } else {
+        setDistrictRateInput('235');
       }
     } catch (err) {
       console.error('Error fetching district pricing:', err);
@@ -83,14 +81,30 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
   }, []);
 
   useEffect(() => {
+    if (pricing?.cityRates) {
+      setCityRates(pricing.cityRates);
+    }
+  }, [pricing]);
+
+  useEffect(() => {
     async function loadCities() {
       try {
         const cities = await fetchSupportedCities({ active: 'true' });
         const cityNames = (cities || []).map((c) => c.name);
-        setSupportedCitiesList(cityNames);
+        
+        const allNames = new Set(cityNames);
+        if (pricing?.cityRates) {
+          for (const k of Object.keys(pricing.cityRates)) {
+            if (k && k !== 'Default') allNames.add(k);
+          }
+        }
+        if (user?.assignedCity) allNames.add(user.assignedCity);
 
-        if (!selectedCity && cityNames.length > 0) {
-          const initial = user?.assignedCity || cityNames[0];
+        const list = Array.from(allNames).sort();
+        setSupportedCitiesList(list);
+
+        if (!selectedCity && list.length > 0) {
+          const initial = user?.assignedCity && list.includes(user.assignedCity) ? user.assignedCity : list[0];
           setSelectedCity(initial);
         }
       } catch (err) {
@@ -98,14 +112,15 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
       }
     }
     loadCities();
-  }, [user]);
+  }, [user, pricing]);
 
   useEffect(() => {
     const activeCity = user?.assignedCity || selectedCity;
     if (activeCity) {
-      setRateInput(String(cityRates[activeCity] ?? 235));
+      const effectiveRate = cityRates[activeCity] ?? pricing?.cityRates?.[activeCity] ?? 235;
+      setRateInput(String(effectiveRate));
     }
-  }, [selectedCity, user, cityRates]);
+  }, [selectedCity, user, cityRates, pricing]);
 
   const handleDistrictChange = (dist) => {
     setSelectedDistrict(dist);
@@ -137,46 +152,20 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
     }
   };
 
-  const handleAddNewDistrictRate = async (e) => {
-    e.preventDefault();
-    const cleanDist = newDistrictCode.trim().toUpperCase();
-    const numRate = Number(newDistrictRate);
-
-    if (!cleanDist) {
-      showToast('Please enter an outward district code (e.g. PE2).', 'error');
-      return;
-    }
-    if (isNaN(numRate) || numRate <= 0) {
-      showToast('Please enter a valid price per tonne.', 'error');
-      return;
-    }
-
-    setSavingDistrict(true);
-    try {
-      const updated = await saveDistrictPricing({
-        district: cleanDist,
-        pricePerTonne: numRate,
-      });
-      setDistrictData(updated);
-      setSelectedDistrict(cleanDist);
-      setDistrictRateInput(String(numRate));
-      setNewDistrictCode('');
-      showToast(`Added rate for district ${cleanDist}: £${numRate}/tonne!`, 'success');
-    } catch (err) {
-      showToast(err.message || 'Failed to add district rate.', 'error');
-    } finally {
-      setSavingDistrict(false);
-    }
-  };
 
   const handleDeleteDistrictRate = async (dist) => {
     setSavingDistrict(true);
     try {
       const updated = await deleteDistrictPricing(dist);
       setDistrictData(updated);
-      showToast(`Removed custom rate for ${dist}. Reverted to base rate (£${updated.defaultPricePerTonne}/t).`, 'success');
+      const revertedRate = updated.districtRates?.[dist] ?? updated.defaultPricePerTonne ?? 235;
+      const parentCity = updated.districtParentCities?.[dist];
+      showToast(
+        `Removed custom override for ${dist}. Reverted to ${parentCity ? `${parentCity} rate (£${revertedRate}/t)` : `base rate (£${revertedRate}/t)`}.`,
+        'success'
+      );
       if (selectedDistrict === dist) {
-        setDistrictRateInput(String(updated.defaultPricePerTonne || 235));
+        setDistrictRateInput(String(revertedRate));
       }
     } catch (err) {
       showToast(err.message || 'Failed to delete district rate.', 'error');
@@ -191,7 +180,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
     setSavedMessage(false);
   };
 
-  const handleCitySubmit = (e) => {
+  const handleCitySubmit = async (e) => {
     e.preventDefault();
     const activeCity = user?.assignedCity || selectedCity;
     const numericRate = rateInput === '' ? 235 : Number(rateInput);
@@ -201,10 +190,15 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
       [activeCity]: numericRate,
     };
 
-    onSavePricing({
+    setCityRates(updatedRates);
+
+    await onSavePricing({
       ...pricing,
       cityRates: updatedRates,
     });
+
+    // Refresh district pricing so any districts inheriting from activeCity instantly reflect the new rate
+    await loadDistrictPricingData();
 
     showToast(`Scrap rate for ${activeCity} updated to £${numericRate}/tonne!`, 'success');
     setSavedMessage(true);
@@ -356,13 +350,6 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
     </div>
   );
 
-  const allKnownDistricts = Array.from(
-    new Set([
-      ...(districtData.activeDistricts || []),
-      ...Object.keys(districtData.districtRates || {}),
-      ...dealerDistricts,
-    ])
-  ).sort();
 
   return (
     <div className="space-y-6">
@@ -396,12 +383,16 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
       )}
 
       {activeTab === 'district' && (
-        !isSuperAdmin && visibleDistricts.length === 0 ? (
+        visibleDistricts.length === 0 ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:p-8 text-center space-y-2.5">
             <span className="text-3xl sm:text-4xl">📮</span>
-            <h4 className="text-base font-black text-amber-950">No Postcode Districts Assigned</h4>
+            <h4 className="text-base font-black text-amber-950">
+              {isSuperAdmin ? 'No Active Postcode Districts' : 'No Active Postcode Districts Assigned'}
+            </h4>
             <p className="text-xs text-amber-800 max-w-md mx-auto leading-relaxed">
-              Your dealer account currently does not have any outward postcode districts assigned. Please contact the Super Administrator to assign your coverage areas before configuring scrap rates.
+              {isSuperAdmin
+                ? 'There are currently no active outward postcode districts covered by any active City Dealer. When a district is not active, scrap rates cannot be configured. Please assign outward districts to active dealer accounts in the Dealer Accounts tab first.'
+                : 'Your dealer account currently does not have any active outward postcode districts assigned. Please contact the Super Administrator to assign your coverage areas before configuring scrap rates.'}
             </p>
           </div>
         ) : (
@@ -409,10 +400,22 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
             <div className="space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-xs lg:col-span-2">
               <div className="flex flex-col gap-2.5 border-b border-gray-100 pb-4">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
-                    <span>📮 District Scrap Rate:</span>
-                    <span className="text-[#0f7b4f]">{selectedDistrict || 'None Selected'}</span>
-                  </h3>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                      <span>📮 District Scrap Rate:</span>
+                      <span className="text-[#0f7b4f]">{selectedDistrict || 'None Selected'}</span>
+                    </h3>
+                    {districtData.districtOrigins?.[selectedDistrict] === 'city' && (
+                      <span className="rounded-full bg-blue-50 border border-blue-200 px-2.5 py-0.5 text-[10px] font-bold text-blue-800">
+                        Inherited from {districtData.districtParentCities?.[selectedDistrict] || 'City'}
+                      </span>
+                    )}
+                    {districtData.districtOrigins?.[selectedDistrict] === 'custom' && (
+                      <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-[#0f7b4f]">
+                        Custom District Override
+                      </span>
+                    )}
+                  </div>
 
                   {visibleDistricts.length > 1 && (
                     <div className="flex items-center gap-2">
@@ -436,6 +439,7 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
                     {visibleDistricts.map((dist) => {
                       const currentRate = districtData.districtRates[dist] ?? districtData.defaultPricePerTonne ?? 235;
                       const isSelected = selectedDistrict === dist;
+                      const origin = districtData.districtOrigins?.[dist];
                       return (
                         <button
                           key={dist}
@@ -453,6 +457,11 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
                           }`}>
                             £{currentRate}/t
                           </span>
+                          {origin === 'custom' && (
+                            <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase">
+                              Custom
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -480,7 +489,19 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-2">
+                <div className="flex items-center justify-between gap-3 pt-2">
+                  {districtData.districtOrigins?.[selectedDistrict] === 'custom' ? (
+                    <button
+                      type="button"
+                      disabled={savingDistrict}
+                      onClick={() => handleDeleteDistrictRate(selectedDistrict)}
+                      className="rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 px-3.5 py-2 text-xs font-bold transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span>↺</span>
+                      <span>Revert to {districtData.districtParentCities?.[selectedDistrict] ? `${districtData.districtParentCities[selectedDistrict]} Rate` : 'City Rate'}</span>
+                    </button>
+                  ) : <div />}
+
                   <button
                     type="submit"
                     disabled={savingDistrict || !selectedDistrict}

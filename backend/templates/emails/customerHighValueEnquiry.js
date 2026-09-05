@@ -9,6 +9,7 @@ function customerHighValueEnquiryTemplate({
   customerExpectedValue,
   valuePreference,
   postcode,
+  city,
 }) {
   const reg = vehicle?.registration || 'N/A';
   const make = vehicle?.make || 'Unknown Make';
@@ -65,8 +66,8 @@ function customerHighValueEnquiryTemplate({
         </tr>
         ${postcode ? `
         <tr style="border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Location</td>
-          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">${postcode}</td>
+          <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Collection Area</td>
+          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">${city && city !== 'UK' ? `${city} (${postcode})` : postcode}</td>
         </tr>
         ` : ''}
       </tbody>

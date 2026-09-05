@@ -6,8 +6,8 @@ import Pagination from './Pagination';
 import { showToast } from './ToastContainer';
 import { useAuth } from '../../context/AuthContext';
 import { exportEnquiriesToExcel } from '../../utils/excelExporter';
-import { fetchSupportedCities } from '../../services/adminStore';
-import { getCityFromPostcode, formatCityName } from '../../utils/cityHelper';
+import { getCityFromPostcode, formatCityName, getCityBadgeClass } from '../../utils/cityHelper';
+import DateRangeFilter, { filterByDateRange } from './DateRangeFilter';
 
 export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
@@ -20,6 +20,9 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   const [cityFilter, setCityFilter] = useState(
     isDealer && dealerDistricts.length > 0 ? 'All' : (user?.assignedCity || 'All')
   );
+  const [datePreset, setDatePreset] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkStatus, setBulkStatus] = useState('Contacted');
@@ -58,7 +61,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   // Reset to page 1 whenever filters or search term change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, cityFilter]);
+  }, [searchTerm, statusFilter, cityFilter, datePreset, customStartDate, customEndDate]);
 
   const statuses = ['All', 'Pending', 'Contacted', 'Accepted', 'Collected', 'Cancelled'];
 
@@ -80,7 +83,11 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
     return ['All', ...Array.from(cityMap.values()).sort((a, b) => a.localeCompare(b))];
   }, [dbCities, enquiries]);
 
-  const baseEnquiries = enquiries.filter((e) => {
+  const dateFiltered = useMemo(() => {
+    return filterByDateRange(enquiries, datePreset, customStartDate, customEndDate);
+  }, [enquiries, datePreset, customStartDate, customEndDate]);
+
+  const baseEnquiries = dateFiltered.filter((e) => {
     const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress) || 'Other';
     const itemCity = formatCityName(rawCity) || 'Other';
     const itemDistrict = (e.outwardDistrict || (e.postcode || '').trim().toUpperCase().split(' ')[0] || '').trim().toUpperCase();
@@ -252,27 +259,6 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
     }
   };
 
-  const getCityBadgeClass = (city) => {
-    switch (city) {
-      case 'Doncaster':
-        return 'bg-orange-50 text-orange-800 border-orange-200';
-      case 'Leicester':
-        return 'bg-amber-50 text-amber-900 border-amber-200';
-      case 'Peterborough':
-        return 'bg-teal-50 text-teal-800 border-teal-200';
-      case 'London':
-        return 'bg-indigo-50 text-indigo-800 border-indigo-200';
-      case 'Cambridge':
-        return 'bg-sky-50 text-sky-800 border-sky-200';
-      case 'Liverpool':
-        return 'bg-rose-50 text-rose-800 border-rose-200';
-      case 'Manchester':
-        return 'bg-violet-50 text-violet-800 border-violet-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
   return (
     <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white shadow-xs overflow-hidden relative">
       {/* Bulk Action Sticky Floating Toolbar */}
@@ -358,8 +344,8 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
               {cities.map((city) => {
                 const count =
                   city === 'All'
-                    ? enquiries.length
-                    : enquiries.filter((item) => {
+                    ? dateFiltered.length
+                    : dateFiltered.filter((item) => {
                         const rawCity =
                           item.city ||
                           getCityFromPostcode(
@@ -396,6 +382,23 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
             </div>
           </div>
         )}
+
+        {/* Date Filter Bar */}
+        <div className="pt-2 border-t border-gray-100">
+          <DateRangeFilter
+            preset={datePreset}
+            onPresetChange={setDatePreset}
+            customStart={customStartDate}
+            onCustomStartChange={setCustomStartDate}
+            customEnd={customEndDate}
+            onCustomEndChange={setCustomEndDate}
+            onReset={() => {
+              setDatePreset('all');
+              setCustomStartDate('');
+              setCustomEndDate('');
+            }}
+          />
+        </div>
 
         {/* Status Tabs & Search */}
         <div className={`flex flex-col gap-3 pt-2 border-t border-gray-100 lg:flex-row lg:items-center ${readOnly ? 'lg:justify-end' : 'lg:justify-between'}`}>

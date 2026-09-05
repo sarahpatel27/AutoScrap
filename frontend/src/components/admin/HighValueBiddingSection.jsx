@@ -5,10 +5,15 @@ import Pagination from './Pagination';
 import { deleteHighValueEnquiry } from '../../services/adminStore';
 import { showToast } from './ToastContainer';
 import { exportEnquiriesToExcel } from '../../utils/excelExporter';
+import { formatCityName, getCityBadgeClass, getCityFromPostcode } from '../../utils/cityHelper';
+import DateRangeFilter, { filterByDateRange } from './DateRangeFilter';
 
 export default function HighValueBiddingSection({ enquiries = [], onWinnerSelected, onDeleteHVEnquiry, readOnly = false }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [datePreset, setDatePreset] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -20,16 +25,20 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
   // Reset page to 1 on filter or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter]);
+  }, [searchTerm, statusFilter, datePreset, customStartDate, customEndDate]);
 
-  const filteredEnquiries = enquiries.filter((item) => {
+  const dateFiltered = filterByDateRange(enquiries, datePreset, customStartDate, customEndDate);
+
+  const filteredEnquiries = dateFiltered.filter((item) => {
     const matchesSearch =
       !searchTerm ||
       item.registration?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.make?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.customerName?.toLowerCase().includes(searchTerm.toLowerCase());
+      item.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.postcode?.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || item.status === statusFilter;
 
@@ -105,45 +114,64 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs">
-        <div className="flex items-center gap-2 w-full sm:w-auto flex-1 max-w-lg">
-          <div className="relative w-full">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search reg, make, model, customer..."
-              className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/20 font-medium"
-            />
-            <span className="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+      <div className="flex flex-col gap-3 bg-white p-4 rounded-2xl border border-gray-200/80 shadow-xs">
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div className="flex items-center gap-2 w-full sm:w-auto flex-1 max-w-lg">
+            <div className="relative w-full">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search reg, make, model, customer..."
+                className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2 pl-9 pr-3 text-xs outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/20 font-medium"
+              />
+              <span className="absolute left-3 top-2.5 text-gray-400 text-xs">🔍</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleExportHVData}
+              className="rounded-xl border border-emerald-600/30 bg-[#0f7b4f] px-3.5 py-2 text-xs font-black text-white hover:bg-[#075b3a] transition shadow-xs cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 active:scale-95"
+              title="Export high-value enquiry records to Excel"
+            >
+              <span>📊</span>
+              <span>Export Data</span>
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={handleExportHVData}
-            className="rounded-xl border border-emerald-600/30 bg-[#0f7b4f] px-3.5 py-2 text-xs font-black text-white hover:bg-[#075b3a] transition shadow-xs cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 active:scale-95"
-            title="Export high-value enquiry records to Excel"
-          >
-            <span>📊</span>
-            <span>Export Data</span>
-          </button>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Filter Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full sm:w-auto rounded-xl border border-gray-300 bg-white py-2 px-3 text-xs font-bold text-slate-800 outline-none focus:border-[#0f7b4f]"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING">Pending Review</option>
+              <option value="BIDDING">Bidding Active</option>
+              <option value="BIDDING_ENDED">Bidding Ended</option>
+              <option value="DEALER_SELECTED">Dealer Selected</option>
+              <option value="PURCHASED">Purchased / Collected</option>
+              <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <span className="text-xs font-bold text-gray-500 whitespace-nowrap">Filter Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full sm:w-auto rounded-xl border border-gray-300 bg-white py-2 px-3 text-xs font-bold text-slate-800 outline-none focus:border-[#0f7b4f]"
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="PENDING">Pending Review</option>
-            <option value="BIDDING">Bidding Active</option>
-            <option value="BIDDING_ENDED">Bidding Ended</option>
-            <option value="DEALER_SELECTED">Dealer Selected</option>
-            <option value="PURCHASED">Purchased / Collected</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+        {/* Date Filter Bar */}
+        <div className="pt-2 border-t border-gray-100">
+          <DateRangeFilter
+            preset={datePreset}
+            onPresetChange={setDatePreset}
+            customStart={customStartDate}
+            onCustomStartChange={setCustomStartDate}
+            customEnd={customEndDate}
+            onCustomEndChange={setCustomEndDate}
+            onReset={() => {
+              setDatePreset('all');
+              setCustomStartDate('');
+              setCustomEndDate('');
+            }}
+          />
         </div>
       </div>
 
@@ -175,6 +203,11 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                 paginatedEnquiries.map((item) => {
                   const acceptedEstimate = item.valuePreference === 'ESTIMATED_VALUE';
                   const dateStr = item.createdAt ? new Date(item.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : 'N/A';
+                  const rawCity = (!item.city || /^\d[a-zA-Z]{2}$/i.test(String(item.city).trim()))
+                    ? getCityFromPostcode(item.postcode, item.customer?.collectionAddress || item.address)
+                    : item.city;
+                  const itemCity = formatCityName(rawCity) || 'UK';
+                  const outwardDistrict = item.outwardDistrict || (item.postcode ? item.postcode.split(' ')[0] : '');
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition">
                       {/* Date */}
@@ -218,8 +251,19 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
 
                       {/* Location */}
                       <td className="py-3.5 px-4 font-medium">
-                        <div className="font-bold text-slate-900 whitespace-nowrap">{item.city || item.area || 'UK'}</div>
-                        <div className="text-gray-400 text-[11px] font-mono whitespace-nowrap">{item.postcode}</div>
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          <span className={`rounded-lg border px-2 py-0.5 font-black text-[11px] ${getCityBadgeClass(itemCity)}`}>
+                            📍 {itemCity}
+                          </span>
+                          {item.postcode && (
+                            <span className="inline-flex items-center gap-1 font-mono text-[10px] text-gray-500 uppercase">
+                              <span className="rounded bg-blue-50 border border-blue-200 px-1 py-0.2 text-[9px] font-black text-blue-800">
+                                📮 {outwardDistrict}
+                              </span>
+                              <span>{item.postcode}</span>
+                            </span>
+                          )}
+                        </div>
                       </td>
 
                       {/* Three Distinct Values Clearly Visualized */}

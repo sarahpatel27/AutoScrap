@@ -1,5 +1,5 @@
 const { prisma } = require('../config/db');
-const { getCityFromPostcode, extractOutwardCode } = require('../utils/postcodeHelper');
+const { getCityFromPostcode, extractOutwardCode, getCityNameFromOutwardCode } = require('../utils/postcodeHelper');
 const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
 const { anonymizeEnquiryForDealer } = require('../utils/dealerAnonymizer');
 const { autoResolveExpiredBids, processMidwayBiddingNotifications } = require('../services/biddingAutoResolver');
@@ -408,13 +408,31 @@ async function createEnquiry(req, res) {
       enquiryData.address ||
       '';
     let city =
-      enquiryData.city ||
-      quoteObj?.city ||
+      enquiryData.postTown ||
       enquiryData.matchedServiceArea ||
-      enquiryData.postTown;
-    if (!city || city === 'Other' || city === 'Unassigned') {
+      quoteObj?.city ||
+      enquiryData.city;
+
+    const isInvalidCity =
+      !city ||
+      city === 'Other' ||
+      city === 'Unassigned' ||
+      /^\d[a-zA-Z]{2}$/i.test(String(city).trim()) ||
+      /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(city).trim());
+
+    if (isInvalidCity) {
       city = await getCityFromPostcode(postcode, collectionAddress);
+      if (
+        !city ||
+        city === 'Other' ||
+        city === 'Unassigned' ||
+        /^\d[a-zA-Z]{2}$/i.test(String(city).trim()) ||
+        /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(city).trim())
+      ) {
+        city = getCityNameFromOutwardCode(extractOutwardCode(postcode || collectionAddress)) || 'UK';
+      }
     }
+
     if (city && typeof city === 'string' && city !== 'Other' && city !== 'Unassigned') {
       city = city
         .trim()

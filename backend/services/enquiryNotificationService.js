@@ -73,7 +73,20 @@ function sendHighValueEnquiryEmail(record, rawData = {}) {
     valuePreference: record.valuePreference,
     biddingEndsAt: record.biddingEndsAt,
     postcode: record.postcode,
-    city: record.city,
+    city: (() => {
+      const { extractOutwardCode, getCityNameFromOutwardCode } = require('../utils/postcodeHelper');
+      const raw = record.city || rawData.city;
+      if (
+        !raw ||
+        raw === 'Other' ||
+        raw === 'Unassigned' ||
+        /^\d[a-zA-Z]{2}$/i.test(String(raw).trim()) ||
+        /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(raw).trim())
+      ) {
+        return getCityNameFromOutwardCode(extractOutwardCode(record.postcode || rawData.postcode)) || 'UK';
+      }
+      return raw;
+    })(),
   };
 
   // Run in background without blocking API response
@@ -118,6 +131,7 @@ function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
     bank: bankData,
     postcode: enquiry.postcode || customerData.collectionPostcode || '',
     city: enquiry.city || '',
+    isHighValue: false,
   };
 
   if (targetStatus === 'accepted') {
@@ -206,6 +220,7 @@ function sendHighValueEnquiryPurchasedEmail(enquiry) {
     postcode,
     city,
     collectionDate: enquiry.purchasedAt || new Date(),
+    isHighValue: true,
   };
 
   return sendCustomerVehicleCollectedNotification(payload).catch((err) => {
