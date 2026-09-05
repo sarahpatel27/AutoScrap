@@ -210,3 +210,64 @@ describe('Outward District to City Resolution & Active Coverage Aggregation', ()
     assert.deepEqual(Array.from(activeGroups.get('London').postcodes), ['SW1A']);
   });
 });
+
+describe('Dealer Bids Anonymizer Postcode Resolution', () => {
+  const { anonymizeEnquiryForDealer } = require('../dealerAnonymizer');
+
+  it('maps dealer coveredPostcodes to dealerPostcodes and coveredPostcodes in bids array for Admin', () => {
+    const admin = { id: 1, role: 'Super Admin' };
+    const fakeRow = {
+      id: 99,
+      reference: 'MAS-HV-2026-0001',
+      customerName: 'Test Customer',
+      customerEmail: 'customer@test.co.uk',
+      customerPhone: '07123456789',
+      postcode: 'PE1 1AA',
+      createdAt: new Date(),
+      bids: [
+        {
+          id: 101,
+          dealerId: 10,
+          amount: '1850.00',
+          status: 'ACTIVE',
+          createdAt: new Date(),
+          dealer: {
+            id: 10,
+            name: 'Peterborough Breakers',
+            email: 'pt@dealers.co.uk',
+            assignedCity: 'Peterborough',
+            coveredPostcodes: ['PE1', 'PE2', 'PE3'],
+          },
+        },
+        {
+          id: 102,
+          dealerId: 20,
+          amount: '1700.00',
+          status: 'ACTIVE',
+          createdAt: new Date(),
+          dealer: {
+            id: 20,
+            name: 'Nationwide Dealer',
+            email: 'all@dealers.co.uk',
+            assignedCity: 'UK',
+            coveredPostcodes: [],
+          },
+        },
+      ],
+    };
+
+    const result = anonymizeEnquiryForDealer(fakeRow, admin);
+    assert.equal(result.bids.length, 2);
+
+    // Dealer 1 with coveredPostcodes ['PE1', 'PE2', 'PE3']
+    assert.equal(result.bids[0].dealerName, 'Peterborough Breakers');
+    assert.deepEqual(result.bids[0].coveredPostcodes, ['PE1', 'PE2', 'PE3']);
+    assert.equal(result.bids[0].dealerPostcodes, 'PE1, PE2, PE3');
+
+    // Dealer 2 with no coveredPostcodes (fallback to All UK)
+    assert.equal(result.bids[1].dealerName, 'Nationwide Dealer');
+    assert.deepEqual(result.bids[1].coveredPostcodes, []);
+    assert.equal(result.bids[1].dealerPostcodes, 'All UK');
+  });
+});
+

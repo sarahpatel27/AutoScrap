@@ -263,7 +263,7 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                   <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
                     <tr>
                       <th className="py-2.5 px-3">Dealer Identity</th>
-                      <th className="py-2.5 px-3">City / Territory</th>
+                      <th className="py-2.5 px-3">Covered Postcodes</th>
                       <th className="py-2.5 px-3">Bid Amount</th>
                       <th className="py-2.5 px-3">Status</th>
                       <th className="py-2.5 px-3 text-right">Action</th>
@@ -288,7 +288,38 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                             </div>
                             <span className="text-[10px] text-gray-400">{bid.dealerEmail}</span>
                           </td>
-                          <td className="py-2.5 px-3 text-slate-700">{bid.dealerCity || 'UK'}</td>
+                          <td className="py-2.5 px-3">
+                            {Array.isArray(bid.coveredPostcodes) && bid.coveredPostcodes.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {bid.coveredPostcodes.map((dist) => (
+                                  <span
+                                    key={dist}
+                                    className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-[#0f7b4f] border border-emerald-200"
+                                  >
+                                    📮 {dist}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : bid.dealerPostcodes && bid.dealerPostcodes !== 'UK' && bid.dealerPostcodes !== 'All UK' ? (
+                              <div className="flex flex-wrap gap-1">
+                                {bid.dealerPostcodes.split(',').map((dist) => {
+                                  const clean = dist.trim();
+                                  return (
+                                    <span
+                                      key={clean}
+                                      className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-[#0f7b4f] border border-emerald-200"
+                                    >
+                                      📮 {clean}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 font-medium text-[11px]">
+                                {bid.dealerCity && bid.dealerCity !== 'UK' ? bid.dealerCity : 'All UK / Unrestricted'}
+                              </span>
+                            )}
+                          </td>
                           <td className="py-2.5 px-3 font-black text-sm text-[#0f7b4f]">
                             £{amount.toLocaleString('en-GB')}
                           </td>

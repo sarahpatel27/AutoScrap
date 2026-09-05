@@ -97,16 +97,27 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
       additionalAddressDetails: row.additionalAddressDetails || '',
     };
     payload.bank = row.bank || null;
-    payload.bids = (row.bids || []).map((b) => ({
-      id: String(b.id),
-      dealerId: String(b.dealerId),
-      dealerName: b.dealer?.name || 'Dealer',
-      dealerEmail: b.dealer?.email || '',
-      dealerCity: b.dealer?.assignedCity || 'UK',
-      amount: Number(b.amount),
-      status: b.status,
-      createdAt: b.createdAt.toISOString(),
-    }));
+    payload.bids = (row.bids || []).map((b) => {
+      const pcs = Array.isArray(b.dealer?.coveredPostcodes) ? b.dealer.coveredPostcodes : [];
+      let dealerPostcodes = 'All UK';
+      if (pcs.length > 0) {
+        dealerPostcodes = pcs.join(', ');
+      } else if (b.dealer?.assignedCity && b.dealer.assignedCity !== 'UK') {
+        dealerPostcodes = b.dealer.assignedCity;
+      }
+      return {
+        id: String(b.id),
+        dealerId: String(b.dealerId),
+        dealerName: b.dealer?.name || 'Dealer',
+        dealerEmail: b.dealer?.email || '',
+        dealerCity: b.dealer?.assignedCity || 'UK',
+        dealerPostcodes,
+        coveredPostcodes: pcs,
+        amount: Number(b.amount),
+        status: b.status,
+        createdAt: b.createdAt.toISOString(),
+      };
+    });
   } else {
     // Non-winning dealer view BEFORE winning: Completely strip sensitive customer & address identities
     payload.customerName = '[Hidden Until Won]';
