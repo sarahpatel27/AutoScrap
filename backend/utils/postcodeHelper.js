@@ -481,7 +481,11 @@ async function resolveSupportedCity(addressData = {}) {
  */
 async function determineServiceArea(addressDetails = {}) {
   const result = await resolveSupportedCity(addressDetails);
-  return result.isSupported ? (result.matchedCityName || result.outwardDistrict).toUpperCase() : null;
+  if (!result.isSupported) return null;
+  const name = result.matchedCityName || result.outwardDistrict || '';
+  return name
+    ? name.trim().toLowerCase().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    : null;
 }
 
 /**

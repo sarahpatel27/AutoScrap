@@ -415,6 +415,14 @@ async function createEnquiry(req, res) {
     if (!city || city === 'Other' || city === 'Unassigned') {
       city = await getCityFromPostcode(postcode, collectionAddress);
     }
+    if (city && typeof city === 'string' && city !== 'Other' && city !== 'Unassigned') {
+      city = city
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+    }
 
     // Type conversion helpers
     const toInteger = (val, fallback = null) => {

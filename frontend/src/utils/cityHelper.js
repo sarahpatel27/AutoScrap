@@ -35,3 +35,21 @@ export function getCityFromPostcode(postcode = "", address = "") {
 
   return "Other";
 }
+
+/**
+ * Formats a city name to clean Title Case (e.g. "PETERBOROUGH" -> "Peterborough", "WREXHAM" -> "Wrexham")
+ */
+export function formatCityName(city = "") {
+  if (!city || typeof city !== "string") return "";
+  const trimmed = city.trim();
+  if (!trimmed) return "";
+  if (trimmed.toLowerCase() === "other") return "Other";
+  if (trimmed.toLowerCase() === "unassigned") return "Unassigned";
+
+  return trimmed
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+

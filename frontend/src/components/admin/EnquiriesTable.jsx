@@ -7,6 +7,7 @@ import { showToast } from './ToastContainer';
 import { useAuth } from '../../context/AuthContext';
 import { exportEnquiriesToExcel } from '../../utils/excelExporter';
 import { fetchSupportedCities } from '../../services/adminStore';
+import { getCityFromPostcode, formatCityName } from '../../utils/cityHelper';
 
 export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
@@ -62,17 +63,26 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   const statuses = ['All', 'Pending', 'Contacted', 'Accepted', 'Collected', 'Cancelled'];
 
   const cities = useMemo(() => {
-    const set = new Set(dbCities);
-    for (const e of enquiries) {
-      if (e.city && e.city !== 'Other' && e.city !== 'Unassigned') {
-        set.add(e.city);
+    const cityMap = new Map();
+    for (const c of dbCities) {
+      const formatted = formatCityName(c);
+      if (formatted && formatted !== 'Other' && formatted !== 'Unassigned') {
+        cityMap.set(formatted.toLowerCase(), formatted);
       }
     }
-    return ['All', ...Array.from(set).sort()];
+    for (const e of enquiries) {
+      const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+      const formatted = formatCityName(rawCity);
+      if (formatted && formatted !== 'Other' && formatted !== 'Unassigned') {
+        cityMap.set(formatted.toLowerCase(), formatted);
+      }
+    }
+    return ['All', ...Array.from(cityMap.values()).sort((a, b) => a.localeCompare(b))];
   }, [dbCities, enquiries]);
 
   const baseEnquiries = enquiries.filter((e) => {
-    const itemCity = e.city || 'Other';
+    const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress) || 'Other';
+    const itemCity = formatCityName(rawCity) || 'Other';
     const itemDistrict = (e.outwardDistrict || (e.postcode || '').trim().toUpperCase().split(' ')[0] || '').trim().toUpperCase();
 
     // Dealer scope constraint:
@@ -88,7 +98,10 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
       }
     }
 
-    const matchesCity = (isDealer && dealerDistricts.length > 0) || cityFilter === 'All' || itemCity === cityFilter;
+    const matchesCity =
+      (isDealer && dealerDistricts.length > 0) ||
+      cityFilter === 'All' ||
+      itemCity.toLowerCase() === cityFilter.toLowerCase();
 
     const term = searchTerm.toLowerCase().trim();
     if (!term) return matchesCity;
@@ -346,10 +359,17 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                 const count =
                   city === 'All'
                     ? enquiries.length
-                    : enquiries.filter(
-                        (item) =>
-                          (item.city || getCityFromPostcode(item.postcode || item.customer?.collectionPostcode, item.customer?.collectionAddress)) === city,
-                      ).length;
+                    : enquiries.filter((item) => {
+                        const rawCity =
+                          item.city ||
+                          getCityFromPostcode(
+                            item.postcode || item.customer?.collectionPostcode,
+                            item.customer?.collectionAddress,
+                          );
+                        return formatCityName(rawCity).toLowerCase() === city.toLowerCase();
+                      }).length;
+
+                const isSelected = cityFilter.toLowerCase() === city.toLowerCase();
 
                 return (
                   <button
@@ -357,7 +377,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                     type="button"
                     onClick={() => setCityFilter(city)}
                     className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-black transition cursor-pointer whitespace-nowrap shrink-0 ${
-                      cityFilter === city
+                      isSelected
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
@@ -365,7 +385,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                     <span>{city === 'All' ? 'All Cities' : city}</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] ${
-                        cityFilter === city ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
+                        isSelected ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
                       }`}
                     >
                       {count}
@@ -479,7 +499,8 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
           </div>
         ) : (
           paginatedEnquiries.map((e) => {
-            const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+            const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+            const itemCity = formatCityName(rawCity);
             const isSelected = selectedIds.includes(String(e.id));
 
             return (
@@ -635,7 +656,8 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
               </tr>
             ) : (
               paginatedEnquiries.map((e) => {
-                const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+                const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+                const itemCity = formatCityName(rawCity);
                 const isSelected = selectedIds.includes(String(e.id));
 
                 return (

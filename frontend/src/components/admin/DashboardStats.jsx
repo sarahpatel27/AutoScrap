@@ -1,5 +1,5 @@
 import { useAuth } from '../../context/AuthContext';
-import { getCityFromPostcode } from '../../utils/cityHelper';
+import { getCityFromPostcode, formatCityName } from '../../utils/cityHelper';
 
 export default function DashboardStats({ enquiries, pricing }) {
   const { user } = useAuth();
@@ -8,8 +8,8 @@ export default function DashboardStats({ enquiries, pricing }) {
   const scopedEnquiries = isDealer
     ? enquiries.filter(
         (e) =>
-          (e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress)) ===
-          user.assignedCity,
+          formatCityName(e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress)).toLowerCase() ===
+          (user.assignedCity || '').toLowerCase(),
       )
     : enquiries;
 
