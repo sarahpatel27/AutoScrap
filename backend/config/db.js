@@ -5,7 +5,8 @@ const prisma = new PrismaClient();
 
 async function initDb() {
   try {
-    // 1. Seed Supported Cities into City table
+    // 1. Cities & city pricing seeds (disabled so database remains completely clean and controlled via dealer accounts)
+    /*
     const initialSupportedCities = [
       { name: 'Doncaster', slug: 'doncaster', isActive: true },
       { name: 'Leicester', slug: 'leicester', isActive: true },
@@ -48,6 +49,7 @@ async function initDb() {
         });
       }
     }
+    */
 
     // 2. Seed Super Admin User
     // const superAdminEmail = 'admin@myautoscrap.co.uk';
