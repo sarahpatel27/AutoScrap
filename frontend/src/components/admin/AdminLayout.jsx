@@ -6,8 +6,19 @@ export default function AdminLayout({ activeTab, children }) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [showAreasPopover, setShowAreasPopover] = useState(false);
 
   const isSuperAdmin = user?.role === 'Super Admin';
+
+  const coveredPostcodes = Array.isArray(user?.coveredPostcodes)
+    ? user.coveredPostcodes.filter(Boolean)
+    : (user?.assignedCity ? [user.assignedCity] : []);
+  const displaySummary = coveredPostcodes.length === 0
+    ? (user?.assignedCity || 'Dealer')
+    : coveredPostcodes.length <= 2
+    ? coveredPostcodes.join(', ')
+    : `${coveredPostcodes.slice(0, 2).join(', ')}`;
+  const extraCount = coveredPostcodes.length > 2 ? coveredPostcodes.length - 2 : 0;
 
   const navItems = [
     { id: 'overview', label: 'Dashboard Overview', icon: '📊', path: '/admin/dashboard' },
@@ -32,8 +43,8 @@ export default function AdminLayout({ activeTab, children }) {
     <div className="min-h-screen bg-gray-100 text-slate-900 font-['DM_Sans',sans-serif]">
       {/* Top Header */}
       <header className="sticky top-0 z-40 h-16 border-b border-white/10 bg-[#0b2e21] text-white shadow-md">
-        <div className="mx-auto flex h-full items-center justify-between px-3 sm:px-6">
-          <div className="flex items-center gap-2.5 sm:gap-4">
+        <div className="mx-auto flex h-full items-center justify-between px-3 sm:px-6 gap-2">
+          <div className="flex items-center gap-2 sm:gap-3.5 min-w-0">
             {/* Mobile Nav Toggle */}
             <button
               onClick={() => setMobileNavOpen(!mobileNavOpen)}
@@ -44,26 +55,100 @@ export default function AdminLayout({ activeTab, children }) {
               ☰
             </button>
 
-            {/* Brand Logo & Role Badge */}
-            <Link to="/admin/dashboard" className="flex items-center gap-2 font-['Manrope'] text-base sm:text-lg font-black text-white shrink-0">
+            {/* Brand Logo */}
+            <Link to="/admin/dashboard" className="flex items-center gap-2 font-['Manrope'] text-base sm:text-lg font-black text-white shrink-0 hover:opacity-95 transition">
               <span className="grid h-8 w-8 sm:h-9 sm:w-9 place-items-center rounded-xl bg-[#0f7b4f] font-black text-[#dff46b] text-base sm:text-lg shadow-sm shrink-0">
                 M
               </span>
-              <span className="flex items-center gap-2">
-                <span className="font-extrabold tracking-tight text-white whitespace-nowrap">
-                  MyAuto<span className="text-[#0f7b4f]">Scrap</span>
-                </span>
-                {user?.role === 'City Dealer' ? (
-                  <span className="rounded-md bg-amber-400 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-slate-950 uppercase shadow-xs shrink-0 whitespace-nowrap">
-                    📮 {user.coveredPostcodes && user.coveredPostcodes.length > 0 ? user.coveredPostcodes.join(', ') : 'Dealer'}
-                  </span>
-                ) : (
-                  <span className="rounded-md bg-[#dff46b] px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-[#082d1c] shrink-0 whitespace-nowrap">
-                    Super Admin
-                  </span>
-                )}
+              <span className="font-extrabold tracking-tight text-white whitespace-nowrap">
+                MyAuto<span className="text-[#0f7b4f]">Scrap</span>
               </span>
             </Link>
+
+            {/* Dealer Coverage Pill or Super Admin Badge */}
+            {user?.role === 'City Dealer' ? (
+              <div className="relative group shrink-0">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowAreasPopover(!showAreasPopover);
+                  }}
+                  title={coveredPostcodes.length > 0 ? `Covered Areas: ${coveredPostcodes.join(', ')}` : 'Dealer Territory'}
+                  className="flex items-center gap-1.5 rounded-md bg-amber-400 hover:bg-amber-300 px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-slate-950 uppercase shadow-xs transition cursor-pointer select-none active:scale-95 max-w-[130px] sm:max-w-[190px]"
+                >
+                  <span className="shrink-0">📮</span>
+                  <span className="truncate">{displaySummary}</span>
+                  {extraCount > 0 && (
+                    <span className="rounded bg-black/20 px-1 py-0.2 text-[9px] font-black shrink-0">
+                      +{extraCount}
+                    </span>
+                  )}
+                  {coveredPostcodes.length > 0 && (
+                    <svg
+                      className={`h-2.5 w-2.5 text-slate-900 transition-transform shrink-0 ${showAreasPopover ? 'rotate-180' : ''}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Popover Dropdown when clicking or hovering */}
+                {coveredPostcodes.length > 0 && (
+                  <>
+                    {/* Backdrop for mobile touch to dismiss */}
+                    {showAreasPopover && (
+                      <div
+                        className="fixed inset-0 z-40 sm:hidden"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowAreasPopover(false);
+                        }}
+                      />
+                    )}
+
+                    <div
+                      className={`absolute left-0 top-full mt-2 z-50 w-64 max-w-[85vw] rounded-2xl bg-slate-900/95 backdrop-blur-md p-3.5 text-white shadow-2xl border border-white/10 ${
+                        showAreasPopover ? 'block' : 'hidden group-hover:block'
+                      }`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2.5">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                          <span>📮</span>
+                          <span>Covered Areas ({coveredPostcodes.length})</span>
+                        </span>
+                        <span className="text-[9px] text-gray-400 font-medium">Dealer Territory</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                        {coveredPostcodes.map((area) => (
+                          <span
+                            key={area}
+                            className="rounded-md bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-300"
+                          >
+                            📮 {area}
+                          </span>
+                        ))}
+                      </div>
+
+                      <p className="text-[10px] text-gray-400 mt-2.5 pt-2 border-t border-white/10 leading-relaxed">
+                        You receive customer enquiries and can place bids for vehicles in these districts.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <span className="rounded-md bg-[#dff46b] px-2 py-0.5 text-[9px] sm:text-[10px] font-black uppercase text-[#082d1c] shrink-0 whitespace-nowrap">
+                Super Admin
+              </span>
+            )}
           </div>
 
           {/* User Controls & Logout */}
