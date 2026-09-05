@@ -146,7 +146,7 @@ export default function AdminLayout({ activeTab, children }) {
                           </div>
 
                           <p className="text-[11px] text-gray-400 border-t border-white/10 pt-3 leading-relaxed">
-                            You receive customer vehicle enquiries and can place bids for cars registered in these districts.
+                            Vehicle enquiries are received only for these assigned areas. High-value vehicle bids can be placed for cars from any area nationwide.
                           </p>
 
                           <button
@@ -187,7 +187,7 @@ export default function AdminLayout({ activeTab, children }) {
                       </div>
 
                       <p className="text-[10px] text-gray-400 mt-2.5 pt-2 border-t border-white/10 leading-relaxed">
-                        You receive customer enquiries and can place bids for vehicles in these districts.
+                        Vehicle enquiries are received only for these assigned areas. High-value vehicle bids can be placed for cars from any area nationwide.
                       </p>
                     </div>
                   </>
