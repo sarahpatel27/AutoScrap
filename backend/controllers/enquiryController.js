@@ -1036,6 +1036,7 @@ async function selectWinningDealer(req, res) {
           winningDealerId: targetBid.dealerId,
           winningBidId: targetBid.id,
           winnerSelectedAt: now,
+          biddingEndsAt: now,
         },
       });
 

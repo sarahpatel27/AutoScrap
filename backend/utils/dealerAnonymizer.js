@@ -40,7 +40,15 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
   let timeRemaining = 'N/A';
   let resolvedStatus = row.status;
 
-  if (row.biddingEndsAt) {
+  // When a dealer is selected or enquiry is concluded, the timer is ALWAYS Ended
+  const hasWinnerOrClosed =
+    Boolean(row.winningDealerId) ||
+    Boolean(row.winningBidId) ||
+    ['DEALER_SELECTED', 'PURCHASED', 'CANCELLED', 'BIDDING_ENDED', 'archived', 'deleted', 'ARCHIVED', 'DELETED'].includes(resolvedStatus);
+
+  if (hasWinnerOrClosed) {
+    timeRemaining = 'Ended';
+  } else if (row.biddingEndsAt) {
     const diffMs = new Date(row.biddingEndsAt).getTime() - Date.now();
     if (diffMs > 0) {
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -78,7 +86,9 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     winningDealerId: row.winningDealerId ? String(row.winningDealerId) : null,
     winningBidId: row.winningBidId ? String(row.winningBidId) : null,
     biddingStartAt: row.biddingStartAt ? row.biddingStartAt.toISOString() : null,
-    biddingEndsAt: row.biddingEndsAt ? row.biddingEndsAt.toISOString() : null,
+    biddingEndsAt: hasWinnerOrClosed && row.biddingEndsAt && new Date(row.biddingEndsAt) > new Date()
+      ? (row.winnerSelectedAt ? row.winnerSelectedAt.toISOString() : (row.purchasedAt ? row.purchasedAt.toISOString() : new Date().toISOString()))
+      : (row.biddingEndsAt ? row.biddingEndsAt.toISOString() : null),
     timeRemaining,
     createdAt: row.createdAt.toISOString(),
   };
@@ -115,7 +125,7 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
         coveredPostcodes: pcs,
         amount: Number(b.amount),
         status: b.status,
-        createdAt: b.createdAt.toISOString(),
+        createdAt: b.createdAt ? (b.createdAt.toISOString ? b.createdAt.toISOString() : new Date(b.createdAt).toISOString()) : new Date().toISOString(),
       };
     });
   } else {

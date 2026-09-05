@@ -139,6 +139,7 @@ async function autoResolveExpiredBids() {
               winningDealerId: topBid.dealerId,
               winningBidId: topBid.id,
               winnerSelectedAt: now,
+              biddingEndsAt: now,
             },
           });
         });

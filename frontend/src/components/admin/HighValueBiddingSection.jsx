@@ -279,8 +279,14 @@ export default function HighValueBiddingSection({ enquiries = [], onWinnerSelect
                           </div>
                           <div className="pt-1 border-t border-slate-200/80 text-[10px] flex items-center justify-between gap-1.5">
                             <span className="font-semibold text-slate-500">Timer:</span>
-                            <span className={`font-extrabold whitespace-nowrap ${item.timeRemaining === 'Ended' || item.timeRemaining === 'Bidding Ended' ? 'text-red-600' : 'text-amber-700'}`}>
-                              {item.timeRemaining === 'Bidding Ended' ? 'Ended' : (item.timeRemaining || 'N/A')}
+                            <span className={`font-extrabold whitespace-nowrap ${
+                              item.timeRemaining === 'Ended' || item.timeRemaining === 'Bidding Ended' || item.status === 'DEALER_SELECTED' || item.winningDealerId || item.status === 'PURCHASED'
+                                ? 'text-red-600'
+                                : 'text-amber-700'
+                            }`}>
+                              {item.status === 'DEALER_SELECTED' || item.winningDealerId || item.status === 'PURCHASED' || item.timeRemaining === 'Bidding Ended' || item.timeRemaining === 'Ended'
+                                ? 'Ended'
+                                : (item.timeRemaining || 'N/A')}
                             </span>
                           </div>
                         </div>

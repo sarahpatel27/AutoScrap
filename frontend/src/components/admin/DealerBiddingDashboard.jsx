@@ -11,8 +11,9 @@ export function isEnquiryEnded(item) {
   const isTimerExpired = item.timeRemaining === 'Ended' || item.timeRemaining === 'Bidding Ended' || (item.biddingEndsAt && new Date(item.biddingEndsAt) <= new Date());
   const isWinner = item.customerName && item.customerName !== '[Hidden Until Won]';
   const isLosingDealer = ['DEALER_SELECTED', 'PURCHASED'].includes(item.status) && !isWinner;
+  const hasWinner = Boolean(item.winningDealerId || item.winningBidId);
 
-  return isClosedStatus || isTimerExpired || isLosingDealer || isWinner;
+  return isClosedStatus || isTimerExpired || isLosingDealer || isWinner || hasWinner;
 }
 
 export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted }) {
@@ -309,7 +310,9 @@ export default function DealerBiddingDashboard({ enquiries = [], onBidSubmitted 
 
                       <div>
                         <span className="block text-slate-400 text-[9px] uppercase font-bold">Timer</span>
-                        <strong className="text-amber-300 font-black">{item.timeRemaining || 'Ended'}</strong>
+                        <strong className={isEnded || item.status === 'DEALER_SELECTED' || item.winningDealerId ? "text-red-400 font-black" : "text-amber-300 font-black"}>
+                          {isEnded || item.status === 'DEALER_SELECTED' || item.winningDealerId || item.timeRemaining === 'Bidding Ended' ? 'Ended' : (item.timeRemaining || 'Ended')}
+                        </strong>
                       </div>
                     </div>
 

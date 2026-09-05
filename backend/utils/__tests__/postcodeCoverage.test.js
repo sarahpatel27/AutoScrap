@@ -364,4 +364,67 @@ describe('High-Value Enquiry Purchased / Collected Customer Email Generation', (
   });
 });
 
+describe('Dealer Bidding Timer Termination Upon Winner Selection', () => {
+  const { anonymizeEnquiryForDealer } = require('../dealerAnonymizer');
+
+  it('forces timeRemaining to Ended when a winning dealer is selected even if 2 days remain', () => {
+    const futureDate = new Date(Date.now() + 48 * 60 * 60 * 1000); // 2 days in the future
+    const rowWithWinner = {
+      id: 101,
+      reference: 'MAS-HV-2026-WINNER',
+      status: 'DEALER_SELECTED',
+      winningDealerId: 5,
+      winningBidId: 12,
+      biddingEndsAt: futureDate,
+      estimatedValue: 2000,
+      customerExpectedValue: 2200,
+      registration: 'WN20 CAR',
+      make: 'BMW',
+      model: '5 Series',
+      year: 2020,
+      postcode: 'PE1 1AA',
+      city: 'Peterborough',
+      createdAt: new Date(),
+      bids: [
+        { id: 12, dealerId: 5, amount: '2300.00', status: 'WINNING', createdAt: new Date() },
+      ],
+    };
+
+    const user = { id: 5, role: 'City Dealer' };
+    const anonymized = anonymizeEnquiryForDealer(rowWithWinner, user);
+
+    assert.equal(anonymized.timeRemaining, 'Ended');
+    assert.equal(anonymized.status, 'DEALER_SELECTED');
+    assert.ok(new Date(anonymized.biddingEndsAt) <= new Date());
+  });
+
+  it('shows countdown for active enquiry without winner when biddingEndsAt is in future', () => {
+    const futureDate = new Date(Date.now() + 3 * 60 * 60 * 1000); // 3 hours in future
+    const rowActive = {
+      id: 102,
+      reference: 'MAS-HV-2026-ACTIVE',
+      status: 'BIDDING',
+      winningDealerId: null,
+      winningBidId: null,
+      biddingEndsAt: futureDate,
+      estimatedValue: 2000,
+      customerExpectedValue: 2200,
+      registration: 'AC20 CAR',
+      make: 'Audi',
+      model: 'A3',
+      year: 2020,
+      postcode: 'PE1 1AA',
+      city: 'Peterborough',
+      createdAt: new Date(),
+      bids: [],
+    };
+
+    const user = { id: 5, role: 'City Dealer' };
+    const anonymized = anonymizeEnquiryForDealer(rowActive, user);
+
+    assert.notEqual(anonymized.timeRemaining, 'Ended');
+    assert.ok(anonymized.timeRemaining.includes('h '));
+  });
+});
+
 
