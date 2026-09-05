@@ -6,6 +6,7 @@ const { customerHighValueEnquiryTemplate } = require('../templates/emails/custom
 const { dealerHighValueBiddingTemplate } = require('../templates/emails/dealerHighValueBidding');
 const { customerAcceptedEnquiryTemplate } = require('../templates/emails/customerAcceptedEnquiry');
 const { customerCollectedEnquiryTemplate } = require('../templates/emails/customerCollectedEnquiry');
+const { customerCancelledEnquiryTemplate } = require('../templates/emails/customerCancelledEnquiry');
 const { dealerBiddingNoBidsMidwayTemplate } = require('../templates/emails/dealerBiddingNoBidsMidway');
 const { dealerBiddingActiveBidsMidwayTemplate } = require('../templates/emails/dealerBiddingActiveBidsMidway');
 const { superAdminBiddingEndedNoBidsTemplate } = require('../templates/emails/superAdminBiddingEndedNoBids');
@@ -391,6 +392,45 @@ async function sendCustomerVehicleCollectedNotification({
     subject: template.subject,
     html: template.html,
   }).catch((err) => console.error(`[EmailService] Customer Vehicle Collected email failed for ${customerEmail}:`, err));
+}
+
+/**
+ * Trigger email to customer only when Standard Enquiry status is updated to 'Cancelled'
+ */
+async function sendCustomerVehicleCancelledNotification({
+  reference,
+  customer,
+  vehicle,
+  quote,
+  postcode,
+  city,
+  bank,
+}) {
+  const customerEmail = customer?.email?.trim();
+  const customerName = customer?.fullName || 'Valued Customer';
+  const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
+  const collectionAddress = customer?.collectionAddress || '';
+  const postCodeVal = postcode || customer?.collectionPostcode || '';
+
+  if (!customerEmail || !customerEmail.includes('@')) {
+    console.warn(`[EmailService] Cannot send Vehicle Cancelled email: No valid customer email for Ref: ${reference}`);
+    return { success: false, error: 'No valid customer email' };
+  }
+
+  const template = customerCancelledEnquiryTemplate({
+    reference,
+    customerName,
+    vehicle,
+    quoteAmount,
+    collectionAddress,
+    postcode: postCodeVal,
+  });
+
+  return sendEmail({
+    to: customerEmail,
+    subject: template.subject,
+    html: template.html,
+  }).catch((err) => console.error(`[EmailService] Customer Vehicle Cancelled email failed for ${customerEmail}:`, err));
 }
 
 /**
@@ -829,6 +869,7 @@ module.exports = {
   sendHighValueEnquiryCreatedNotifications,
   sendCustomerVehicleAcceptedNotification,
   sendCustomerVehicleCollectedNotification,
+  sendCustomerVehicleCancelledNotification,
   sendMidwayNoBidsNotification,
   sendMidwayActiveBidsNotification,
   sendSuperAdminBiddingEndedNoBidsNotification,

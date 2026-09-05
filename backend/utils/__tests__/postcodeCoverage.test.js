@@ -271,3 +271,32 @@ describe('Dealer Bids Anonymizer Postcode Resolution', () => {
   });
 });
 
+describe('Standard Enquiry Cancelled Status Email Generation', () => {
+  const { customerCancelledEnquiryTemplate } = require('../../templates/emails/customerCancelledEnquiry');
+
+  it('generates accurate subject, reference, and vehicle summary for cancelled status email', () => {
+    const template = customerCancelledEnquiryTemplate({
+      reference: 'MAS-2026-99123',
+      customerName: 'Sarah Connor',
+      vehicle: {
+        registration: 'AB12 CDE',
+        make: 'Ford',
+        model: 'Fiesta',
+        year: 2012,
+      },
+      quoteAmount: 285.50,
+      collectionAddress: '10 High Street',
+      postcode: 'PE1 1AA',
+    });
+
+    assert.equal(template.subject, 'Scrap Vehicle Enquiry Cancelled - Reference MAS-2026-99123');
+    assert.ok(template.html.includes('MAS-2026-99123'));
+    assert.ok(template.html.includes('Status: Cancelled'));
+    assert.ok(template.html.includes('AB12 CDE'));
+    assert.ok(template.html.includes('Ford Fiesta (2012)'));
+    assert.ok(template.html.includes('£285.50'));
+    assert.ok(template.html.includes('Sarah Connor'));
+  });
+});
+
+

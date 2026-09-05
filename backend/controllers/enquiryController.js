@@ -661,8 +661,8 @@ async function updateEnquiryStatus(req, res) {
       },
     });
 
-    // Send customer notification email if status is updated to Accepted or Collected
-    if (newStatus && (newStatus.toLowerCase() === 'accepted' || newStatus.toLowerCase() === 'collected')) {
+    // Send customer notification email if status is updated to Accepted, Collected, or Cancelled
+    if (newStatus && (newStatus.toLowerCase() === 'accepted' || newStatus.toLowerCase() === 'collected' || newStatus.toLowerCase() === 'cancelled')) {
       sendStandardEnquiryStatusEmail(updatedRecord, newStatus);
     }
 
@@ -718,8 +718,8 @@ async function updateBulkEnquiryStatus(req, res) {
       },
     });
 
-    // Trigger status emails for bulk update if status is Accepted or Collected
-    if (status && (status.toLowerCase() === 'accepted' || status.toLowerCase() === 'collected')) {
+    // Trigger status emails for bulk update if status is Accepted, Collected, or Cancelled
+    if (status && (status.toLowerCase() === 'accepted' || status.toLowerCase() === 'collected' || status.toLowerCase() === 'cancelled')) {
       const affectedEnquiries = await prisma.enquiry.findMany({
         where: {
           id: {

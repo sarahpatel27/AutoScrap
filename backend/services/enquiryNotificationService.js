@@ -13,6 +13,7 @@ const {
   sendHighValueEnquiryCreatedNotifications,
   sendCustomerVehicleAcceptedNotification,
   sendCustomerVehicleCollectedNotification,
+  sendCustomerVehicleCancelledNotification,
   sendEmail,
 } = require('./emailService');
 
@@ -83,10 +84,10 @@ function sendHighValueEnquiryEmail(record, rawData = {}) {
 
 /**
  * Dispatches status change notification email to customer only
- * For standard enquiry when status changes to 'Accepted' or 'Collected'
+ * For standard enquiry when status changes to 'Accepted', 'Collected', or 'Cancelled'
  * 
  * @param {Object} enquiry - Updated Prisma enquiry record or enquiry payload
- * @param {string} [newStatus] - The target status (e.g. 'Accepted', 'Collected')
+ * @param {string} [newStatus] - The target status (e.g. 'Accepted', 'Collected', 'Cancelled')
  */
 function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
   if (!enquiry) return;
@@ -126,6 +127,10 @@ function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
   } else if (targetStatus === 'collected') {
     sendCustomerVehicleCollectedNotification(payload).catch((err) => {
       console.error(`[NotificationService] Standard enquiry Collected status email failed for Ref ${enquiry.reference}:`, err.message);
+    });
+  } else if (targetStatus === 'cancelled') {
+    sendCustomerVehicleCancelledNotification(payload).catch((err) => {
+      console.error(`[NotificationService] Standard enquiry Cancelled status email failed for Ref ${enquiry.reference}:`, err.message);
     });
   }
 }
