@@ -98,39 +98,88 @@ export default function AdminLayout({ activeTab, children }) {
                   )}
                 </button>
 
-                {/* Popover Dropdown when clicking or hovering */}
+                {/* Popover / Modal when clicking or hovering */}
                 {coveredPostcodes.length > 0 && (
                   <>
-                    {/* Backdrop for mobile touch to dismiss */}
+                    {/* Mobile Centered Modal Overlay (Never cut off by screen edges!) */}
                     {showAreasPopover && (
                       <div
-                        className="fixed inset-0 z-40 sm:hidden"
+                        className="fixed inset-0 z-50 flex items-center justify-center sm:hidden bg-black/75 backdrop-blur-xs p-4"
                         onClick={(e) => {
                           e.stopPropagation();
                           setShowAreasPopover(false);
                         }}
-                      />
+                      >
+                        <div
+                          className="w-full max-w-xs rounded-3xl bg-slate-900 p-5 text-white shadow-2xl border border-white/15 space-y-4 animate-in fade-in zoom-in-95 duration-150 text-left"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                            <div className="flex items-center gap-2.5">
+                              <span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-400/20 text-lg">📮</span>
+                              <div>
+                                <h4 className="text-sm font-black text-amber-400 font-['Manrope']">
+                                  Covered Areas ({coveredPostcodes.length})
+                                </h4>
+                                <span className="text-[10px] text-gray-400 font-medium">Dealer Active Territory</span>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowAreasPopover(false)}
+                              className="grid h-8 w-8 place-items-center rounded-full bg-white/10 text-xs font-bold text-gray-300 hover:bg-white/20 transition cursor-pointer"
+                              title="Close"
+                            >
+                              ✕
+                            </button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto pr-1 py-1">
+                            {coveredPostcodes.map((area) => (
+                              <span
+                                key={area}
+                                className="inline-flex items-center gap-1 rounded-lg bg-emerald-500/20 border border-emerald-500/30 px-2.5 py-1 text-xs font-mono font-black text-emerald-300 shadow-xs"
+                              >
+                                📮 {area}
+                              </span>
+                            ))}
+                          </div>
+
+                          <p className="text-[11px] text-gray-400 border-t border-white/10 pt-3 leading-relaxed">
+                            You receive customer vehicle enquiries and can place bids for cars registered in these districts.
+                          </p>
+
+                          <button
+                            type="button"
+                            onClick={() => setShowAreasPopover(false)}
+                            className="w-full rounded-xl bg-amber-400 py-2.5 text-xs font-black text-slate-950 uppercase tracking-wide hover:bg-amber-300 transition cursor-pointer active:scale-95 shadow-sm"
+                          >
+                            Done
+                          </button>
+                        </div>
+                      </div>
                     )}
 
+                    {/* Desktop Popover Dropdown (Screens >= sm) */}
                     <div
-                      className={`absolute left-0 top-full mt-2 z-50 w-64 max-w-[85vw] rounded-2xl bg-slate-900/95 backdrop-blur-md p-3.5 text-white shadow-2xl border border-white/10 ${
-                        showAreasPopover ? 'block' : 'hidden group-hover:block'
+                      className={`hidden sm:block absolute left-0 top-full mt-2 z-50 w-72 rounded-2xl bg-slate-900/95 backdrop-blur-md p-4 text-white shadow-2xl border border-white/10 ${
+                        showAreasPopover ? 'sm:block' : 'sm:hidden group-hover:sm:block'
                       }`}
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2.5">
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1">
+                      <div className="flex items-center justify-between border-b border-white/10 pb-2.5 mb-2.5">
+                        <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5 font-['Manrope']">
                           <span>📮</span>
                           <span>Covered Areas ({coveredPostcodes.length})</span>
                         </span>
-                        <span className="text-[9px] text-gray-400 font-medium">Dealer Territory</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Dealer Territory</span>
                       </div>
 
-                      <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto pr-1">
+                      <div className="flex flex-wrap gap-1.5 max-h-52 overflow-y-auto pr-1">
                         {coveredPostcodes.map((area) => (
                           <span
                             key={area}
-                            className="rounded-md bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-300"
+                            className="rounded-md bg-emerald-500/20 border border-emerald-500/30 px-2 py-0.5 text-[11px] font-mono font-bold text-emerald-300"
                           >
                             📮 {area}
                           </span>
