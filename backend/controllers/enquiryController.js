@@ -7,6 +7,7 @@ const {
   sendStandardEnquiryEmail,
   sendHighValueEnquiryEmail,
   sendStandardEnquiryStatusEmail,
+  sendHighValueEnquiryPurchasedEmail,
 } = require('../services/enquiryNotificationService');
 const { sendWinningDealerAndCustomerNotifications } = require('../services/emailService');
 
@@ -1087,6 +1088,7 @@ async function markEnquiryPurchased(req, res) {
 
     const enquiry = await prisma.highValueEnquiry.findUnique({
       where: { id: numericEnquiryId },
+      include: { bids: true },
     });
 
     if (!enquiry) {
@@ -1111,7 +1113,11 @@ async function markEnquiryPurchased(req, res) {
         status: 'PURCHASED',
         purchasedAt: now,
       },
+      include: { bids: true },
     });
+
+    // Send customer notification email that vehicle has been collected & purchased
+    sendHighValueEnquiryPurchasedEmail(updated);
 
     res.status(200).json({
       success: true,

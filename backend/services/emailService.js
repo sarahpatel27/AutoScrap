@@ -365,6 +365,7 @@ async function sendCustomerVehicleCollectedNotification({
   postcode,
   city,
   bank,
+  collectionDate,
 }) {
   const customerEmail = customer?.email?.trim();
   const customerName = customer?.fullName || 'Valued Customer';
@@ -384,7 +385,7 @@ async function sendCustomerVehicleCollectedNotification({
     quoteAmount,
     collectionAddress,
     postcode: postCodeVal,
-    collectionDate: new Date(),
+    collectionDate: collectionDate || new Date(),
   });
 
   return sendEmail({

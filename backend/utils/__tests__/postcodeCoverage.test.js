@@ -299,4 +299,69 @@ describe('Standard Enquiry Cancelled Status Email Generation', () => {
   });
 });
 
+describe('High-Value Enquiry Purchased / Collected Customer Email Generation', () => {
+  const { customerCollectedEnquiryTemplate } = require('../../templates/emails/customerCollectedEnquiry');
+  const { sendHighValueEnquiryPurchasedEmail } = require('../../services/enquiryNotificationService');
+
+  it('generates accurate subject, agreed settlement, and vehicle details for collected customer email', () => {
+    const template = customerCollectedEnquiryTemplate({
+      reference: 'HV-2026-77889',
+      customerName: 'Marcus Rashford',
+      vehicle: {
+        registration: 'MR19 BPS',
+        make: 'Audi',
+        model: 'A4',
+        year: 2019,
+      },
+      quoteAmount: 4850.00,
+      collectionAddress: '12 Old Trafford Way',
+      postcode: 'M16 0RA',
+      collectionDate: new Date('2026-09-05T12:00:00Z'),
+    });
+
+    assert.equal(template.subject, 'Vehicle Collected Successfully - Reference HV-2026-77889');
+    assert.ok(template.html.includes('HV-2026-77889'));
+    assert.ok(template.html.includes('MR19 BPS'));
+    assert.ok(template.html.includes('Audi A4 (2019)'));
+    assert.ok(template.html.includes('£4,850.00'));
+    assert.ok(template.html.includes('Marcus Rashford'));
+    assert.ok(template.html.includes('12 Old Trafford Way'));
+    assert.ok(template.html.includes('M16 0RA'));
+    assert.ok(template.html.includes('Your Vehicle Has Been Collected Successfully'));
+  });
+
+  it('sendHighValueEnquiryPurchasedEmail safely processes high-value record without error', async () => {
+    const fakeEnquiry = {
+      id: 999,
+      reference: 'HV-2026-99999',
+      customerName: 'Jane Doe',
+      customerEmail: 'customer@example.com',
+      customerPhone: '07123456789',
+      customer: {
+        fullName: 'Jane Doe',
+        email: 'customer@example.com',
+        phone: '07123456789',
+        collectionAddress: '10 High Street',
+      },
+      registration: 'JD67 CAR',
+      make: 'Mercedes-Benz',
+      model: 'C-Class',
+      year: 2017,
+      postcode: 'PE1 1AA',
+      city: 'Peterborough',
+      winningBidId: 55,
+      bids: [
+        { id: 54, amount: '3500.00', status: 'REJECTED' },
+        { id: 55, amount: '3850.00', status: 'WINNING' },
+      ],
+      purchasedAt: new Date(),
+    };
+
+    // Should run smoothly without throwing an exception
+    await assert.doesNotReject(async () => {
+      await sendHighValueEnquiryPurchasedEmail(fakeEnquiry);
+    });
+  });
+});
+
 

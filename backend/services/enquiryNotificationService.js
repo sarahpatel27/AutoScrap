@@ -136,6 +136,84 @@ function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
 }
 
 /**
+ * Dispatches notification email to customer when High-Value enquiry is marked as Purchased/Collected
+ * 
+ * @param {Object} enquiry - HighValueEnquiry record (with bids)
+ */
+function sendHighValueEnquiryPurchasedEmail(enquiry) {
+  if (!enquiry) return;
+
+  const customerData = typeof enquiry.customer === 'string'
+    ? JSON.parse(enquiry.customer || '{}')
+    : (enquiry.customer || {});
+
+  const customerEmail = (customerData.email || enquiry.customerEmail || '').trim();
+  const customerName = customerData.fullName || enquiry.customerName || 'Valued Customer';
+  const customerPhone = customerData.phone || enquiry.customerPhone || '';
+  const collectionAddress = customerData.collectionAddress || '';
+  const postcode = enquiry.postcode || customerData.collectionPostcode || '';
+  const city = enquiry.city || '';
+
+  const vehicle = {
+    registration: enquiry.registration,
+    make: enquiry.make,
+    model: enquiry.model,
+    year: enquiry.year,
+    mileage: enquiry.mileage,
+  };
+
+  // Find winning bid amount if available
+  let settlementAmount = 0;
+  if (Array.isArray(enquiry.bids) && enquiry.bids.length > 0) {
+    const winningBid = enquiry.bids.find((b) => b.id === enquiry.winningBidId || b.status === 'WINNING');
+    if (winningBid && winningBid.amount != null) {
+      if (typeof winningBid.amount === 'object' && typeof winningBid.amount.toNumber === 'function') {
+        settlementAmount = winningBid.amount.toNumber();
+      } else {
+        const num = Number(winningBid.amount);
+        settlementAmount = isNaN(num) ? 0 : num;
+      }
+    }
+  }
+
+  // Fallback to customerExpectedValue or estimatedValue if no winning bid found
+  if (!settlementAmount) {
+    const exp = enquiry.customerExpectedValue;
+    const est = enquiry.estimatedValue;
+    const numExp = exp && typeof exp === 'object' && typeof exp.toNumber === 'function' ? exp.toNumber() : Number(exp);
+    const numEst = est && typeof est === 'object' && typeof est.toNumber === 'function' ? est.toNumber() : Number(est);
+    settlementAmount = numExp || numEst || 0;
+  }
+
+  const bankData = typeof enquiry.bank === 'string'
+    ? JSON.parse(enquiry.bank || '{}')
+    : (enquiry.bank || {});
+
+  const payload = {
+    reference: enquiry.reference,
+    customer: {
+      ...customerData,
+      fullName: customerName,
+      email: customerEmail,
+      phone: customerPhone,
+      collectionAddress,
+    },
+    vehicle,
+    quote: {
+      finalValue: settlementAmount,
+    },
+    bank: bankData,
+    postcode,
+    city,
+    collectionDate: enquiry.purchasedAt || new Date(),
+  };
+
+  return sendCustomerVehicleCollectedNotification(payload).catch((err) => {
+    console.error(`[NotificationService] High-value enquiry Purchased/Collected email failed for Ref ${enquiry.reference}:`, err.message);
+  });
+}
+
+/**
  * Unified helper to trigger emails for any enquiry type
  * 
  * @param {Object} options
@@ -155,6 +233,7 @@ module.exports = {
   sendStandardEnquiryEmail,
   sendHighValueEnquiryEmail,
   sendStandardEnquiryStatusEmail,
+  sendHighValueEnquiryPurchasedEmail,
   sendEnquiryNotification,
   sendEmail,
 };
