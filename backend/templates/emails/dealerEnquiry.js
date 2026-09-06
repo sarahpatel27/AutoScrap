@@ -73,7 +73,7 @@ function dealerEnquiryTemplate({
           <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Collection Address</td>
           <td style="padding: 8px 0; color: #0f172a;">
             ${collectionAddress}
-            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Extra Address: ${additionalAddressDetails}</div>` : ''}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Additional Address or Details: ${additionalAddressDetails}</div>` : ''}
           </td>
         </tr>
         ` : ''}

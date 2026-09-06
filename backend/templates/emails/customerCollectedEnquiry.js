@@ -90,7 +90,7 @@ function customerCollectedEnquiryTemplate({
           <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Collection Location</td>
           <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">
             ${collectionAddress ? `${collectionAddress}, ` : ''}${postcode || ''}
-            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Extra Address: ${additionalAddressDetails}</div>` : ''}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Additional Address or Details: ${additionalAddressDetails}</div>` : ''}
           </td>
         </tr>
         ` : ''}
