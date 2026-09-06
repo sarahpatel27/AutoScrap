@@ -454,11 +454,24 @@ export async function deleteDistrictPricing(district) {
   return data;
 }
 
-export async function changeUserPassword(currentPassword, newPassword) {
+export async function updateUserProfile(name) {
+  const res = await fetch(getApiUrl('/api/auth/profile'), {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ name }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update profile.');
+  }
+  return data;
+}
+
+export async function changeUserPassword(currentPassword, newPassword, name) {
   const res = await fetch(getApiUrl('/api/auth/change-password'), {
     method: 'POST',
     headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ currentPassword, newPassword }),
+    body: JSON.stringify({ currentPassword, newPassword, name }),
   });
   const data = await res.json();
   if (!res.ok) {

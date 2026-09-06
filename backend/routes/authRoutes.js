@@ -8,11 +8,13 @@ const {
   updateDealerCoverage,
   deleteUser,
   changePassword,
+  updateProfile,
 } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
 router.post('/login', login);
 router.get('/me', authenticateToken, getCurrentUser);
+router.put('/profile', authenticateToken, updateProfile);
 router.post('/change-password', authenticateToken, changePassword);
 router.get('/users', authenticateToken, getUsers);
 router.post('/users', authenticateToken, createUser);

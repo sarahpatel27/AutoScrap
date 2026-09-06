@@ -383,9 +383,48 @@ async function deleteUser(req, res) {
   }
 }
 
+async function updateProfile(req, res) {
+  try {
+    const { name } = req.body;
+    const userId = req.user.id;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'Display name cannot be empty.' });
+    }
+
+    const trimmedName = name.trim();
+    if (trimmedName.length > 100) {
+      return res.status(400).json({ error: 'Display name cannot exceed 100 characters.' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { name: trimmedName },
+    });
+
+    const userData = {
+      id: String(updatedUser.id),
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      assignedCity: updatedUser.assignedCity,
+      coveredPostcodes: updatedUser.coveredPostcodes || [],
+      avatar: updatedUser.role === 'City Dealer' ? '📍' : '🛡️',
+    };
+
+    res.json({
+      message: 'Profile name updated successfully.',
+      user: userData,
+    });
+  } catch (err) {
+    console.error('Update Profile Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
 async function changePassword(req, res) {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, name } = req.body;
     const userId = req.user.id;
 
     if (!currentPassword || !newPassword) {
@@ -412,12 +451,31 @@ async function changePassword(req, res) {
 
     // Hash and update new password
     const newPasswordHash = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
+    const updateData = { password: newPasswordHash };
+
+    if (name && typeof name === 'string' && name.trim()) {
+      updateData.name = name.trim().slice(0, 100);
+    }
+
+    const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { password: newPasswordHash },
+      data: updateData,
     });
 
-    res.json({ message: 'Password updated successfully.' });
+    const userData = {
+      id: String(updatedUser.id),
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      assignedCity: updatedUser.assignedCity,
+      coveredPostcodes: updatedUser.coveredPostcodes || [],
+      avatar: updatedUser.role === 'City Dealer' ? '📍' : '🛡️',
+    };
+
+    res.json({
+      message: 'Password updated successfully.',
+      user: userData,
+    });
   } catch (err) {
     console.error('Change Password Error:', err);
     res.status(500).json({ error: err.message });
@@ -432,4 +490,5 @@ module.exports = {
   updateDealerCoverage,
   deleteUser,
   changePassword,
+  updateProfile,
 };

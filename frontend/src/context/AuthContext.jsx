@@ -81,6 +81,15 @@ export function AuthProvider({ children }) {
     } catch (e) {}
   };
 
+  const updateUser = (updatedUserData) => {
+    if (!updatedUserData) return;
+    setUser((prev) => {
+      const merged = { ...prev, ...updatedUserData };
+      setCookie(USER_COOKIE_KEY, JSON.stringify(merged), 7);
+      return merged;
+    });
+  };
+
   const value = {
     user,
     token: getCookie(TOKEN_COOKIE_KEY),
@@ -88,6 +97,7 @@ export function AuthProvider({ children }) {
     loading,
     login,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
