@@ -584,9 +584,45 @@ export default function Step1HighValueForm({
               id="field-phone"
               className={inputClass}
               type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={customer.phone}
-              onChange={(e) => updateCustomer('phone', e.target.value)}
-              placeholder="07123 456789"
+              onKeyDown={(e) => {
+                if (
+                  [
+                    'Backspace',
+                    'Delete',
+                    'Tab',
+                    'Escape',
+                    'Enter',
+                    'ArrowLeft',
+                    'ArrowRight',
+                    'ArrowUp',
+                    'ArrowDown',
+                    'Home',
+                    'End',
+                  ].includes(e.key) ||
+                  ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase()))
+                ) {
+                  return;
+                }
+                if (!/^[0-9]$/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData?.getData('text') || '';
+                const digits = pasted.replace(/\D/g, '').slice(0, 11);
+                updateCustomer('phone', digits);
+              }}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '');
+                updateCustomer('phone', digits.slice(0, 11));
+              }}
+              placeholder="e.g. 07123456789"
+              autoComplete="tel"
+              maxLength={11}
             />
           </label>
         </div>

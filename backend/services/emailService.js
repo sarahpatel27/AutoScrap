@@ -83,6 +83,7 @@ async function sendEnquiryCreatedNotifications({
 }) {
   const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
   const customerEmail = customer?.email?.trim();
   const customerName = customer?.fullName || 'Valued Customer';
 
@@ -96,6 +97,7 @@ async function sendEnquiryCreatedNotifications({
       vehicle,
       quoteAmount,
       collectionAddress,
+      additionalAddressDetails,
       postcode,
     });
 
@@ -330,6 +332,7 @@ async function sendCustomerVehicleAcceptedNotification({
   const customerName = customer?.fullName || 'Valued Customer';
   const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
   const postCodeVal = postcode || customer?.collectionPostcode || '';
   const paymentMethod = bank?.accountNumber ? 'Direct Bank Transfer' : 'Bank Transfer';
 
@@ -344,6 +347,7 @@ async function sendCustomerVehicleAcceptedNotification({
     vehicle,
     quoteAmount,
     collectionAddress,
+    additionalAddressDetails,
     postcode: postCodeVal,
     paymentMethod,
   });
@@ -373,6 +377,7 @@ async function sendCustomerVehicleCollectedNotification({
   const customerName = customer?.fullName || 'Valued Customer';
   const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
   const postCodeVal = postcode || customer?.collectionPostcode || '';
 
   if (!customerEmail || !customerEmail.includes('@')) {
@@ -390,6 +395,7 @@ async function sendCustomerVehicleCollectedNotification({
     vehicle,
     quoteAmount,
     collectionAddress,
+    additionalAddressDetails,
     postcode: postCodeVal,
     collectionDate: collectionDate || new Date(),
     isHighValue: isHV,
@@ -418,6 +424,7 @@ async function sendCustomerVehicleCancelledNotification({
   const customerName = customer?.fullName || 'Valued Customer';
   const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
   const postCodeVal = postcode || customer?.collectionPostcode || '';
 
   if (!customerEmail || !customerEmail.includes('@')) {
@@ -431,6 +438,7 @@ async function sendCustomerVehicleCancelledNotification({
     vehicle,
     quoteAmount,
     collectionAddress,
+    additionalAddressDetails,
     postcode: postCodeVal,
   });
 
@@ -708,7 +716,8 @@ async function sendWinningDealerAndCustomerNotifications({
   const customerEmail = customerData.email || enquiry.customerEmail;
   const customerName = customerData.fullName || enquiry.customerName || 'Valued Customer';
   const customerPhone = customerData.phone || enquiry.customerPhone || '';
-  const collectionAddress = customerData.collectionAddress || '';
+  const collectionAddress = customerData.collectionAddress || enquiry.collectionAddress || enquiry.address || '';
+  const additionalAddressDetails = customerData.additionalAddressDetails || enquiry.additionalAddressDetails || '';
   const postcode = enquiry.postcode || customerData.collectionPostcode || '';
   const city = enquiry.city || '';
 
@@ -737,6 +746,7 @@ async function sendWinningDealerAndCustomerNotifications({
         phone: customerPhone,
         email: customerEmail,
         collectionAddress,
+        additionalAddressDetails,
       },
     });
 
@@ -756,6 +766,7 @@ async function sendWinningDealerAndCustomerNotifications({
       customerName,
       vehicle,
       collectionAddress,
+      additionalAddressDetails,
       postcode,
       city,
       dealer: {
@@ -802,6 +813,7 @@ async function sendWinningDealerAndCustomerNotifications({
           phone: customerPhone,
           email: customerEmail,
           collectionAddress,
+          additionalAddressDetails,
         },
         dealer: {
           name: winningDealer?.name || 'Valued Partner',

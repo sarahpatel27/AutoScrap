@@ -8,6 +8,7 @@ function customerCancelledEnquiryTemplate({
   vehicle,
   quoteAmount,
   collectionAddress,
+  additionalAddressDetails,
   postcode,
 }) {
   const reg = vehicle?.registration || 'N/A';
@@ -69,7 +70,10 @@ function customerCancelledEnquiryTemplate({
         ${postcode || collectionAddress ? `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Location</td>
-          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">${collectionAddress ? `${collectionAddress}, ` : ''}${postcode || ''}</td>
+          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">
+            ${collectionAddress ? `${collectionAddress}, ` : ''}${postcode || ''}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Extra Address: ${additionalAddressDetails}</div>` : ''}
+          </td>
         </tr>
         ` : ''}
       </tbody>

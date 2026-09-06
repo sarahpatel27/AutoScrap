@@ -63,7 +63,37 @@ export default function Step3ContactDetails({
             className={inputClass}
             type="tel"
             inputMode="numeric"
+            pattern="[0-9]*"
             value={data.customer.phone}
+            onKeyDown={(e) => {
+              if (
+                [
+                  'Backspace',
+                  'Delete',
+                  'Tab',
+                  'Escape',
+                  'Enter',
+                  'ArrowLeft',
+                  'ArrowRight',
+                  'ArrowUp',
+                  'ArrowDown',
+                  'Home',
+                  'End',
+                ].includes(e.key) ||
+                ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase()))
+              ) {
+                return;
+              }
+              if (!/^[0-9]$/.test(e.key)) {
+                e.preventDefault();
+              }
+            }}
+            onPaste={(e) => {
+              e.preventDefault();
+              const pasted = e.clipboardData?.getData('text') || '';
+              const digits = pasted.replace(/\D/g, '').slice(0, 11);
+              updateCustomer('phone', digits);
+            }}
             onChange={(event) => {
               const digits = event.target.value.replace(/\D/g, '');
               updateCustomer('phone', digits.slice(0, 11));

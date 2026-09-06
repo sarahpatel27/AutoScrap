@@ -23,6 +23,7 @@ function dealerEnquiryTemplate({
   const customerPhone = customer?.phone || 'N/A';
   const customerEmail = customer?.email || 'N/A';
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || customer?.extraAddress || '';
 
   const isSuperAdmin = recipientRole === 'Super Admin';
   const headingTitle = isSuperAdmin ? 'New Car Enquiry (Super Admin)' : `New Car Enquiry - ${city || 'Assigned Area'}`;
@@ -70,7 +71,10 @@ function dealerEnquiryTemplate({
         ${collectionAddress ? `
         <tr>
           <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Collection Address</td>
-          <td style="padding: 8px 0; color: #0f172a;">${collectionAddress}</td>
+          <td style="padding: 8px 0; color: #0f172a;">
+            ${collectionAddress}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Extra Address: ${additionalAddressDetails}</div>` : ''}
+          </td>
         </tr>
         ` : ''}
       </table>

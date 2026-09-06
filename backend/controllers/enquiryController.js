@@ -672,6 +672,17 @@ async function updateEnquiryStatus(req, res) {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
+    if (
+      targetEnquiry.status &&
+      targetEnquiry.status.toLowerCase() === 'collected' &&
+      status &&
+      status.toLowerCase() !== 'collected'
+    ) {
+      return res.status(400).json({
+        error: 'Status for collected vehicles is locked and cannot be changed.',
+      });
+    }
+
     const currentCustomer = targetEnquiry.customer || {};
     if (notes !== undefined) {
       currentCustomer.notes = notes;
@@ -733,13 +744,21 @@ async function updateBulkEnquiryStatus(req, res) {
 
     const numericIds = ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
 
+    const whereClause = {
+      id: {
+        in: numericIds,
+      },
+    };
+
+    if (status && status.toLowerCase() !== 'collected') {
+      whereClause.status = {
+        not: 'Collected',
+      };
+    }
+
     // Update multiple records using Prisma ORM method updateMany
     await prisma.enquiry.updateMany({
-      where: {
-        id: {
-          in: numericIds,
-        },
-      },
+      where: whereClause,
       data: {
         status,
       },

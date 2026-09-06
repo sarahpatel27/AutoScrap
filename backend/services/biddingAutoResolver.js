@@ -96,6 +96,7 @@ async function autoResolveExpiredBids() {
             email: enquiry.customerEmail || customerData.email,
             phone: enquiry.customerPhone || customerData.phone,
             collectionAddress: customerData.collectionAddress,
+            additionalAddressDetails: customerData.additionalAddressDetails || enquiry.additionalAddressDetails || '',
           },
         }).catch((err) => {
           console.error(`[AutoResolver] Super Admin 48h No Bids Ended email error for ${enquiry.reference}:`, err.message);

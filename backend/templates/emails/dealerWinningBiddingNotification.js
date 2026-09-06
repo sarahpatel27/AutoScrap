@@ -25,6 +25,7 @@ function dealerWinningBiddingNotificationTemplate({
   const customerPhone = customer?.phone || customer?.customerPhone || 'N/A';
   const customerEmail = customer?.email || customer?.customerEmail || 'N/A';
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || customer?.extraAddress || '';
 
   const contentHtml = `
     <!-- Top Winning Header Card -->
@@ -87,6 +88,7 @@ function dealerWinningBiddingNotificationTemplate({
           <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Collection Address</td>
           <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">
             ${collectionAddress ? `${collectionAddress}, ` : ''}${city || ''} ${postcode || ''}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Extra Address: ${additionalAddressDetails}</div>` : ''}
           </td>
         </tr>
       </table>

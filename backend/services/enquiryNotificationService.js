@@ -211,6 +211,7 @@ function sendHighValueEnquiryPurchasedEmail(enquiry) {
       email: customerEmail,
       phone: customerPhone,
       collectionAddress,
+      additionalAddressDetails: customerData.additionalAddressDetails || enquiry.additionalAddressDetails || '',
     },
     vehicle,
     quote: {

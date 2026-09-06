@@ -18,7 +18,6 @@ export default function EnquiryDetailModal({
   readOnly = false,
 }) {
   const [status, setStatus] = useState(enquiry?.status || 'Pending');
-  const [notes, setNotes] = useState(enquiry?.customer?.notes || '');
   const [saving, setSaving] = useState(false);
 
   const [statusOpen, setStatusOpen] = useState(false);
@@ -32,7 +31,6 @@ export default function EnquiryDetailModal({
     if (!enquiry) return;
 
     setStatus(enquiry.status || 'Pending');
-    setNotes(enquiry.customer?.notes || '');
     setStatusOpen(false);
     setDropdownPosition(null);
   }, [enquiry]);
@@ -86,11 +84,15 @@ export default function EnquiryDetailModal({
   const hasBankDetails =
     enquiry.bank?.accountNumber || enquiry.bank?.sortCode;
 
+  const isCollected = enquiry?.status?.toLowerCase() === 'collected';
+  const isStatusDisabled = readOnly || isCollected;
+
   const selectedStatus =
     STATUS_OPTIONS.find((item) => item.value === status) ||
     STATUS_OPTIONS[0];
 
   const openStatusDropdown = () => {
+    if (isStatusDisabled) return;
     if (statusOpen) {
       setStatusOpen(false);
       return;
@@ -139,7 +141,7 @@ export default function EnquiryDetailModal({
   const handleSave = async () => {
     try {
       setSaving(true);
-      await onUpdateStatus(enquiry.id, status, notes);
+      await onUpdateStatus(enquiry.id, status);
       showToast(`Enquiry #${enquiry.reference} status updated to "${status}"!`, 'success');
       onClose();
     } finally {
@@ -391,74 +393,55 @@ export default function EnquiryDetailModal({
               )}
             </div>
 
-            {/* Status + Notes */}
+            {/* Status */}
             <div className="space-y-3 rounded-2xl border border-gray-200/80 bg-white p-4">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
-                Update Status & Driver Notes
+                Update Status
               </span>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-extrabold text-slate-700">
-                    Set Status
-                  </label>
+              <div>
+                <label className="mb-1 block text-xs font-extrabold text-slate-700">
+                  Set Status
+                </label>
 
-                  <button
-                    ref={statusButtonRef}
-                    type="button"
-                    disabled={readOnly}
-                    onClick={openStatusDropdown}
-                    className={`flex w-full items-center justify-between rounded-xl border bg-gray-50 px-3.5 py-2.5 text-xs font-extrabold text-slate-800 transition outline-none ${
-                      readOnly
-                        ? 'opacity-80 cursor-not-allowed bg-gray-100'
-                        : statusOpen
-                        ? 'border-[#0f7b4f] bg-white ring-2 ring-[#0f7b4f]/10 cursor-pointer'
-                        : 'border-gray-300 hover:border-gray-400 cursor-pointer'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <span className="text-base leading-none">
-                        {selectedStatus.icon}
-                      </span>
-                      {selectedStatus.value}
+                <button
+                  ref={statusButtonRef}
+                  type="button"
+                  disabled={isStatusDisabled}
+                  onClick={openStatusDropdown}
+                  className={`flex w-full items-center justify-between rounded-xl border px-3.5 py-2.5 text-xs font-extrabold transition outline-none ${
+                    isStatusDisabled
+                      ? 'opacity-80 cursor-not-allowed bg-gray-100 border-gray-200 text-slate-700'
+                      : statusOpen
+                      ? 'border-[#0f7b4f] bg-white ring-2 ring-[#0f7b4f]/10 cursor-pointer text-slate-800'
+                      : 'border-gray-300 hover:border-gray-400 cursor-pointer bg-gray-50 text-slate-800'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span className="text-base leading-none">
+                      {selectedStatus.icon}
                     </span>
+                    {selectedStatus.value}
+                  </span>
 
-                    {!readOnly && (
-                      <svg
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        className={`h-4 w-4 text-gray-500 transition-transform ${
-                          statusOpen ? 'rotate-180' : ''
-                        }`}
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M5 7.5 10 12.5 15 7.5"
-                        />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-
-                <div>
-                  <label className="mb-1 block text-xs font-extrabold text-slate-700">
-                    Internal Remarks
-                  </label>
-
-                  <textarea
-                    rows="2"
-                    value={notes}
-                    disabled={readOnly}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder={readOnly ? 'No internal remarks recorded.' : 'Notes on collection time, driver details, price agreement...'}
-                    className={`w-full resize-none rounded-xl border border-gray-300 p-2.5 text-xs font-medium outline-none transition ${
-                      readOnly ? 'bg-gray-100 text-gray-600 cursor-not-allowed' : 'bg-gray-50 focus:border-[#0f7b4f] focus:bg-white'
-                    }`}
-                  />
-                </div>
+                  {!isStatusDisabled && (
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className={`h-4 w-4 text-gray-500 transition-transform ${
+                        statusOpen ? 'rotate-180' : ''
+                      }`}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 7.5 10 12.5 15 7.5"
+                      />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
           </div>
@@ -466,7 +449,7 @@ export default function EnquiryDetailModal({
           {/* Footer */}
           <div className="flex shrink-0 items-center justify-between gap-3 border-t border-gray-200 bg-white p-4">
             {readOnly ? (
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+              <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700">
                 <span>🔒</span> Read-Only Archived Record
               </div>
             ) : (
@@ -479,10 +462,10 @@ export default function EnquiryDetailModal({
                 onClick={onClose}
                 className="cursor-pointer rounded-xl border border-gray-300 bg-gray-100 px-4 py-2.5 text-xs font-bold text-gray-700 transition hover:bg-gray-200 active:scale-95"
               >
-                {readOnly ? 'Close' : 'Cancel'}
+                {readOnly || isCollected ? 'Close' : 'Cancel'}
               </button>
 
-              {!readOnly && (
+              {!readOnly && !isCollected && (
                 <button
                   type="button"
                   onClick={handleSave}
