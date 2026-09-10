@@ -624,3 +624,82 @@ export async function sendPromotionalCampaign(payload) {
   return data;
 }
 
+// ==========================================
+// CUSTOMER REVIEWS API METHODS
+// ==========================================
+
+export async function fetchPublicReviews() {
+  try {
+    const res = await fetch(getApiUrl('/api/reviews'));
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Backend fetch error for public reviews:', err);
+  }
+  return null;
+}
+
+export async function fetchAdminReviews() {
+  const res = await fetch(getApiUrl('/api/reviews/admin'), {
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to fetch reviews.');
+  }
+  return data;
+}
+
+export async function createAdminReview(reviewData) {
+  const res = await fetch(getApiUrl('/api/reviews/admin'), {
+    method: 'POST',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(reviewData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to create review.');
+  }
+  return data;
+}
+
+export async function updateAdminReview(id, reviewData) {
+  const res = await fetch(getApiUrl(`/api/reviews/admin/${id}`), {
+    method: 'PUT',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(reviewData),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to update review.');
+  }
+  return data;
+}
+
+export async function toggleAdminReviewVisibility(id, isVisible) {
+  const res = await fetch(getApiUrl(`/api/reviews/admin/${id}/visibility`), {
+    method: 'PATCH',
+    headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ isVisible }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to toggle review visibility.');
+  }
+  return data;
+}
+
+export async function deleteAdminReview(id) {
+  const res = await fetch(getApiUrl(`/api/reviews/admin/${id}`), {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || 'Failed to delete review.');
+  }
+  return data;
+}
+
+

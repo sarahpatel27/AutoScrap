@@ -13,6 +13,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const cityRoutes = require('./routes/cityRoutes');
 const promotionRoutes = require('./routes/promotionRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,6 +62,7 @@ app.use('/api/enquiries', enquiryRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/cities', cityRoutes);
 app.use('/api/promotions', promotionRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Express Backend server running on 0.0.0.0:${PORT}`);

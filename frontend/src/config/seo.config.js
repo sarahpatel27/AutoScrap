@@ -11,7 +11,8 @@ export const SITE_CONFIG = {
   },
   social: {
     whatsapp: 'https://wa.me/447714423293',
-    googleProfile: 'https://share.google/lppdUTbhDohi0FX8O'
+    googleProfile: 'https://share.google/lppdUTbhDohi0FX8O',
+    trustpilot: 'https://www.trustpilot.com/review/myautoscrap.co.uk'
   }
 };
 

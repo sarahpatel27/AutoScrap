@@ -160,3 +160,18 @@ model ContactSubmission {
 
   @@map("contact_submissions")
 }
+
+model CustomerReview {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  rating    Int      @default(5)
+  vehicle   String?  @db.VarChar(100)
+  date      String?  @db.VarChar(50)
+  text      String   @db.Text
+  isVisible Boolean  @default(true) @map("is_visible")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("customer_reviews")
+}
+

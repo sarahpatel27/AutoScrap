@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import QuoteFlow from '../components/QuoteFlow';
 import { reviews, formatCityLocation } from '../data/siteData';
-import { fetchSupportedCities } from '../services/adminStore';
+import { fetchSupportedCities, fetchPublicReviews } from '../services/adminStore';
 import SEO from '../components/Seo';
 import { getOrganizationSchema, getWebSiteSchema } from '../config/seo.config';
 
@@ -36,6 +36,46 @@ const lightButtonClass =
 const ghostButtonClass =
   'inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/35 px-[22px] py-3.5 font-extrabold text-white transition hover:-translate-y-0.5';
 
+function GoogleIcon({ className = 'h-4 w-4 shrink-0' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.27 21.43 7.33 24 12 24z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.28 14.27A7.18 7.18 0 0 1 4.9 12c0-.79.14-1.57.38-2.27V6.58H1.25A11.97 11.97 0 0 0 0 12c0 1.94.46 3.77 1.25 5.42l4.03-3.15z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.27 2.57 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+      />
+    </svg>
+  );
+}
+
+function TrustpilotIcon({ className = 'h-5 w-5 shrink-0' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect width="24" height="24" rx="5" fill="#00B67A" />
+      <path
+        d="M12 4.2l2.36 4.79 5.28.77-3.82 3.73.9 5.26L12 16.27l-4.72 2.48.9-5.26-3.82-3.73 5.28-.77L12 4.2z"
+        fill="#FFFFFF"
+      />
+      <path
+        d="M14.36 8.99l-2.36-4.79v12.07l4.72 2.48-.9-5.26 3.82-3.73-5.28-.77z"
+        fill="#005128"
+        opacity="0.25"
+      />
+    </svg>
+  );
+}
+
 function HomeSectionTitle({ eyebrow, title, text, light = false }) {
   return (
     <div className={sectionTitleClass}>
@@ -56,6 +96,14 @@ export default function HomePage() {
   const organizationSchema = getOrganizationSchema();
   const websiteSchema = getWebSiteSchema();
   const [activeLocations, setActiveLocations] = useState([]);
+  const [customerReviews, setCustomerReviews] = useState(reviews);
+  const [ratingData, setRatingData] = useState({
+    rating: '4.8',
+    stars: '★★★★★',
+    heading: 'Excellent overall customer rating',
+  });
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [visibleCards, setVisibleCards] = useState(3);
 
   useEffect(() => {
     async function loadActiveCities() {
@@ -68,8 +116,60 @@ export default function HomePage() {
         console.error('Error fetching active cities for homepage:', err);
       }
     }
+
+    async function loadReviews() {
+      try {
+        const res = await fetchPublicReviews();
+        if (res && Array.isArray(res.reviews) && res.reviews.length > 0) {
+          setCustomerReviews(res.reviews);
+        }
+        if (res && (res.rating || res.stats?.rating)) {
+          setRatingData({
+            rating: res.rating || res.stats?.rating || '4.8',
+            stars: res.stars || res.stats?.stars || '★★★★★',
+            heading: res.heading || res.stats?.heading || 'Excellent overall customer rating',
+          });
+        }
+      } catch (err) {
+        console.error('Error fetching customer reviews for homepage:', err);
+      }
+    }
+
     loadActiveCities();
+    loadReviews();
   }, []);
+
+  useEffect(() => {
+    function updateVisibleCards() {
+      if (typeof window === 'undefined') return;
+      if (window.innerWidth >= 1024) {
+        setVisibleCards(3);
+      } else if (window.innerWidth >= 640) {
+        setVisibleCards(2);
+      } else {
+        setVisibleCards(1);
+      }
+    }
+    updateVisibleCards();
+    window.addEventListener('resize', updateVisibleCards);
+    return () => window.removeEventListener('resize', updateVisibleCards);
+  }, []);
+
+  const maxCarouselIndex = Math.max(0, customerReviews.length - visibleCards);
+
+  useEffect(() => {
+    if (carouselIndex > maxCarouselIndex) {
+      setCarouselIndex(maxCarouselIndex);
+    }
+  }, [maxCarouselIndex, carouselIndex]);
+
+  const handlePrevReview = () => {
+    setCarouselIndex((prev) => (prev <= 0 ? maxCarouselIndex : prev - 1));
+  };
+
+  const handleNextReview = () => {
+    setCarouselIndex((prev) => (prev >= maxCarouselIndex ? 0 : prev + 1));
+  };
 
   return (
     <>
@@ -106,12 +206,30 @@ export default function HomePage() {
               <span>✓ UK coverage</span>
             </div>
 
-            <div className="mx-auto flex w-max max-w-full flex-wrap items-center justify-center gap-3 rounded-xl border border-white/15 bg-white/10 px-[15px] py-3 lg:mx-0">
-              <b>4.8/5</b>
-              <span className="tracking-[2px] text-yellow-300">★★★★★</span>
-              <span className="text-sm text-[#d5e5de]">
-                Based on verified customer feedback
-              </span>
+            <div className="my-6 flex flex-wrap items-center justify-center gap-3.5 lg:justify-start">
+              <a
+                className="group inline-flex items-center gap-2.5 rounded-lg border border-white/40 bg-white px-2 py-2 text-[0.95rem] font-black text-[#13231d] shadow-[0_6px_20px_rgba(0,0,0,0.18)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.03] hover:bg-[#dff46b] hover:border-[#dff46b] hover:text-[#0b241b] hover:shadow-[0_10px_28px_rgba(223,244,107,0.45)] active:scale-95 active:translate-y-0"
+                href="https://www.trustpilot.com/review/myautoscrap.co.uk"
+                target="_blank"
+                rel="noreferrer"
+                title="View MyAutoScrap on Trustpilot"
+              >
+                <TrustpilotIcon className="h-12 w-12 shrink-0" />
+                {/* <span className="tracking-tight">Trustpilot</span>
+                <span className="text-xs text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#0b241b]">↗</span> */}
+              </a>
+
+              <a
+                className="group inline-flex items-center gap-2.5 rounded-lg border border-white/40 bg-white px-2 py-2 text-[0.95rem] font-black text-[#13231d] shadow-[0_6px_20px_rgba(0,0,0,0.18)] transition-all duration-200 hover:-translate-y-1 hover:scale-[1.03] hover:bg-[#dff46b] hover:border-[#dff46b] hover:text-[#0b241b] hover:shadow-[0_10px_28px_rgba(223,244,107,0.45)] active:scale-95 active:translate-y-0"
+                href="https://share.google/lppdUTbhDohi0FX8O"
+                target="_blank"
+                rel="noreferrer"
+                title="View MyAutoScrap Google Business Profile"
+              >
+                <GoogleIcon className="h-12 w-12 shrink-0" />
+                {/* <span className="tracking-tight">Google</span>
+                <span className="text-xs text-slate-400 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-[#0b241b]">↗</span> */}
+              </a>
             </div>
           </div>
 
@@ -245,37 +363,117 @@ export default function HomePage() {
         <div className={containerClass}>
           <HomeSectionTitle
             eyebrow="Customer experiences"
-            title="What drivers say"
+            title="What Customers say"
             light
           />
 
-          <div className="grid gap-[22px] md:grid-cols-3">
-            {reviews.map((review) => (
-              <article
-                className="rounded-[18px] border border-slate-200 bg-white p-[26px]"
-                key={review.name}
+          {customerReviews.length <= 3 ? (
+            <div className="grid gap-[22px] md:grid-cols-3">
+              {customerReviews.map((review, idx) => (
+                <article
+                  className="flex flex-col justify-between rounded-[18px] border border-slate-200 bg-white p-[26px]"
+                  key={review.id || review.name || idx}
+                >
+                  <div>
+                    <div className="tracking-[2px] text-yellow-300">
+                      {'★'.repeat(review.rating || 5)}
+                      {'☆'.repeat(Math.max(0, 5 - (review.rating || 5)))}
+                    </div>
+                    <p className="mt-3 text-base text-slate-600 leading-relaxed">“{review.text}”</p>
+                  </div>
+                  <div className="mt-4 flex flex-col border-t border-slate-100 pt-3">
+                    <b className="text-slate-900">{review.name}</b>
+                    <span className="text-sm text-slate-500">
+                      {review.vehicle ? `${review.vehicle} · ` : ''}{review.date}
+                    </span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="relative px-0 sm:px-12">
+              {/* Left Arrow Button */}
+              <button
+                type="button"
+                onClick={handlePrevReview}
+                aria-label="Previous customer reviews"
+                className="absolute -left-2 sm:left-0 top-1/2 -translate-y-1/2 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-[#0c261d]/90 text-white shadow-xl backdrop-blur-md transition-all hover:bg-[#dff46b] hover:text-[#0b241b] hover:border-[#dff46b] hover:scale-110 active:scale-95 cursor-pointer"
               >
-                <div className="tracking-[2px] text-yellow-300">
-                  {'★'.repeat(review.rating)}
-                  {'☆'.repeat(5 - review.rating)}
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {/* Carousel Track */}
+              <div className="overflow-hidden rounded-2xl py-1">
+                <div
+                  className="flex transition-transform duration-500 ease-out"
+                  style={{
+                    transform: `translateX(-${carouselIndex * (100 / visibleCards)}%)`,
+                  }}
+                >
+                  {customerReviews.map((review, idx) => (
+                    <div
+                      key={review.id || review.name || idx}
+                      className="w-full shrink-0 px-2.5 sm:w-1/2 lg:w-1/3"
+                    >
+                      <article className="flex h-full flex-col justify-between rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-xs">
+                        <div>
+                          <div className="tracking-[2px] text-yellow-300">
+                            {'★'.repeat(review.rating || 5)}
+                            {'☆'.repeat(Math.max(0, 5 - (review.rating || 5)))}
+                          </div>
+                          <p className="mt-3 text-base text-slate-600 leading-relaxed">“{review.text}”</p>
+                        </div>
+                        <div className="mt-4 flex flex-col border-t border-slate-100 pt-3">
+                          <b className="text-slate-900">{review.name}</b>
+                          <span className="text-sm text-slate-500">
+                            {review.vehicle ? `${review.vehicle} · ` : ''}{review.date}
+                          </span>
+                        </div>
+                      </article>
+                    </div>
+                  ))}
                 </div>
-                <p className="text-base text-slate-600">“{review.text}”</p>
-                <div className="flex flex-col">
-                  <b>{review.name}</b>
-                  <span className="text-sm text-slate-500">
-                    {review.vehicle} · {review.date}
-                  </span>
-                </div>
-              </article>
-            ))}
-          </div>
+              </div>
+
+              {/* Right Arrow Button */}
+              <button
+                type="button"
+                onClick={handleNextReview}
+                aria-label="Next customer reviews"
+                className="absolute -right-2 sm:right-0 top-1/2 -translate-y-1/2 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/20 bg-[#0c261d]/90 text-white shadow-xl backdrop-blur-md transition-all hover:bg-[#dff46b] hover:text-[#0b241b] hover:border-[#dff46b] hover:scale-110 active:scale-95 cursor-pointer"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+
+              {/* Pagination Dots */}
+              <div className="mt-6 flex items-center justify-center gap-2">
+                {Array.from({ length: maxCarouselIndex + 1 }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setCarouselIndex(i)}
+                    aria-label={`Jump to review slide ${i + 1}`}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${
+                      carouselIndex === i
+                        ? 'w-6 bg-[#dff46b]'
+                        : 'w-2 bg-white/30 hover:bg-white/60'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-9 flex items-center justify-center gap-[18px] text-white">
-            <strong className="text-5xl">4.8</strong>
+            <strong className="text-5xl">{ratingData.rating}</strong>
             <div>
-              <span className="tracking-[2px] text-yellow-300">★★★★★</span>
+              <span className="tracking-[2px] text-yellow-300">{ratingData.stars}</span>
               <p className="m-0 text-[#c8d8d1]">
-                Excellent overall customer rating
+                {ratingData.heading}
               </p>
             </div>
           </div>
@@ -283,11 +481,11 @@ export default function HomePage() {
           <div className="mt-7 text-center">
             <a
               className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-extrabold text-white transition hover:bg-white hover:text-slate-900"
-              href="https://share.google/lppdUTbhDohi0FX8O"
+              href="https://g.page/r/CeBvG2VVFGN0EAI/review"
               target="_blank"
               rel="noreferrer"
             >
-              <span>📍 View our Google Business Profile & Reviews</span>
+              <span>Give us a review</span>
               <span>↗</span>
             </a>
           </div>

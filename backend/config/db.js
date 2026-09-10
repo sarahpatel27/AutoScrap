@@ -95,6 +95,44 @@ async function initDb() {
     //   });
     // }
 
+    // 3. Seed Default Customer Reviews if table is empty
+    const reviewCount = await prisma.customerReview.count();
+    if (reviewCount === 0) {
+      const defaultReviews = [
+        {
+          name: 'James W.',
+          rating: 5,
+          date: '12 July 2026',
+          vehicle: 'Ford Focus 2012',
+          text: 'Very straightforward. I received a fair estimate, the collection was arranged quickly, and the driver was professional.',
+          isVisible: true,
+        },
+        {
+          name: 'Sarah K.',
+          rating: 5,
+          date: '28 June 2026',
+          vehicle: 'Vauxhall Corsa 2010',
+          text: 'The quote process took only a few minutes. The team kept me updated and collected the car at the agreed time.',
+          isVisible: true,
+        },
+        {
+          name: 'David M.',
+          rating: 4,
+          date: '3 June 2026',
+          vehicle: 'Volkswagen Golf 2009',
+          text: 'Good communication and no hidden collection charge. The final price matched the vehicle condition I submitted.',
+          isVisible: true,
+        },
+      ];
+
+      for (const review of defaultReviews) {
+        await prisma.customerReview.create({
+          data: review,
+        });
+      }
+      console.log('✅ Seeded 3 default customer reviews.');
+    }
+
     console.log('✅ Prisma ORM database tables & default accounts initialized successfully.');
   } catch (err) {
     console.error('❌ Database initialization error:', err.message);
