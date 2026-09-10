@@ -61,7 +61,7 @@ async function getCityOptions(req, res) {
 
 /**
  * GET /api/cities
- * Returns configured supported cities in AutoScrap.
+ * Returns configured supported cities in MyAutoScrap.
  * Supports query param: ?active=true
  */
 async function getCities(req, res) {
@@ -281,7 +281,7 @@ async function createCity(req, res) {
     if (existing) {
       if (existing.isActive) {
         return res.status(409).json({
-          error: `"${existing.name}" is already configured as an active supported city in AutoScrap.`,
+          error: `"${existing.name}" is already configured as an active supported city in MyAutoScrap.`,
         });
       }
 

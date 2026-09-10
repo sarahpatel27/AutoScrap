@@ -52,7 +52,7 @@ function customerCollectedEnquiryTemplate({
     </p>
 
     <p style="color: #334155; font-size: 15px; margin: 0 0 24px 0; line-height: 1.6;">
-      We are pleased to confirm that your vehicle has been successfully collected by our recovery agent. Thank you for choosing AutoScrap!
+      We are pleased to confirm that your vehicle has been successfully collected by our recovery agent. Thank you for choosing MyAutoScrap!
     </p>
 
     <!-- Reference Number Box -->
@@ -120,7 +120,7 @@ function customerCollectedEnquiryTemplate({
 
     <!-- Footer Note -->
     <p style="color: #64748b; font-size: 13px; margin: 0; line-height: 1.5;">
-      Thank you for recycling with AutoScrap! If you need any further documentation or have questions, please reply directly to this email or quote reference <strong>${reference}</strong>.
+      Thank you for recycling with MyAutoScrap! If you need any further documentation or have questions, please reply directly to this email or quote reference <strong>${reference}</strong>.
     </p>
   `;
 

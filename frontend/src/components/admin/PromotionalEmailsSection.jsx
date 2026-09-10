@@ -12,7 +12,7 @@ const PRESET_TEMPLATES = [
     name: '💰 Scrap Price Boost',
     badge: 'High Conversion',
     subject: '⚡ Special Price Boost: Get Top Cash for Your Scrap Vehicle Today!',
-    message: `We have great news! AutoScrap UK has just updated our metal recycling rates with increased price-per-tonne bonuses across your local area.
+    message: `We have great news! MyAutoScrap UK has just updated our metal recycling rates with increased price-per-tonne bonuses across your local area.
 
 If you have an old, damaged, non-running, or MOT-failure vehicle sitting on your driveway, now is the perfect time to convert it into instant cash.
 
@@ -29,8 +29,8 @@ Click below to check your updated free quote in under 30 seconds!`,
     id: 'high-value-bidding',
     name: '⭐ High-Value Dealer Bidding',
     badge: 'Prestige & 2015+',
-    subject: '⭐ Have a 2015+ Car to Sell? Get Verified Dealer Bids with AutoScrap',
-    message: `Did you know AutoScrap now offers exclusive nationwide dealer bidding for newer vehicles (2015 and above)?
+    subject: '⭐ Have a 2015+ Car to Sell? Get Verified Dealer Bids with MyAutoScrap',
+    message: `Did you know MyAutoScrap now offers exclusive nationwide dealer bidding for newer vehicles (2015 and above)?
 
 Instead of settling for standard scrap rates or low trade-in offers, verified dealers across our UK network place competitive bids to guarantee you the highest possible payout.
 
@@ -48,7 +48,7 @@ Enter your registration today to see what verified dealers will offer for your v
     name: '🚚 Free Collection & DVLA Care',
     badge: 'Convenience',
     subject: '🚚 Fast, Free Collection & Instant Payment for Any Scrap Car',
-    message: `Still deciding what to do with your unused vehicle? Let AutoScrap take the hassle off your hands.
+    message: `Still deciding what to do with your unused vehicle? Let MyAutoScrap take the hassle off your hands.
 
 Our approved recovery teams operate daily across the UK, offering reliable, scheduled collection at absolutely zero cost to you.
 
@@ -66,7 +66,7 @@ Get your free, no-obligation valuation today and choose a collection slot that s
     badge: 'Blank Template',
     subject: '',
     message: `Hello {name},\n\n`,
-    ctaText: 'Visit AutoScrap UK',
+    ctaText: 'Visit MyAutoScrap UK',
     ctaUrl: 'https://myautoscrap.co.uk',
   },
 ];
@@ -613,7 +613,7 @@ export default function PromotionalEmailsSection() {
                     Campaign Live Preview
                   </h3>
                   <p className="text-[11px] text-[#c8ded4]">
-                    Rendered with AutoScrap production email layout
+                    Rendered with MyAutoScrap production email layout
                   </p>
                 </div>
               </div>

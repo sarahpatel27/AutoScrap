@@ -93,7 +93,7 @@ function customerCancelledEnquiryTemplate({
 
     <!-- Footer Note -->
     <p style="color: #64748b; font-size: 13px; margin: 0; line-height: 1.5;">
-      Thank you for considering AutoScrap! If you need any further assistance, please feel free to reach out to us.
+      Thank you for considering MyAutoScrap! If you need any further assistance, please feel free to reach out to us.
     </p>
   `;
 

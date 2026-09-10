@@ -134,7 +134,7 @@ function dealerBiddingActiveBidsMidwayTemplate({
     </div>
 
     <p style="font-size: 13px; color: #64748b; margin: 0; line-height: 1.5;">
-      AutoScrap Dealer Network • Reference <strong>${reference}</strong>
+      MyAutoScrap Dealer Network • Reference <strong>${reference}</strong>
     </p>
   `;
 

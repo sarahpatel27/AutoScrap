@@ -17,7 +17,7 @@ function customerDealerSelectedNotificationTemplate({
   const model = vehicle?.model || '';
   const year = vehicle?.year ? `(${vehicle.year})` : '';
 
-  const dealerName = dealer?.name || 'Verified AutoScrap Partner';
+  const dealerName = dealer?.name || 'Verified MyAutoScrap Partner';
   const dealerAreas = dealer?.coveredPostcodes && dealer.coveredPostcodes.length > 0
     ? dealer.coveredPostcodes.join(', ')
     : (dealer?.assignedCity || city || 'UK');

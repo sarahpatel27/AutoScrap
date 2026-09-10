@@ -167,7 +167,7 @@ function superAdminBiddingEndedNoBidsTemplate({
     </div>
 
     <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">
-      AutoScrap Internal System Notification • Sent to Super Admins only • Reference <strong>${reference}</strong>
+      MyAutoScrap Internal System Notification • Sent to Super Admins only • Reference <strong>${reference}</strong>
     </p>
   `;
 

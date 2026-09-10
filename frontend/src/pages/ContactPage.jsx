@@ -7,12 +7,12 @@ import { showToast } from '../components/admin/ToastContainer';
 const contactItems = [
   {
     label: 'Phone',
-    value: '+44 7714423293',
+    value: '07714 423293',
     href: 'tel:+447714423293',
   },
   {
     label: 'WhatsApp',
-    value: '+44 7714423293',
+    value: '07714 423293',
     href: 'https://wa.me/447714423293',
   },
   {

@@ -106,7 +106,7 @@ function dealerEnquiryTemplate({
     </div>
 
     <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin: 0;">
-      Please log in to the AutoScrap Portal to manage this enquiry.
+      Please log in to the MyAutoScrap Portal to manage this enquiry.
     </p>
   `;
 

@@ -301,7 +301,7 @@ export default function UserManagementSection() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder={accountRole === 'City Dealer' ? 'dealer@autoscrap.co.uk' : 'admin@autoscrap.co.uk'}
+                placeholder={accountRole === 'City Dealer' ? 'dealer@myautoscrap.co.uk' : 'admin@myautoscrap.co.uk'}
                 className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3.5 py-2.5 text-xs font-medium outline-none focus:border-[#0f7b4f] focus:bg-white"
               />
             </div>

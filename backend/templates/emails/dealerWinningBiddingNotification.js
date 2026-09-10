@@ -136,7 +136,7 @@ function dealerWinningBiddingNotificationTemplate({
     </div>
 
     <p style="font-size: 12.5px; color: #64748b; margin: 0; line-height: 1.5;">
-      AutoScrap Dealer Network • High-Value Enquiry Reference <strong>${reference}</strong>
+      MyAutoScrap Dealer Network • High-Value Enquiry Reference <strong>${reference}</strong>
     </p>
   `;
 

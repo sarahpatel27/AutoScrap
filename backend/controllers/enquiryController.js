@@ -565,7 +565,7 @@ async function createEnquiry(req, res) {
         data: {
           reference,
           customerName: customerObj.fullName || enquiryData.customerName || 'Anonymous Customer',
-          customerEmail: customerObj.email || enquiryData.customerEmail || 'no-email@autoscrap.co.uk',
+          customerEmail: customerObj.email || enquiryData.customerEmail || 'no-email@myautoscrap.co.uk',
           customerPhone: customerObj.phone || enquiryData.customerPhone || '',
           customer: customerObj,
           registration: vehicleObj.registration || enquiryData.registration || '',

@@ -113,7 +113,7 @@ function dealerBiddingNoBidsMidwayTemplate({
     </div>
 
     <p style="font-size: 13px; color: #64748b; margin: 0; line-height: 1.5;">
-      Log in to your AutoScrap dealer portal to inspect photos and submit your bid quoting reference <strong>${reference}</strong>.
+      Log in to your MyAutoScrap dealer portal to inspect photos and submit your bid quoting reference <strong>${reference}</strong>.
     </p>
   `;
 

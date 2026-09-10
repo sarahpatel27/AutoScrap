@@ -17,7 +17,7 @@ const { accountCredentialsTemplate } = require('../templates/emails/accountCrede
 const { prisma } = require('../config/db');
 
 const DEFAULT_FROM = process.env.SMTP_FROM || 'notifications@myautoscrap.co.uk';
-const DEFAULT_NAME = process.env.EMAIL_FROM_NAME || 'AutoScrap';
+const DEFAULT_NAME = process.env.EMAIL_FROM_NAME || 'MyAutoScrap';
 
 /**
  * Send a generic or styled email
@@ -770,7 +770,7 @@ async function sendWinningDealerAndCustomerNotifications({
       postcode,
       city,
       dealer: {
-        name: winningDealer?.name || 'Verified AutoScrap Partner',
+        name: winningDealer?.name || 'Verified MyAutoScrap Partner',
         assignedCity: winningDealer?.assignedCity || city,
         email: winningDealer?.email,
       },

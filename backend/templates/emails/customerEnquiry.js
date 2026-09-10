@@ -83,7 +83,7 @@ function customerEnquiryTemplate({
   `;
 
   return {
-    subject: `Your AutoScrap Quote & Enquiry Confirmation - ${reference}`,
+    subject: `Your MyAutoScrap Quote & Enquiry Confirmation - ${reference}`,
     html: contentHtml,
     previewText: `Thank you for your enquiry. Your vehicle quote for ${reg} is ${formattedQuote}. Reference: ${reference}`,
   };

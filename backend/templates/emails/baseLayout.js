@@ -1,8 +1,8 @@
 /**
  * Modern, Full-Width, Dark-Mode Safe Email Layout Wrapper
- * Styled cleanly with AutoScrap Emerald / Forest Green & Orange branding
+ * Styled cleanly with MyAutoScrap Emerald / Forest Green & Orange branding
  */
-function baseLayout({ title = 'AutoScrap Notification', contentHtml, previewText = '' }) {
+function baseLayout({ title = 'MyAutoScrap Notification', contentHtml, previewText = '' }) {
   return `<!DOCTYPE html>
 <html lang="en" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
@@ -57,7 +57,7 @@ function baseLayout({ title = 'AutoScrap Notification', contentHtml, previewText
         <!-- Email Card (Max 600px) -->
         <table role="presentation" class="email-container email-card" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e2e8f0;">
           
-          <!-- Top Clean Header (White background with crisp AutoScrap logo) -->
+          <!-- Top Clean Header (White background with crisp MyAutoScrap logo) -->
           <tr>
             <td align="left" class="header-padding" style="padding: 24px 32px; background-color: #ffffffff; border-bottom: 1px solid #f1f5f9;">
               <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
@@ -65,7 +65,7 @@ function baseLayout({ title = 'AutoScrap Notification', contentHtml, previewText
                   <td>
                     <div style="font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1;">
                       <a href="https://myautoscrap.co.uk" target="_blank" style="text-decoration: none; color: #0f7b4f;">
-                        <span style="color: #0f7b4f;">Auto</span><span class="brand-scrap" style="color: #000000;">Scrap</span><span style="color: #0f7b4f; font-size: 14px; font-weight: 700;">.co.uk</span>
+                        <span class="brand-scrap" style="color: #000000;">My</span><span style="color: #0f7b4f;">Auto</span><span class="brand-scrap" style="color: #000000;">Scrap</span><span style="color: #0f7b4f; font-size: 14px; font-weight: 700;">.co.uk</span>
                       </a>
                     </div>
                     <div style="font-size: 12px; color: #64748b; margin-top: 4px; font-weight: 500;">
@@ -88,9 +88,9 @@ function baseLayout({ title = 'AutoScrap Notification', contentHtml, previewText
           <tr>
             <td style="padding: 24px 32px; background-color: #f8fafc; border-top: 1px solid #f1f5f9; text-align: left;">
               <div style="font-size: 12px; color: #64748b; line-height: 1.6;">
-                <p style="margin: 0 0 6px 0; font-weight: 600; color: #475569;">AutoScrap UK</p>
+                <p style="margin: 0 0 6px 0; font-weight: 600; color: #475569;">MyAutoScrap UK</p>
                 <p style="margin: 0 0 6px 0;">Need assistance? Reply directly to this email or visit our website.</p>
-                <p style="margin: 0; color: #94a3b8; font-size: 11px;">© ${new Date().getFullYear()} AutoScrap. All rights reserved.</p>
+                <p style="margin: 0; color: #94a3b8; font-size: 11px;">© ${new Date().getFullYear()} MyAutoScrap. All rights reserved.</p>
               </div>
             </td>
           </tr>

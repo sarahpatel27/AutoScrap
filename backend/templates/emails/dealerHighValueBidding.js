@@ -134,7 +134,7 @@ function dealerHighValueBiddingTemplate({
     ` : ''}
 
     <p style="font-size: 13.5px; color: #475569; line-height: 1.5; margin: 0 0 20px 0;">
-      Log in to your AutoScrap dealer dashboard to inspect photos, review specifications, and place your competitive bid before the deadline.
+      Log in to your MyAutoScrap dealer dashboard to inspect photos, review specifications, and place your competitive bid before the deadline.
     </p>
   `;
 
