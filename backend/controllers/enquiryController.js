@@ -1,5 +1,5 @@
 const { prisma } = require('../config/db');
-const { getCityFromPostcode } = require('../utils/postcodeHelper');
+const { getCityFromPostcode, extractOutwardCode, getCityNameFromOutwardCode } = require('../utils/postcodeHelper');
 const { isDealerEligibleForEnquiry } = require('../utils/dealerEligibility');
 const { anonymizeEnquiryForDealer } = require('../utils/dealerAnonymizer');
 const { autoResolveExpiredBids, processMidwayBiddingNotifications } = require('../services/biddingAutoResolver');
@@ -7,12 +7,14 @@ const {
   sendStandardEnquiryEmail,
   sendHighValueEnquiryEmail,
   sendStandardEnquiryStatusEmail,
+  sendHighValueEnquiryPurchasedEmail,
 } = require('../services/enquiryNotificationService');
 const { sendWinningDealerAndCustomerNotifications } = require('../services/emailService');
 
 
 async function getEnquiries(req, res) {
   try {
+    const user = req.user;
     const rows = await prisma.enquiry.findMany({
       where: {
         status: {
@@ -24,12 +26,32 @@ async function getEnquiries(req, res) {
       },
     });
 
-    const enquiries = rows.map((row) => ({
+    let eligibleRows = rows;
+
+    if (user && user.role === 'City Dealer') {
+      const covered = (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+
+      if (covered.length > 0) {
+        eligibleRows = rows.filter((row) => {
+          const outward = extractOutwardCode(row.postcode);
+          return covered.includes(outward);
+        });
+      } else if (user.assignedCity) {
+        eligibleRows = rows.filter((row) => {
+          return row.city && row.city.trim().toLowerCase() === user.assignedCity.trim().toLowerCase();
+        });
+      } else {
+        eligibleRows = [];
+      }
+    }
+
+    const enquiries = eligibleRows.map((row) => ({
       id: String(row.id),
       reference: row.reference,
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'Pending',
       postcode: row.postcode,
+      outwardDistrict: extractOutwardCode(row.postcode),
       city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,
@@ -66,6 +88,7 @@ async function getHighValueEnquiries(req, res) {
                 name: true,
                 email: true,
                 assignedCity: true,
+                coveredPostcodes: true,
               },
             },
           },
@@ -143,6 +166,7 @@ async function getPastEnquiries(req, res) {
                   name: true,
                   email: true,
                   assignedCity: true,
+                  coveredPostcodes: true,
                 },
               },
             },
@@ -155,12 +179,30 @@ async function getPastEnquiries(req, res) {
       }),
     ]);
 
-    const enquiries = standardRows.map((row) => ({
+    let eligibleStandardRows = standardRows;
+    if (user && user.role === 'City Dealer') {
+      const covered = (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+      if (covered.length > 0) {
+        eligibleStandardRows = standardRows.filter((row) => {
+          const outward = extractOutwardCode(row.postcode);
+          return covered.includes(outward);
+        });
+      } else if (user.assignedCity) {
+        eligibleStandardRows = standardRows.filter((row) => {
+          return row.city && row.city.trim().toLowerCase() === user.assignedCity.trim().toLowerCase();
+        });
+      } else {
+        eligibleStandardRows = [];
+      }
+    }
+
+    const enquiries = eligibleStandardRows.map((row) => ({
       id: String(row.id),
       reference: row.reference,
       date: row.date ? row.date.toISOString() : new Date().toISOString(),
       status: row.status || 'archived',
       postcode: row.postcode,
+      outwardDistrict: extractOutwardCode(row.postcode),
       city: row.city || 'Unassigned',
       vehicle: row.vehicle,
       condition: row.condition,
@@ -242,6 +284,7 @@ async function deleteHighValueEnquiry(req, res) {
                 name: true,
                 email: true,
                 assignedCity: true,
+                coveredPostcodes: true,
               },
             },
           },
@@ -299,6 +342,7 @@ async function deleteManyHighValueEnquiries(req, res) {
                 name: true,
                 email: true,
                 assignedCity: true,
+                coveredPostcodes: true,
               },
             },
           },
@@ -358,9 +402,44 @@ async function createEnquiry(req, res) {
     const quoteObj = parseJsonField(enquiryData.quote, {});
 
     const postcode = enquiryData.postcode || customerObj.collectionPostcode || '';
-    let city = enquiryData.city || enquiryData.matchedServiceArea;
-    if (!city || city === 'Other' || city === 'Unassigned') {
-      city = await getCityFromPostcode(postcode, address);
+    const collectionAddress =
+      customerObj.collectionAddress ||
+      enquiryData.collectionAddress ||
+      enquiryData.address ||
+      '';
+    let city =
+      enquiryData.postTown ||
+      enquiryData.matchedServiceArea ||
+      quoteObj?.city ||
+      enquiryData.city;
+
+    const isInvalidCity =
+      !city ||
+      city === 'Other' ||
+      city === 'Unassigned' ||
+      /^\d[a-zA-Z]{2}$/i.test(String(city).trim()) ||
+      /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(city).trim());
+
+    if (isInvalidCity) {
+      city = await getCityFromPostcode(postcode, collectionAddress);
+      if (
+        !city ||
+        city === 'Other' ||
+        city === 'Unassigned' ||
+        /^\d[a-zA-Z]{2}$/i.test(String(city).trim()) ||
+        /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(city).trim())
+      ) {
+        city = getCityNameFromOutwardCode(extractOutwardCode(postcode || collectionAddress)) || 'UK';
+      }
+    }
+
+    if (city && typeof city === 'string' && city !== 'Other' && city !== 'Unassigned') {
+      city = city
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
     }
 
     // Type conversion helpers
@@ -486,7 +565,7 @@ async function createEnquiry(req, res) {
         data: {
           reference,
           customerName: customerObj.fullName || enquiryData.customerName || 'Anonymous Customer',
-          customerEmail: customerObj.email || enquiryData.customerEmail || 'no-email@autoscrap.co.uk',
+          customerEmail: customerObj.email || enquiryData.customerEmail || 'no-email@myautoscrap.co.uk',
           customerPhone: customerObj.phone || enquiryData.customerPhone || '',
           customer: customerObj,
           registration: vehicleObj.registration || enquiryData.registration || '',
@@ -593,6 +672,17 @@ async function updateEnquiryStatus(req, res) {
       return res.status(404).json({ error: 'Enquiry not found' });
     }
 
+    if (
+      targetEnquiry.status &&
+      targetEnquiry.status.toLowerCase() === 'collected' &&
+      status &&
+      status.toLowerCase() !== 'collected'
+    ) {
+      return res.status(400).json({
+        error: 'Status for collected vehicles is locked and cannot be changed.',
+      });
+    }
+
     const currentCustomer = targetEnquiry.customer || {};
     if (notes !== undefined) {
       currentCustomer.notes = notes;
@@ -609,8 +699,8 @@ async function updateEnquiryStatus(req, res) {
       },
     });
 
-    // Send customer notification email if status is updated to Accepted or Collected
-    if (newStatus && (newStatus.toLowerCase() === 'accepted' || newStatus.toLowerCase() === 'collected')) {
+    // Send customer notification email if status is updated to Accepted, Collected, or Cancelled
+    if (newStatus && (newStatus.toLowerCase() === 'accepted' || newStatus.toLowerCase() === 'collected' || newStatus.toLowerCase() === 'cancelled')) {
       sendStandardEnquiryStatusEmail(updatedRecord, newStatus);
     }
 
@@ -654,20 +744,28 @@ async function updateBulkEnquiryStatus(req, res) {
 
     const numericIds = ids.map((id) => parseInt(id, 10)).filter((id) => !isNaN(id));
 
+    const whereClause = {
+      id: {
+        in: numericIds,
+      },
+    };
+
+    if (status && status.toLowerCase() !== 'collected') {
+      whereClause.status = {
+        not: 'Collected',
+      };
+    }
+
     // Update multiple records using Prisma ORM method updateMany
     await prisma.enquiry.updateMany({
-      where: {
-        id: {
-          in: numericIds,
-        },
-      },
+      where: whereClause,
       data: {
         status,
       },
     });
 
-    // Trigger status emails for bulk update if status is Accepted or Collected
-    if (status && (status.toLowerCase() === 'accepted' || status.toLowerCase() === 'collected')) {
+    // Trigger status emails for bulk update if status is Accepted, Collected, or Cancelled
+    if (status && (status.toLowerCase() === 'accepted' || status.toLowerCase() === 'collected' || status.toLowerCase() === 'cancelled')) {
       const affectedEnquiries = await prisma.enquiry.findMany({
         where: {
           id: {
@@ -983,6 +1081,7 @@ async function selectWinningDealer(req, res) {
           winningDealerId: targetBid.dealerId,
           winningBidId: targetBid.id,
           winnerSelectedAt: now,
+          biddingEndsAt: now,
         },
       });
 
@@ -1035,6 +1134,7 @@ async function markEnquiryPurchased(req, res) {
 
     const enquiry = await prisma.highValueEnquiry.findUnique({
       where: { id: numericEnquiryId },
+      include: { bids: true },
     });
 
     if (!enquiry) {
@@ -1059,7 +1159,11 @@ async function markEnquiryPurchased(req, res) {
         status: 'PURCHASED',
         purchasedAt: now,
       },
+      include: { bids: true },
     });
+
+    // Send customer notification email that vehicle has been collected & purchased
+    sendHighValueEnquiryPurchasedEmail(updated);
 
     res.status(200).json({
       success: true,

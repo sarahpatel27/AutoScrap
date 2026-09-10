@@ -7,12 +7,12 @@ import { showToast } from '../components/admin/ToastContainer';
 const contactItems = [
   {
     label: 'Phone',
-    value: '+44 7714423293',
+    value: '07714 423293',
     href: 'tel:+447714423293',
   },
   {
     label: 'WhatsApp',
-    value: '+44 7714423293',
+    value: '07714 423293',
     href: 'https://wa.me/447714423293',
   },
   {
@@ -167,11 +167,41 @@ export default function ContactPage() {
                   className={fieldClass}
                   type="tel"
                   inputMode="numeric"
+                  pattern="[0-9]*"
                   required
                   placeholder="e.g. 07714 423293"
-                  maxLength={15}
+                  maxLength={11}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (
+                      [
+                        'Backspace',
+                        'Delete',
+                        'Tab',
+                        'Escape',
+                        'Enter',
+                        'ArrowLeft',
+                        'ArrowRight',
+                        'ArrowUp',
+                        'ArrowDown',
+                        'Home',
+                        'End',
+                      ].includes(e.key) ||
+                      ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase()))
+                    ) {
+                      return;
+                    }
+                    if (!/^[0-9]$/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    const pasted = e.clipboardData?.getData('text') || '';
+                    const digits = pasted.replace(/\D/g, '').slice(0, 11);
+                    setPhone(digits);
+                  }}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
                 />
               </Field>
               <Field label="Email *">

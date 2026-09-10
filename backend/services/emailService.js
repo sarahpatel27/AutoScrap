@@ -6,6 +6,7 @@ const { customerHighValueEnquiryTemplate } = require('../templates/emails/custom
 const { dealerHighValueBiddingTemplate } = require('../templates/emails/dealerHighValueBidding');
 const { customerAcceptedEnquiryTemplate } = require('../templates/emails/customerAcceptedEnquiry');
 const { customerCollectedEnquiryTemplate } = require('../templates/emails/customerCollectedEnquiry');
+const { customerCancelledEnquiryTemplate } = require('../templates/emails/customerCancelledEnquiry');
 const { dealerBiddingNoBidsMidwayTemplate } = require('../templates/emails/dealerBiddingNoBidsMidway');
 const { dealerBiddingActiveBidsMidwayTemplate } = require('../templates/emails/dealerBiddingActiveBidsMidway');
 const { superAdminBiddingEndedNoBidsTemplate } = require('../templates/emails/superAdminBiddingEndedNoBids');
@@ -16,7 +17,7 @@ const { accountCredentialsTemplate } = require('../templates/emails/accountCrede
 const { prisma } = require('../config/db');
 
 const DEFAULT_FROM = process.env.SMTP_FROM || 'notifications@myautoscrap.co.uk';
-const DEFAULT_NAME = process.env.EMAIL_FROM_NAME || 'AutoScrap';
+const DEFAULT_NAME = process.env.EMAIL_FROM_NAME || 'MyAutoScrap';
 
 /**
  * Send a generic or styled email
@@ -82,6 +83,7 @@ async function sendEnquiryCreatedNotifications({
 }) {
   const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
   const customerEmail = customer?.email?.trim();
   const customerName = customer?.fullName || 'Valued Customer';
 
@@ -95,6 +97,7 @@ async function sendEnquiryCreatedNotifications({
       vehicle,
       quoteAmount,
       collectionAddress,
+      additionalAddressDetails,
       postcode,
     });
 
@@ -107,29 +110,44 @@ async function sendEnquiryCreatedNotifications({
     );
   }
 
-  // 2. Fetch Dealers & Admins to notify
+  // 2. Fetch Dealers & Admins to notify based on Outward District Postcode Coverage
   try {
-    const users = await prisma.user.findMany({
-      where: {
-        isActive: true,
-        OR: [
-          { role: 'Super Admin' },
-          {
-            role: 'City Dealer',
-            ...(city ? { assignedCity: { equals: city, mode: 'insensitive' } } : {}),
-          },
-        ],
-      },
+    const { extractOutwardCode } = require('../utils/postcodeHelper');
+    const outwardDistrict = extractOutwardCode(postcode);
+
+    const [allCityDealers, superAdmins] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: 'City Dealer',
+        },
+      }),
+      prisma.user.findMany({
+        where: {
+          isActive: true,
+          role: 'Super Admin',
+        },
+      }),
+    ]);
+
+    // Match dealers who explicitly cover this outward district (or fallback to assignedCity if none configured)
+    const cityDealers = allCityDealers.filter((dealer) => {
+      if (!dealer.email) return false;
+      const list = (dealer.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+      if (list.length > 0) {
+        return list.includes(outwardDistrict);
+      }
+      if (dealer.assignedCity && city) {
+        return dealer.assignedCity.trim().toLowerCase() === city.trim().toLowerCase();
+      }
+      return false;
     });
 
-    const superAdmins = users.filter((u) => u.role === 'Super Admin' && u.email);
-    const cityDealers = users.filter((u) => u.role === 'City Dealer' && u.email);
-
-    // 3. Send to Assigned City Dealer(s)
+    // 3. Send to Assigned District Dealer(s)
     cityDealers.forEach((dealer) => {
       const dealerTemplate = dealerEnquiryTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,
@@ -144,7 +162,7 @@ async function sendEnquiryCreatedNotifications({
           to: dealer.email,
           subject: dealerTemplate.subject,
           html: dealerTemplate.html,
-        }).catch((err) => console.error(`[EmailService] City dealer email failed for ${dealer.email}:`, err))
+        }).catch((err) => console.error(`[EmailService] Dealer email failed for ${dealer.email}:`, err))
       );
     });
 
@@ -211,6 +229,7 @@ async function sendHighValueEnquiryCreatedNotifications({
       customerExpectedValue,
       valuePreference,
       postcode,
+      city,
     });
 
     sendPromises.push(
@@ -242,7 +261,7 @@ async function sendHighValueEnquiryCreatedNotifications({
 
       const dealerTemplate = dealerHighValueBiddingTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,
@@ -313,6 +332,7 @@ async function sendCustomerVehicleAcceptedNotification({
   const customerName = customer?.fullName || 'Valued Customer';
   const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
   const postCodeVal = postcode || customer?.collectionPostcode || '';
   const paymentMethod = bank?.accountNumber ? 'Direct Bank Transfer' : 'Bank Transfer';
 
@@ -327,6 +347,7 @@ async function sendCustomerVehicleAcceptedNotification({
     vehicle,
     quoteAmount,
     collectionAddress,
+    additionalAddressDetails,
     postcode: postCodeVal,
     paymentMethod,
   });
@@ -349,11 +370,14 @@ async function sendCustomerVehicleCollectedNotification({
   postcode,
   city,
   bank,
+  collectionDate,
+  isHighValue = false,
 }) {
   const customerEmail = customer?.email?.trim();
   const customerName = customer?.fullName || 'Valued Customer';
   const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
   const postCodeVal = postcode || customer?.collectionPostcode || '';
 
   if (!customerEmail || !customerEmail.includes('@')) {
@@ -361,14 +385,20 @@ async function sendCustomerVehicleCollectedNotification({
     return { success: false, error: 'No valid customer email' };
   }
 
+  const isHV = isHighValue !== undefined
+    ? Boolean(isHighValue)
+    : (typeof reference === 'string' && (reference.includes('-HV-') || reference.startsWith('HV-')));
+
   const template = customerCollectedEnquiryTemplate({
     reference,
     customerName,
     vehicle,
     quoteAmount,
     collectionAddress,
+    additionalAddressDetails,
     postcode: postCodeVal,
-    collectionDate: new Date(),
+    collectionDate: collectionDate || new Date(),
+    isHighValue: isHV,
   });
 
   return sendEmail({
@@ -376,6 +406,47 @@ async function sendCustomerVehicleCollectedNotification({
     subject: template.subject,
     html: template.html,
   }).catch((err) => console.error(`[EmailService] Customer Vehicle Collected email failed for ${customerEmail}:`, err));
+}
+
+/**
+ * Trigger email to customer only when Standard Enquiry status is updated to 'Cancelled'
+ */
+async function sendCustomerVehicleCancelledNotification({
+  reference,
+  customer,
+  vehicle,
+  quote,
+  postcode,
+  city,
+  bank,
+}) {
+  const customerEmail = customer?.email?.trim();
+  const customerName = customer?.fullName || 'Valued Customer';
+  const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
+  const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
+  const postCodeVal = postcode || customer?.collectionPostcode || '';
+
+  if (!customerEmail || !customerEmail.includes('@')) {
+    console.warn(`[EmailService] Cannot send Vehicle Cancelled email: No valid customer email for Ref: ${reference}`);
+    return { success: false, error: 'No valid customer email' };
+  }
+
+  const template = customerCancelledEnquiryTemplate({
+    reference,
+    customerName,
+    vehicle,
+    quoteAmount,
+    collectionAddress,
+    additionalAddressDetails,
+    postcode: postCodeVal,
+  });
+
+  return sendEmail({
+    to: customerEmail,
+    subject: template.subject,
+    html: template.html,
+  }).catch((err) => console.error(`[EmailService] Customer Vehicle Cancelled email failed for ${customerEmail}:`, err));
 }
 
 /**
@@ -414,7 +485,7 @@ async function sendMidwayNoBidsNotification({
     cityDealers.forEach((dealer) => {
       const dealerTemplate = dealerBiddingNoBidsMidwayTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,
@@ -507,7 +578,7 @@ async function sendMidwayActiveBidsNotification({
     cityDealers.forEach((dealer) => {
       const dealerTemplate = dealerBiddingActiveBidsMidwayTemplate({
         reference,
-        recipientRole: 'City Dealer',
+        recipientRole: 'Dealer',
         recipientName: dealer.name,
         vehicle,
         condition,
@@ -645,7 +716,8 @@ async function sendWinningDealerAndCustomerNotifications({
   const customerEmail = customerData.email || enquiry.customerEmail;
   const customerName = customerData.fullName || enquiry.customerName || 'Valued Customer';
   const customerPhone = customerData.phone || enquiry.customerPhone || '';
-  const collectionAddress = customerData.collectionAddress || '';
+  const collectionAddress = customerData.collectionAddress || enquiry.collectionAddress || enquiry.address || '';
+  const additionalAddressDetails = customerData.additionalAddressDetails || enquiry.additionalAddressDetails || '';
   const postcode = enquiry.postcode || customerData.collectionPostcode || '';
   const city = enquiry.city || '';
 
@@ -674,6 +746,7 @@ async function sendWinningDealerAndCustomerNotifications({
         phone: customerPhone,
         email: customerEmail,
         collectionAddress,
+        additionalAddressDetails,
       },
     });
 
@@ -693,10 +766,11 @@ async function sendWinningDealerAndCustomerNotifications({
       customerName,
       vehicle,
       collectionAddress,
+      additionalAddressDetails,
       postcode,
       city,
       dealer: {
-        name: winningDealer?.name || 'Verified AutoScrap Partner',
+        name: winningDealer?.name || 'Verified MyAutoScrap Partner',
         assignedCity: winningDealer?.assignedCity || city,
         email: winningDealer?.email,
       },
@@ -739,6 +813,7 @@ async function sendWinningDealerAndCustomerNotifications({
           phone: customerPhone,
           email: customerEmail,
           collectionAddress,
+          additionalAddressDetails,
         },
         dealer: {
           name: winningDealer?.name || 'Valued Partner',
@@ -814,6 +889,7 @@ module.exports = {
   sendHighValueEnquiryCreatedNotifications,
   sendCustomerVehicleAcceptedNotification,
   sendCustomerVehicleCollectedNotification,
+  sendCustomerVehicleCancelledNotification,
   sendMidwayNoBidsNotification,
   sendMidwayActiveBidsNotification,
   sendSuperAdminBiddingEndedNoBidsNotification,

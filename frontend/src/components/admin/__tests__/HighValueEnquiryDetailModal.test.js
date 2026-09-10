@@ -25,6 +25,8 @@ describe('HighValueEnquiryDetailModal Component', () => {
         dealerName: 'London Scrap Dealer',
         dealerEmail: 'london@autoscrap.co.uk',
         dealerCity: 'London',
+        coveredPostcodes: ['SW1', 'SW2'],
+        dealerPostcodes: 'SW1, SW2',
         amount: 1550,
         status: 'WINNING',
         createdAt: '2026-08-14T22:00:00.000Z',

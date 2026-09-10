@@ -78,7 +78,7 @@ export default function Layout() {
               className={`${actionButtonClass} border border-[#0f7b4f] bg-white text-[#0f7b4f]`}
               href="tel:+447714423293"
             >
-              ☎ +44 7714423293
+              ☎ 07714 423293
             </a>
             <a
               className={`${actionButtonClass} bg-[#25d366] text-[#082d1c]`}
@@ -161,7 +161,7 @@ export default function Layout() {
           <div className={footerColumnClass}>
             <h4 className="mb-3.5 text-[#dff46b]">Contact</h4>
             <a className={footerLinkClass} href="tel:+447714423293">
-              +44 7714423293
+              07714 423293
             </a>
             <a className={footerLinkClass} href="mailto:info@myautoscrap.co.uk">
               info@myautoscrap.co.uk

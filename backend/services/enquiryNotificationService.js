@@ -13,12 +13,13 @@ const {
   sendHighValueEnquiryCreatedNotifications,
   sendCustomerVehicleAcceptedNotification,
   sendCustomerVehicleCollectedNotification,
+  sendCustomerVehicleCancelledNotification,
   sendEmail,
 } = require('./emailService');
 
 /**
  * Dispatches notification emails for Standard Enquiries (<= 2015)
- * Sends to: Customer, Assigned City Dealer, Super Admin
+ * Sends to: Customer, Assigned Dealer, Super Admin
  * 
  * @param {Object} enquiry - Created Prisma enquiry record or enquiry payload
  */
@@ -72,7 +73,20 @@ function sendHighValueEnquiryEmail(record, rawData = {}) {
     valuePreference: record.valuePreference,
     biddingEndsAt: record.biddingEndsAt,
     postcode: record.postcode,
-    city: record.city,
+    city: (() => {
+      const { extractOutwardCode, getCityNameFromOutwardCode } = require('../utils/postcodeHelper');
+      const raw = record.city || rawData.city;
+      if (
+        !raw ||
+        raw === 'Other' ||
+        raw === 'Unassigned' ||
+        /^\d[a-zA-Z]{2}$/i.test(String(raw).trim()) ||
+        /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(raw).trim())
+      ) {
+        return getCityNameFromOutwardCode(extractOutwardCode(record.postcode || rawData.postcode)) || 'UK';
+      }
+      return raw;
+    })(),
   };
 
   // Run in background without blocking API response
@@ -83,10 +97,10 @@ function sendHighValueEnquiryEmail(record, rawData = {}) {
 
 /**
  * Dispatches status change notification email to customer only
- * For standard enquiry when status changes to 'Accepted' or 'Collected'
+ * For standard enquiry when status changes to 'Accepted', 'Collected', or 'Cancelled'
  * 
  * @param {Object} enquiry - Updated Prisma enquiry record or enquiry payload
- * @param {string} [newStatus] - The target status (e.g. 'Accepted', 'Collected')
+ * @param {string} [newStatus] - The target status (e.g. 'Accepted', 'Collected', 'Cancelled')
  */
 function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
   if (!enquiry) return;
@@ -117,6 +131,7 @@ function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
     bank: bankData,
     postcode: enquiry.postcode || customerData.collectionPostcode || '',
     city: enquiry.city || '',
+    isHighValue: false,
   };
 
   if (targetStatus === 'accepted') {
@@ -127,7 +142,91 @@ function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
     sendCustomerVehicleCollectedNotification(payload).catch((err) => {
       console.error(`[NotificationService] Standard enquiry Collected status email failed for Ref ${enquiry.reference}:`, err.message);
     });
+  } else if (targetStatus === 'cancelled') {
+    sendCustomerVehicleCancelledNotification(payload).catch((err) => {
+      console.error(`[NotificationService] Standard enquiry Cancelled status email failed for Ref ${enquiry.reference}:`, err.message);
+    });
   }
+}
+
+/**
+ * Dispatches notification email to customer when High-Value enquiry is marked as Purchased/Collected
+ * 
+ * @param {Object} enquiry - HighValueEnquiry record (with bids)
+ */
+function sendHighValueEnquiryPurchasedEmail(enquiry) {
+  if (!enquiry) return;
+
+  const customerData = typeof enquiry.customer === 'string'
+    ? JSON.parse(enquiry.customer || '{}')
+    : (enquiry.customer || {});
+
+  const customerEmail = (customerData.email || enquiry.customerEmail || '').trim();
+  const customerName = customerData.fullName || enquiry.customerName || 'Valued Customer';
+  const customerPhone = customerData.phone || enquiry.customerPhone || '';
+  const collectionAddress = customerData.collectionAddress || '';
+  const postcode = enquiry.postcode || customerData.collectionPostcode || '';
+  const city = enquiry.city || '';
+
+  const vehicle = {
+    registration: enquiry.registration,
+    make: enquiry.make,
+    model: enquiry.model,
+    year: enquiry.year,
+    mileage: enquiry.mileage,
+  };
+
+  // Find winning bid amount if available
+  let settlementAmount = 0;
+  if (Array.isArray(enquiry.bids) && enquiry.bids.length > 0) {
+    const winningBid = enquiry.bids.find((b) => b.id === enquiry.winningBidId || b.status === 'WINNING');
+    if (winningBid && winningBid.amount != null) {
+      if (typeof winningBid.amount === 'object' && typeof winningBid.amount.toNumber === 'function') {
+        settlementAmount = winningBid.amount.toNumber();
+      } else {
+        const num = Number(winningBid.amount);
+        settlementAmount = isNaN(num) ? 0 : num;
+      }
+    }
+  }
+
+  // Fallback to customerExpectedValue or estimatedValue if no winning bid found
+  if (!settlementAmount) {
+    const exp = enquiry.customerExpectedValue;
+    const est = enquiry.estimatedValue;
+    const numExp = exp && typeof exp === 'object' && typeof exp.toNumber === 'function' ? exp.toNumber() : Number(exp);
+    const numEst = est && typeof est === 'object' && typeof est.toNumber === 'function' ? est.toNumber() : Number(est);
+    settlementAmount = numExp || numEst || 0;
+  }
+
+  const bankData = typeof enquiry.bank === 'string'
+    ? JSON.parse(enquiry.bank || '{}')
+    : (enquiry.bank || {});
+
+  const payload = {
+    reference: enquiry.reference,
+    customer: {
+      ...customerData,
+      fullName: customerName,
+      email: customerEmail,
+      phone: customerPhone,
+      collectionAddress,
+      additionalAddressDetails: customerData.additionalAddressDetails || enquiry.additionalAddressDetails || '',
+    },
+    vehicle,
+    quote: {
+      finalValue: settlementAmount,
+    },
+    bank: bankData,
+    postcode,
+    city,
+    collectionDate: enquiry.purchasedAt || new Date(),
+    isHighValue: true,
+  };
+
+  return sendCustomerVehicleCollectedNotification(payload).catch((err) => {
+    console.error(`[NotificationService] High-value enquiry Purchased/Collected email failed for Ref ${enquiry.reference}:`, err.message);
+  });
 }
 
 /**
@@ -150,6 +249,7 @@ module.exports = {
   sendStandardEnquiryEmail,
   sendHighValueEnquiryEmail,
   sendStandardEnquiryStatusEmail,
+  sendHighValueEnquiryPurchasedEmail,
   sendEnquiryNotification,
   sendEmail,
 };

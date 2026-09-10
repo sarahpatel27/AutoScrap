@@ -7,6 +7,7 @@ function customerDealerSelectedNotificationTemplate({
   customerName = 'Valued Customer',
   vehicle,
   collectionAddress,
+  additionalAddressDetails,
   postcode,
   city,
   dealer,
@@ -16,8 +17,10 @@ function customerDealerSelectedNotificationTemplate({
   const model = vehicle?.model || '';
   const year = vehicle?.year ? `(${vehicle.year})` : '';
 
-  const dealerName = dealer?.name || 'Verified AutoScrap Partner';
-  const dealerCity = dealer?.assignedCity || city || 'UK';
+  const dealerName = dealer?.name || 'Verified MyAutoScrap Partner';
+  const dealerAreas = dealer?.coveredPostcodes && dealer.coveredPostcodes.length > 0
+    ? dealer.coveredPostcodes.join(', ')
+    : (dealer?.assignedCity || city || 'UK');
   const dealerEmail = dealer?.email || '';
 
   const contentHtml = `
@@ -63,8 +66,8 @@ function customerDealerSelectedNotificationTemplate({
           <td style="padding: 8px 0; color: #0f172a; font-weight: 700;">${dealerName}</td>
         </tr>
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Operating Area</td>
-          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${dealerCity}</td>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Assigned Areas</td>
+          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${dealerAreas}</td>
         </tr>
         ${dealerEmail ? `
         <tr>
@@ -89,7 +92,10 @@ function customerDealerSelectedNotificationTemplate({
         ${postcode || collectionAddress ? `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Collection Area</td>
-          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">${collectionAddress ? `${collectionAddress}, ` : ''}${postcode || ''}</td>
+          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">
+            ${collectionAddress ? `${collectionAddress}, ` : ''}${postcode || ''}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Additional Address or Details: ${additionalAddressDetails}</div>` : ''}
+          </td>
         </tr>
         ` : ''}
       </tbody>

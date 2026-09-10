@@ -8,6 +8,7 @@ function customerEnquiryTemplate({
   vehicle,
   quoteAmount,
   collectionAddress,
+  additionalAddressDetails,
   postcode,
 }) {
   const reg = vehicle?.registration || 'N/A';
@@ -59,7 +60,10 @@ function customerEnquiryTemplate({
         ${postcode ? `
         <tr style="border-bottom: 1px solid #e2e8f0;">
           <td style="padding: 11px 0; color: #64748b; font-weight: 600;">Collection Area</td>
-          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">${collectionAddress ? `${collectionAddress}, ` : ''}${postcode}</td>
+          <td style="padding: 11px 0; color: #0f172a; font-weight: 600;">
+            ${collectionAddress ? `${collectionAddress}, ` : ''}${postcode}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Additional Address or Details: ${additionalAddressDetails}</div>` : ''}
+          </td>
         </tr>
         ` : ''}
       </tbody>
@@ -79,7 +83,7 @@ function customerEnquiryTemplate({
   `;
 
   return {
-    subject: `Your AutoScrap Quote & Enquiry Confirmation - ${reference}`,
+    subject: `Your MyAutoScrap Quote & Enquiry Confirmation - ${reference}`,
     html: contentHtml,
     previewText: `Thank you for your enquiry. Your vehicle quote for ${reg} is ${formattedQuote}. Reference: ${reference}`,
   };

@@ -42,26 +42,28 @@ export const CITY_METADATA_FALLBACKS = {
   },
 };
 
-/**
- * Transforms a dynamic database city into a rich location object with display metadata
- */
 export function formatCityLocation(city) {
   const slug = (city.slug || city.name.toLowerCase().replace(/\s+/g, "-")).toLowerCase();
+  const postcodes = Array.isArray(city.postcodes) ? city.postcodes : [];
+  const postcodesText = postcodes.length > 0 ? postcodes.join(", ") : "";
+
   const fallback = CITY_METADATA_FALLBACKS[slug] || {
-    code: city.name.slice(0, 3).toUpperCase(),
+    code: postcodesText || city.name.slice(0, 3).toUpperCase(),
     description: `Fast and free scrap car collection across ${city.name} and surrounding areas.`,
     areas: [`${city.name} City Centre`, "Surrounding Districts", "Local Boroughs"],
   };
 
   return {
-    id: city.id,
+    id: city.id || slug,
     city: city.name,
     name: city.name,
     slug,
-    code: fallback.code,
-    description: fallback.description,
-    areas: fallback.areas,
+    postcodes,
+    code: city.code || (postcodesText || fallback.code),
+    description: city.description || fallback.description,
+    areas: postcodes.length > 0 ? postcodes : (Array.isArray(city.areas) ? city.areas : fallback.areas),
     ratePerTon: city.ratePerTon || 235,
+    dealerCount: city.dealerCount || 0,
     isActive: city.isActive !== false,
   };
 }

@@ -33,10 +33,13 @@ function superAdminWinnerSelectedNotificationTemplate({
   const customerPhone = customer?.phone || customer?.customerPhone || 'N/A';
   const customerEmail = customer?.email || customer?.customerEmail || 'N/A';
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || customer?.extraAddress || '';
 
   const dealerName = dealer?.name || 'Valued Partner';
   const dealerEmail = dealer?.email || 'N/A';
-  const dealerCity = dealer?.assignedCity || city || 'UK';
+  const dealerAreas = dealer?.coveredPostcodes && dealer.coveredPostcodes.length > 0
+    ? dealer.coveredPostcodes.join(', ')
+    : (dealer?.assignedCity || city || 'UK');
 
   const contentHtml = `
     <!-- Top Alert Card (Emerald / Forest Green Super Admin Alert) -->
@@ -90,8 +93,8 @@ function superAdminWinnerSelectedNotificationTemplate({
           </td>
         </tr>
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Operating Area</td>
-          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${dealerCity}</td>
+          <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Assigned Areas</td>
+          <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">${dealerAreas}</td>
         </tr>
         <tr>
           <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Winning Bid</td>
@@ -126,6 +129,7 @@ function superAdminWinnerSelectedNotificationTemplate({
           <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Collection Address</td>
           <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">
             ${collectionAddress ? `${collectionAddress}, ` : ''}${city || ''} ${postcode || ''}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Additional Address or Details: ${additionalAddressDetails}</div>` : ''}
           </td>
         </tr>
       </table>
@@ -161,7 +165,7 @@ function superAdminWinnerSelectedNotificationTemplate({
     </div>
 
     <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">
-      AutoScrap Internal System Notification • Super Admin Overview • Reference <strong>${reference}</strong>
+      MyAutoScrap Internal System Notification • Super Admin Overview • Reference <strong>${reference}</strong>
     </p>
   `;
 

@@ -70,6 +70,7 @@ async function lookupAddress(req, res) {
     const isSupported = cityResolution.isSupported;
     const matchedServiceArea = cityResolution.matchedCityName;
     const ratePerTon = cityResolution.ratePerTon;
+    const outwardDistrict = cityResolution.outwardDistrict;
 
     const addresses = rawList.map((item, idx) => ({
       udprn: item.Udprn || idx + 1,
@@ -79,6 +80,7 @@ async function lookupAddress(req, res) {
     return res.json({
       success: true,
       postcode,
+      outwardDistrict,
       postTown,
       adminDistrict,
       isSupported,

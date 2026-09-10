@@ -40,7 +40,15 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
   let timeRemaining = 'N/A';
   let resolvedStatus = row.status;
 
-  if (row.biddingEndsAt) {
+  // When a dealer is selected or enquiry is concluded, the timer is ALWAYS Ended
+  const hasWinnerOrClosed =
+    Boolean(row.winningDealerId) ||
+    Boolean(row.winningBidId) ||
+    ['DEALER_SELECTED', 'PURCHASED', 'CANCELLED', 'BIDDING_ENDED', 'archived', 'deleted', 'ARCHIVED', 'DELETED'].includes(resolvedStatus);
+
+  if (hasWinnerOrClosed) {
+    timeRemaining = 'Ended';
+  } else if (row.biddingEndsAt) {
     const diffMs = new Date(row.biddingEndsAt).getTime() - Date.now();
     if (diffMs > 0) {
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -52,6 +60,19 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
         resolvedStatus = 'BIDDING_ENDED';
       }
     }
+  }
+
+  const { extractOutwardCode, getCityNameFromOutwardCode } = require('./postcodeHelper');
+  const outwardDistrict = extractOutwardCode(row.postcode);
+  let resolvedCity = row.city;
+  if (
+    !resolvedCity ||
+    resolvedCity === 'Other' ||
+    resolvedCity === 'Unassigned' ||
+    /^\d[a-zA-Z]{2}$/i.test(String(resolvedCity).trim()) ||
+    /^[a-zA-Z]{1,2}\d[a-zA-Z\d]?$/i.test(String(resolvedCity).trim())
+  ) {
+    resolvedCity = getCityNameFromOutwardCode(outwardDistrict) || row.area || 'UK';
   }
 
   // Base anonymized object
@@ -66,8 +87,9 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     condition: row.condition,
     photos: row.photos,
     postcode: row.postcode,
-    city: row.city,
-    area: row.area || row.city,
+    outwardDistrict: outwardDistrict || (row.postcode ? row.postcode.split(' ')[0] : ''),
+    city: resolvedCity,
+    area: resolvedCity,
     estimatedValue,
     customerExpectedValue,
     valuePreference: row.valuePreference,
@@ -78,7 +100,9 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
     winningDealerId: row.winningDealerId ? String(row.winningDealerId) : null,
     winningBidId: row.winningBidId ? String(row.winningBidId) : null,
     biddingStartAt: row.biddingStartAt ? row.biddingStartAt.toISOString() : null,
-    biddingEndsAt: row.biddingEndsAt ? row.biddingEndsAt.toISOString() : null,
+    biddingEndsAt: hasWinnerOrClosed && row.biddingEndsAt && new Date(row.biddingEndsAt) > new Date()
+      ? (row.winnerSelectedAt ? row.winnerSelectedAt.toISOString() : (row.purchasedAt ? row.purchasedAt.toISOString() : new Date().toISOString()))
+      : (row.biddingEndsAt ? row.biddingEndsAt.toISOString() : null),
     timeRemaining,
     createdAt: row.createdAt.toISOString(),
   };
@@ -97,16 +121,27 @@ function anonymizeEnquiryForDealer(row, requestingUser) {
       additionalAddressDetails: row.additionalAddressDetails || '',
     };
     payload.bank = row.bank || null;
-    payload.bids = (row.bids || []).map((b) => ({
-      id: String(b.id),
-      dealerId: String(b.dealerId),
-      dealerName: b.dealer?.name || 'Dealer',
-      dealerEmail: b.dealer?.email || '',
-      dealerCity: b.dealer?.assignedCity || 'UK',
-      amount: Number(b.amount),
-      status: b.status,
-      createdAt: b.createdAt.toISOString(),
-    }));
+    payload.bids = (row.bids || []).map((b) => {
+      const pcs = Array.isArray(b.dealer?.coveredPostcodes) ? b.dealer.coveredPostcodes : [];
+      let dealerPostcodes = 'All UK';
+      if (pcs.length > 0) {
+        dealerPostcodes = pcs.join(', ');
+      } else if (b.dealer?.assignedCity && b.dealer.assignedCity !== 'UK') {
+        dealerPostcodes = b.dealer.assignedCity;
+      }
+      return {
+        id: String(b.id),
+        dealerId: String(b.dealerId),
+        dealerName: b.dealer?.name || 'Dealer',
+        dealerEmail: b.dealer?.email || '',
+        dealerCity: b.dealer?.assignedCity || 'UK',
+        dealerPostcodes,
+        coveredPostcodes: pcs,
+        amount: Number(b.amount),
+        status: b.status,
+        createdAt: b.createdAt ? (b.createdAt.toISOString ? b.createdAt.toISOString() : new Date(b.createdAt).toISOString()) : new Date().toISOString(),
+      };
+    });
   } else {
     // Non-winning dealer view BEFORE winning: Completely strip sensitive customer & address identities
     payload.customerName = '[Hidden Until Won]';

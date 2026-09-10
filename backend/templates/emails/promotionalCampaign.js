@@ -4,7 +4,7 @@
  */
 function promotionalCampaignTemplate({
   customerName = 'Valued Customer',
-  subject = 'Special Offer from AutoScrap UK',
+  subject = 'Special Offer from MyAutoScrap UK',
   message = '',
   ctaText = 'Get Instant Scrap Quote',
   ctaUrl = 'https://myautoscrap.co.uk/scrap-my-car',
@@ -25,26 +25,24 @@ function promotionalCampaignTemplate({
     <!-- Top Campaign Banner -->
     <div style="margin-bottom: 24px;">
       <span style="display: inline-block; background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 4px 14px; border-radius: 9999px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px;">
-        ⭐ Special AutoScrap Announcement
+        ⭐ Special MyAutoScrap Announcement
       </span>
-      <h1 style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.25;">
+      <h2 style="margin: 0; color: #0f172a; font-size: 20px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.25;">
         ${subject}
-      </h1>
+      </h2>
     </div>
 
-    <p style="color: #334155; font-size: 15px; margin: 0 0 16px 0; line-height: 1.6;">
-      Dear <strong>${customerName || 'Valued Customer'}</strong>,
-    </p>
+    
 
     <!-- Main Dynamic Campaign Message Body -->
     <div style="margin-bottom: 28px; color: #334155; font-size: 15px; line-height: 1.65;">
       ${formattedMessageHtml}
     </div>
 
-    <!-- Why AutoScrap Feature Card Grid -->
+    <!-- Why MyAutoScrap Feature Card Grid -->
     <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
       <div style="font-size: 12px; font-weight: 800; color: #0f7b4f; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px;">
-        Why Recycle or Sell with AutoScrap?
+        Why Recycle or Sell with MyAutoScrap?
       </div>
       <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
         <tr>
@@ -81,14 +79,14 @@ function promotionalCampaignTemplate({
 
     <!-- Compliance / Opt-out footer note -->
     <p style="color: #94a3b8; font-size: 11.5px; margin: 0; line-height: 1.5; border-top: 1px solid #f1f5f9; padding-top: 16px;">
-      You are receiving this update because you previously requested a valuation or enquired with AutoScrap UK. If you no longer wish to receive promotional announcements, simply reply to this email with "Unsubscribe".
+      You are receiving this update because you previously requested a valuation or enquired with MyAutoScrap UK. If you no longer wish to receive promotional announcements, simply reply to this email with "Unsubscribe".
     </p>
   `;
 
   return {
     subject,
     html: contentHtml,
-    previewText: `${subject} - AutoScrap UK Announcements`,
+    previewText: `${subject} - MyAutoScrap UK Announcements`,
   };
 }
 

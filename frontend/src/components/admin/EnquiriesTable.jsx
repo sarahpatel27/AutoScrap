@@ -6,16 +6,23 @@ import Pagination from './Pagination';
 import { showToast } from './ToastContainer';
 import { useAuth } from '../../context/AuthContext';
 import { exportEnquiriesToExcel } from '../../utils/excelExporter';
-import { fetchSupportedCities } from '../../services/adminStore';
+import { getCityFromPostcode, formatCityName, getCityBadgeClass } from '../../utils/cityHelper';
+import DateRangeFilter, { filterByDateRange } from './DateRangeFilter';
 
 export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
-  const isDealer = !!user?.assignedCity;
+  const isDealer = user?.role === 'City Dealer';
+  const dealerDistricts = (user?.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
 
   const [dbCities, setDbCities] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [cityFilter, setCityFilter] = useState(user?.assignedCity || 'All');
+  const [cityFilter, setCityFilter] = useState(
+    isDealer && dealerDistricts.length > 0 ? 'All' : (user?.assignedCity || 'All')
+  );
+  const [datePreset, setDatePreset] = useState('all');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkStatus, setBulkStatus] = useState('Contacted');
@@ -44,37 +51,64 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
   }, []);
 
   useEffect(() => {
-    if (user?.assignedCity) {
+    if (isDealer && dealerDistricts.length > 0) {
+      setCityFilter('All');
+    } else if (user?.assignedCity) {
       setCityFilter(user.assignedCity);
     }
-  }, [user]);
+  }, [user, isDealer, dealerDistricts.length]);
 
   // Reset to page 1 whenever filters or search term change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, cityFilter]);
+  }, [searchTerm, statusFilter, cityFilter, datePreset, customStartDate, customEndDate]);
 
   const statuses = ['All', 'Pending', 'Contacted', 'Accepted', 'Collected', 'Cancelled'];
 
   const cities = useMemo(() => {
-    const set = new Set(dbCities);
-    for (const e of enquiries) {
-      if (e.city && e.city !== 'Other' && e.city !== 'Unassigned') {
-        set.add(e.city);
+    const cityMap = new Map();
+    for (const c of dbCities) {
+      const formatted = formatCityName(c);
+      if (formatted && formatted !== 'Other' && formatted !== 'Unassigned') {
+        cityMap.set(formatted.toLowerCase(), formatted);
       }
     }
-    return ['All', ...Array.from(set).sort()];
+    for (const e of enquiries) {
+      const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+      const formatted = formatCityName(rawCity);
+      if (formatted && formatted !== 'Other' && formatted !== 'Unassigned') {
+        cityMap.set(formatted.toLowerCase(), formatted);
+      }
+    }
+    return ['All', ...Array.from(cityMap.values()).sort((a, b) => a.localeCompare(b))];
   }, [dbCities, enquiries]);
 
-  const baseEnquiries = enquiries.filter((e) => {
-    const itemCity = e.city || 'Other';
+  const dateFiltered = useMemo(() => {
+    return filterByDateRange(enquiries, datePreset, customStartDate, customEndDate);
+  }, [enquiries, datePreset, customStartDate, customEndDate]);
 
-    // Dealer scope constraint
-    if (isDealer && itemCity !== user.assignedCity) {
-      return false;
+  const baseEnquiries = dateFiltered.filter((e) => {
+    const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress) || 'Other';
+    const itemCity = formatCityName(rawCity) || 'Other';
+    const itemDistrict = (e.outwardDistrict || (e.postcode || '').trim().toUpperCase().split(' ')[0] || '').trim().toUpperCase();
+
+    // Dealer scope constraint:
+    // If dealer has coveredPostcodes, filter by outward district
+    // If legacy dealer with only assignedCity, filter by assignedCity
+    if (isDealer) {
+      if (dealerDistricts.length > 0) {
+        if (!dealerDistricts.includes(itemDistrict)) {
+          return false;
+        }
+      } else if (user?.assignedCity && itemCity.toLowerCase() !== user.assignedCity.toLowerCase()) {
+        return false;
+      }
     }
 
-    const matchesCity = cityFilter === 'All' || itemCity === cityFilter;
+    const matchesCity =
+      (isDealer && dealerDistricts.length > 0) ||
+      cityFilter === 'All' ||
+      itemCity.toLowerCase() === cityFilter.toLowerCase();
 
     const term = searchTerm.toLowerCase().trim();
     if (!term) return matchesCity;
@@ -225,27 +259,6 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
     }
   };
 
-  const getCityBadgeClass = (city) => {
-    switch (city) {
-      case 'Doncaster':
-        return 'bg-orange-50 text-orange-800 border-orange-200';
-      case 'Leicester':
-        return 'bg-amber-50 text-amber-900 border-amber-200';
-      case 'Peterborough':
-        return 'bg-teal-50 text-teal-800 border-teal-200';
-      case 'London':
-        return 'bg-indigo-50 text-indigo-800 border-indigo-200';
-      case 'Cambridge':
-        return 'bg-sky-50 text-sky-800 border-sky-200';
-      case 'Liverpool':
-        return 'bg-rose-50 text-rose-800 border-rose-200';
-      case 'Manchester':
-        return 'bg-violet-50 text-violet-800 border-violet-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
   return (
     <div className="rounded-2xl sm:rounded-3xl border border-gray-200 bg-white shadow-xs overflow-hidden relative">
       {/* Bulk Action Sticky Floating Toolbar */}
@@ -306,13 +319,15 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
         {isDealer ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 rounded-xl sm:rounded-2xl border border-amber-300 bg-amber-50 p-3 sm:px-4 sm:py-3 text-amber-900">
             <div className="flex items-start gap-2">
-              <span className="text-lg sm:text-xl shrink-0 mt-0.5">📍</span>
+              <span className="text-lg sm:text-xl shrink-0 mt-0.5">📮</span>
               <div>
                 <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-950">
-                  {user.assignedCity} Dealer View
+                  {dealerDistricts.length > 0 ? 'District Postcode Coverage View' : `${user?.assignedCity || 'Dealer'} View`}
                 </span>
                 <p className="text-xs text-amber-800 font-medium leading-tight">
-                  Showing customer scrap enquiries strictly assigned to the <strong>{user.assignedCity}</strong> territory.
+                  {dealerDistricts.length > 0
+                    ? `Showing customer scrap enquiries strictly covering your assigned districts: ${dealerDistricts.join(', ')}.`
+                    : `Showing customer scrap enquiries assigned to ${user?.assignedCity || 'your territory'}.`}
                 </p>
               </div>
             </div>
@@ -329,11 +344,18 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
               {cities.map((city) => {
                 const count =
                   city === 'All'
-                    ? enquiries.length
-                    : enquiries.filter(
-                        (item) =>
-                          (item.city || getCityFromPostcode(item.postcode || item.customer?.collectionPostcode, item.customer?.collectionAddress)) === city,
-                      ).length;
+                    ? dateFiltered.length
+                    : dateFiltered.filter((item) => {
+                        const rawCity =
+                          item.city ||
+                          getCityFromPostcode(
+                            item.postcode || item.customer?.collectionPostcode,
+                            item.customer?.collectionAddress,
+                          );
+                        return formatCityName(rawCity).toLowerCase() === city.toLowerCase();
+                      }).length;
+
+                const isSelected = cityFilter.toLowerCase() === city.toLowerCase();
 
                 return (
                   <button
@@ -341,7 +363,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                     type="button"
                     onClick={() => setCityFilter(city)}
                     className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-black transition cursor-pointer whitespace-nowrap shrink-0 ${
-                      cityFilter === city
+                      isSelected
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
@@ -349,7 +371,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                     <span>{city === 'All' ? 'All Cities' : city}</span>
                     <span
                       className={`rounded-full px-1.5 py-0.2 text-[10px] ${
-                        cityFilter === city ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
+                        isSelected ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-800'
                       }`}
                     >
                       {count}
@@ -360,6 +382,23 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
             </div>
           </div>
         )}
+
+        {/* Date Filter Bar */}
+        <div className="pt-2 border-t border-gray-100">
+          <DateRangeFilter
+            preset={datePreset}
+            onPresetChange={setDatePreset}
+            customStart={customStartDate}
+            onCustomStartChange={setCustomStartDate}
+            customEnd={customEndDate}
+            onCustomEndChange={setCustomEndDate}
+            onReset={() => {
+              setDatePreset('all');
+              setCustomStartDate('');
+              setCustomEndDate('');
+            }}
+          />
+        </div>
 
         {/* Status Tabs & Search */}
         <div className={`flex flex-col gap-3 pt-2 border-t border-gray-100 lg:flex-row lg:items-center ${readOnly ? 'lg:justify-end' : 'lg:justify-between'}`}>
@@ -463,7 +502,8 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
           </div>
         ) : (
           paginatedEnquiries.map((e) => {
-            const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+            const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+            const itemCity = formatCityName(rawCity);
             const isSelected = selectedIds.includes(String(e.id));
 
             return (
@@ -619,7 +659,8 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
               </tr>
             ) : (
               paginatedEnquiries.map((e) => {
-                const itemCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+                const rawCity = e.city || getCityFromPostcode(e.postcode || e.customer?.collectionPostcode, e.customer?.collectionAddress);
+                const itemCity = formatCityName(rawCity);
                 const isSelected = selectedIds.includes(String(e.id));
 
                 return (
@@ -680,8 +721,11 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                           📍 {itemCity}
                         </span>
                         {e.postcode && (
-                          <span className="font-mono text-[10px] text-gray-500 uppercase">
-                            ({e.postcode})
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-gray-500 uppercase">
+                            <span className="rounded bg-blue-50 border border-blue-200 px-1 py-0.2 text-[9px] font-black text-blue-800">
+                              📮 {e.outwardDistrict || e.postcode.split(' ')[0]}
+                            </span>
+                            <span>{e.postcode}</span>
                           </span>
                         )}
                       </div>

@@ -110,7 +110,7 @@ export default function HowItWorksPage() {
                 Get My Quote →
               </Link>
               <a className={ghostBtnClass} href="tel:+447714423293">
-                Call Us (+44 7714423293)
+                Call Us (07714 423293)
               </a>
             </div>
           </div>

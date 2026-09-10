@@ -34,6 +34,7 @@ function superAdminBiddingEndedNoBidsTemplate({
   const customerPhone = customer?.phone || customer?.customerPhone || 'N/A';
   const customerEmail = customer?.email || customer?.customerEmail || 'N/A';
   const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || customer?.extraAddress || '';
 
   let formattedDeadline = 'N/A';
   if (biddingEndsAt) {
@@ -110,6 +111,7 @@ function superAdminBiddingEndedNoBidsTemplate({
           <td style="padding: 8px 0; color: #64748b; font-weight: 600;">Collection Address</td>
           <td style="padding: 8px 0; color: #0f172a; font-weight: 600;">
             ${collectionAddress ? `${collectionAddress}, ` : ''}${city || ''} ${postcode || ''}
+            ${additionalAddressDetails ? `<div style="margin-top: 4px; color: #0f7b4f; font-weight: 700; font-size: 13px;">Additional Address or Details: ${additionalAddressDetails}</div>` : ''}
           </td>
         </tr>
       </table>
@@ -165,7 +167,7 @@ function superAdminBiddingEndedNoBidsTemplate({
     </div>
 
     <p style="font-size: 12px; color: #94a3b8; margin: 0; line-height: 1.5;">
-      AutoScrap Internal System Notification • Sent to Super Admins only • Reference <strong>${reference}</strong>
+      MyAutoScrap Internal System Notification • Sent to Super Admins only • Reference <strong>${reference}</strong>
     </p>
   `;
 

@@ -132,87 +132,263 @@ const CITY_ALIASES = {
 };
 
 /**
- * Outward postcode prefix mapping
+ * Outward postcode prefix mapping (all 124 UK postal areas)
  */
 const POSTCODE_AREA_PREFIX_MAP = {
-  lu: "Bedfordshire",
-  dn: "Doncaster",
-  le: "Leicester",
-  pe: "Peterborough",
-  cb: "Cambridge",
-  l: "Liverpool",
-  m: "Manchester",
-  b: "Birmingham",
-  bs: "Bristol",
-  ls: "Leeds",
-  s: "Sheffield",
-  ne: "Newcastle upon Tyne",
-  ng: "Nottingham",
-  cv: "Coventry",
-  so: "Southampton",
-  po: "Portsmouth",
-  ox: "Oxford",
-  nr: "Norwich",
-  ex: "Exeter",
-  pl: "Plymouth",
-  gl: "Gloucester",
-  ct: "Canterbury",
-  ba: "Bath",
-  bd: "Bradford",
-  ca: "Carlisle",
-  cm: "Chelmsford",
-  ch: "Chester",
-  de: "Derby",
-  dh: "Durham",
-  hr: "Hereford",
-  hu: "Kingston upon Hull",
-  la: "Lancaster",
-  ln: "Lincoln",
-  mk: "Milton Keynes",
-  pr: "Preston",
-  sp: "Salisbury",
-  ss: "Southend-on-Sea",
+  ab: "Aberdeen",
   al: "St Albans",
-  st: "Stoke-on-Trent",
-  sr: "Sunderland",
-  tr: "Truro",
-  wf: "Wakefield",
-  so: "Winchester",
-  wv: "Wolverhampton",
-  wr: "Worcester",
-  yo: "York",
+  b: "Birmingham",
+  ba: "Bath",
+  bb: "Blackburn",
+  bd: "Bradford",
+  bh: "Bournemouth",
+  bl: "Bolton",
+  bn: "Brighton",
+  br: "London",
+  bs: "Bristol",
+  bt: "Belfast",
+  ca: "Carlisle",
+  cb: "Cambridge",
+  cf: "Cardiff",
+  ch: "Chester",
+  cm: "Chelmsford",
+  co: "Colchester",
+  cr: "London",
+  ct: "Canterbury",
+  cv: "Coventry",
+  cw: "Crewe",
+  da: "London",
+  dd: "Dundee",
+  de: "Derby",
+  dg: "Dumfries",
+  dh: "Durham",
+  dl: "Darlington",
+  dn: "Doncaster",
+  dt: "Dorchester",
+  dy: "Dudley",
   e: "London",
   ec: "London",
-  n: "London",
-  nw: "London",
-  se: "London",
-  sw: "London",
-  w: "London",
-  wc: "London",
-  br: "London",
-  cr: "London",
-  da: "London",
+  eh: "Edinburgh",
   en: "London",
+  ex: "Exeter",
+  fk: "Falkirk",
+  fy: "Blackpool",
+  g: "Glasgow",
+  gl: "Gloucester",
+  gu: "Guildford",
   ha: "London",
+  hd: "Huddersfield",
+  hg: "Harrogate",
+  hp: "Hemel Hempstead",
+  hr: "Hereford",
+  hs: "Outer Hebrides",
+  hu: "Kingston upon Hull",
+  hx: "Halifax",
   ig: "London",
+  ip: "Ipswich",
+  iv: "Inverness",
+  ka: "Kilmarnock",
   kt: "London",
+  kw: "Kirkwall",
+  ky: "Kirkcaldy",
+  l: "Liverpool",
+  la: "Lancaster",
+  ld: "Llandrindod Wells",
+  le: "Leicester",
+  ll: "Llandudno",
+  ln: "Lincoln",
+  ls: "Leeds",
+  lu: "Luton",
+  m: "Manchester",
+  me: "Medway",
+  mk: "Milton Keynes",
+  ml: "Motherwell",
+  n: "London",
+  ne: "Newcastle upon Tyne",
+  ng: "Nottingham",
+  nn: "Northampton",
+  np: "Newport",
+  nr: "Norwich",
+  nw: "London",
+  ol: "Oldham",
+  ox: "Oxford",
+  pa: "Paisley",
+  pe: "Peterborough",
+  ph: "Perth",
+  pl: "Plymouth",
+  po: "Portsmouth",
+  pr: "Preston",
+  rg: "Reading",
+  rh: "Redhill",
   rm: "London",
+  s: "Sheffield",
+  sa: "Swansea",
+  se: "London",
+  sg: "Stevenage",
+  sk: "Stockport",
+  sl: "Slough",
   sm: "London",
+  sn: "Swindon",
+  so: "Southampton",
+  sp: "Salisbury",
+  sr: "Sunderland",
+  ss: "Southend-on-Sea",
+  st: "Stoke-on-Trent",
+  sw: "London",
+  sy: "Shrewsbury",
+  ta: "Taunton",
+  td: "Galashiels",
+  tf: "Telford",
+  tn: "Tonbridge",
+  tq: "Torquay",
+  tr: "Truro",
+  ts: "Cleveland",
   tw: "London",
   ub: "London",
+  w: "London",
+  wa: "Warrington",
+  wc: "London",
   wd: "London",
+  wf: "Wakefield",
+  wn: "Wigan",
+  wr: "Worcester",
+  ws: "Walsall",
+  wv: "Wolverhampton",
+  yo: "York",
+  ze: "Shetland",
 };
+
+/**
+ * Resolves a UK Outward Code (e.g. "PE1", "M13", "SW1A", "LE2") to its city or town name.
+ * 
+ * @param {string} outwardDistrict
+ * @returns {string} City or area name (e.g. "Peterborough", "Manchester", "London")
+ */
+function getCityNameFromOutwardCode(outwardDistrict) {
+  if (!outwardDistrict || typeof outwardDistrict !== "string") return "";
+  const clean = outwardDistrict.trim().toUpperCase();
+  const match = clean.match(/^([A-Z]{1,2})/);
+  if (!match) return clean;
+  const prefix = match[1].toLowerCase();
+  return POSTCODE_AREA_PREFIX_MAP[prefix] || clean;
+}
+
+/**
+ * Extracts the UK Outward Code (district) from a given postcode.
+ * Examples:
+ * - "PE1 1AA" -> "PE1"
+ * - "PE29 4TU" -> "PE29"
+ * - "SW1A 1AA" -> "SW1A"
+ * - "M1 1AE" -> "M1"
+ * - "PE1" -> "PE1"
+ * 
+ * @param {string} postcode 
+ * @returns {string} Normalized uppercase outward district code
+ */
+function extractOutwardCode(postcode) {
+  if (!postcode || typeof postcode !== "string") return "";
+  const clean = postcode.trim().toUpperCase().replace(/\s+/g, " ");
+  const parts = clean.split(" ");
+  if (parts.length > 1) {
+    return parts[0].trim();
+  }
+  // If no space, check if it's a full UK postcode (which always ends with inward code: 1 digit + 2 letters, e.g. 1AA)
+  const fullMatch = clean.match(/^([A-Z]{1,2}\d[A-Z\d]?)\d[A-Z]{2}$/i);
+  if (fullMatch) {
+    return fullMatch[1].toUpperCase().trim();
+  }
+  const match = clean.match(/^([A-Z]{1,2}\d[A-Z\d]?)/i);
+  return match ? match[1].toUpperCase().trim() : clean;
+}
+
+/**
+ * Checks if at least one active dealer covers the specified outward district.
+ * 
+ * @param {string} outwardDistrict 
+ * @returns {Promise<boolean>}
+ */
+async function isDistrictCoveredByActiveDealer(outwardDistrict) {
+  if (!outwardDistrict) return false;
+  const target = outwardDistrict.trim().toUpperCase();
+
+  try {
+    const activeDealers = await prisma.user.findMany({
+      where: {
+        role: "City Dealer",
+        isActive: true,
+      },
+      select: {
+        id: true,
+        coveredPostcodes: true,
+      },
+    });
+
+    return activeDealers.some((dealer) => {
+      const list = dealer.coveredPostcodes || [];
+      return list.some((p) => String(p).trim().toUpperCase() === target);
+    });
+  } catch (err) {
+    console.error("Error checking district dealer coverage:", err);
+    return false;
+  }
+}
+
+/**
+ * Retrieves the scrap rate per tonne for a given outward district.
+ * 
+ * HIERARCHY:
+ * 1. Specific District Pricing override in district_pricing table (e.g. PE1 = 20.00).
+ * 2. Parent City Pricing fallback in city_pricing table (e.g. Peterborough = 100.00 -> PE2, PE3 inherit 100.00).
+ * 3. Base System Default (235.00).
+ * 
+ * @param {string} outwardDistrict 
+ * @returns {Promise<number>}
+ */
+async function getDistrictRate(outwardDistrict) {
+  if (!outwardDistrict) return 235;
+  const cleanDistrict = outwardDistrict.trim().toUpperCase();
+
+  try {
+    // 1. Direct district override in district_pricing
+    const pricing = await prisma.districtPricing.findUnique({
+      where: { district: cleanDistrict },
+    });
+    if (pricing && pricing.pricePerTonne) {
+      return Number(pricing.pricePerTonne);
+    }
+
+    // 2. Parent City Pricing fallback
+    const parentCityName = getCityNameFromOutwardCode(cleanDistrict);
+    if (parentCityName) {
+      const city = await prisma.city.findFirst({
+        where: {
+          name: { equals: parentCityName, mode: 'insensitive' },
+          isActive: true,
+        },
+        include: { pricing: true },
+      });
+      if (city && city.pricing && city.pricing.pricePerTonne) {
+        return Number(city.pricing.pricePerTonne);
+      }
+    }
+  } catch (err) {
+    console.error("Error fetching district rate:", err);
+  }
+  return 235;
+}
 
 /**
  * Centrally resolves an addressData object into a supported database City record (or null).
  * 
  * Flow:
- * 1. Normalize all address components (PostTown, AdminDistrict, AdminCounty, AddressList, Postcode).
- * 2. Resolve known aliases centrally.
- * 3. Match against active cities in database (case/punctuation insensitive, exact or contains).
+ * 1. Extract UK outward district code from postcode.
+ * 2. Strictly check if at least one active dealer covers this outward district.
+ *    If no active dealer covers this district, mark isSupported: false.
+ * 3. Retrieve rate per tonne configured for this outward district (Option B).
+ * 4. Resolve city name from candidates, aliases, or active cities in DB for display.
  * 
  * @param {Object} addressData - Data containing postcode, addressList, locationDetails, postTown, adminDistrict
- * @returns {Promise<{ isSupported: boolean, city: Object|null, matchedCityName: string|null, ratePerTon: number|null }>}
+ * @returns {Promise<{ isSupported: boolean, city: Object|null, matchedCityName: string|null, ratePerTon: number|null, outwardDistrict: string }>}
  */
 async function resolveSupportedCity(addressData = {}) {
   const {
@@ -225,9 +401,27 @@ async function resolveSupportedCity(addressData = {}) {
     address = "",
   } = addressData;
 
-  const candidates = [];
+  const cleanPostcode = normalizeLocationString(postcode).replace(/\s+/g, "");
+  const outwardDistrict = extractOutwardCode(postcode);
 
-  // Extract all potential candidates in priority order
+  // 1. Strict Dealer Coverage Validation:
+  // Must be covered by at least one active City Dealer
+  const isCovered = await isDistrictCoveredByActiveDealer(outwardDistrict);
+  if (!isCovered) {
+    return {
+      isSupported: false,
+      city: null,
+      matchedCityName: null,
+      ratePerTon: null,
+      outwardDistrict,
+    };
+  }
+
+  // 2. Fetch district rate per tonne (Option B)
+  const ratePerTon = await getDistrictRate(outwardDistrict);
+
+  // 3. Resolve city name for display / administrative context
+  const candidates = [];
   if (postTown) candidates.push(postTown);
   if (adminDistrict) candidates.push(adminDistrict);
   if (adminCounty) candidates.push(adminCounty);
@@ -250,7 +444,6 @@ async function resolveSupportedCity(addressData = {}) {
   if (ons.AdminCounty?.Name) candidates.push(ons.AdminCounty.Name);
 
   // Outward postcode prefix candidate
-  const cleanPostcode = normalizeLocationString(postcode).replace(/\s+/g, "");
   const outwardMatch = cleanPostcode.match(/^([a-z]{1,2})\d/i);
   if (outwardMatch) {
     const prefix = outwardMatch[1].toLowerCase();
@@ -259,56 +452,53 @@ async function resolveSupportedCity(addressData = {}) {
     }
   }
 
-  // Fetch all active supported cities and their current pricing from DB
+  // Fetch active cities from DB to map name if possible
   const activeCities = await prisma.city.findMany({
     where: { isActive: true },
     include: { pricing: true },
   });
 
-  if (!activeCities || activeCities.length === 0) {
-    return {
-      isSupported: false,
-      city: null,
-      matchedCityName: null,
-      ratePerTon: null,
-    };
-  }
+  let matchedCity = null;
+  const fallbackCityName = getCityNameFromOutwardCode(outwardDistrict) || outwardDistrict;
+  let matchedCityName = postTown || fallbackCityName;
 
-  // Match candidates against active database cities
-  for (const rawCandidate of candidates) {
-    const norm = normalizeLocationString(rawCandidate);
-    if (!norm) continue;
+  if (activeCities && activeCities.length > 0) {
+    for (const rawCandidate of candidates) {
+      const norm = normalizeLocationString(rawCandidate);
+      if (!norm) continue;
 
-    // Check alias first
-    const mappedAlias = CITY_ALIASES[norm];
-    const targetToSearch = mappedAlias ? normalizeLocationString(mappedAlias) : norm;
+      const mappedAlias = CITY_ALIASES[norm];
+      const targetToSearch = mappedAlias ? normalizeLocationString(mappedAlias) : norm;
 
-    // Match against active cities
-    for (const city of activeCities) {
-      const normCityName = normalizeLocationString(city.name);
-
-      if (
-        normCityName === targetToSearch ||
-        normCityName === norm ||
-        targetToSearch.includes(normCityName) ||
-        norm.includes(normCityName) ||
-        normCityName.includes(targetToSearch)
-      ) {
-        return {
-          isSupported: true,
-          city,
-          matchedCityName: city.name,
-          ratePerTon: city.pricing ? Number(city.pricing.pricePerTonne || city.pricing.pricePerTon) : 235,
-        };
+      for (const city of activeCities) {
+        const normCityName = normalizeLocationString(city.name);
+        if (
+          normCityName === targetToSearch ||
+          normCityName === norm ||
+          targetToSearch.includes(normCityName) ||
+          norm.includes(normCityName) ||
+          normCityName.includes(targetToSearch)
+        ) {
+          matchedCity = city;
+          matchedCityName = city.name;
+          break;
+        }
       }
+      if (matchedCity) break;
     }
   }
 
+  // Ensure matchedCityName is not a raw inward code (e.g. "1aa")
+  if (/^\d[a-zA-Z]{2}$/i.test(matchedCityName)) {
+    matchedCityName = fallbackCityName;
+  }
+
   return {
-    isSupported: false,
-    city: null,
-    matchedCityName: null,
-    ratePerTon: null,
+    isSupported: true,
+    city: matchedCity,
+    matchedCityName: matchedCityName || fallbackCityName || outwardDistrict,
+    ratePerTon,
+    outwardDistrict,
   };
 }
 
@@ -317,27 +507,46 @@ async function resolveSupportedCity(addressData = {}) {
  */
 async function determineServiceArea(addressDetails = {}) {
   const result = await resolveSupportedCity(addressDetails);
-  return result.isSupported ? result.matchedCityName.toUpperCase() : null;
+  if (!result.isSupported) return null;
+  const name = result.matchedCityName || result.outwardDistrict || '';
+  return name
+    ? name.trim().toLowerCase().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    : null;
 }
 
 /**
- * Convenience helper to get city name from postcode / address
+ * Convenience helper to get city name from postcode / address.
+ * Strictly guarantees a clean city name and avoids inward codes (like "1aa").
  */
 async function getCityFromPostcode(postcode = "", address = "") {
   if (!postcode && !address) return "Unassigned";
 
+  const cleanPostcode = String(postcode || "").trim().toUpperCase();
+  const outward = extractOutwardCode(cleanPostcode || address);
+  const derivedCity = getCityNameFromOutwardCode(outward);
+
   const result = await resolveSupportedCity({
-    postcode,
+    postcode: cleanPostcode,
     address,
-    addressList: address ? [{ FormattedAddressLines: { PostTown: address } }] : [],
+    postTown: derivedCity,
+    addressList: address ? [{ FormattedAddressLines: { PostTown: derivedCity || address } }] : [],
   });
 
-  return result.isSupported ? result.matchedCityName : "Other";
+  const city = result.isSupported ? (result.matchedCityName || derivedCity) : derivedCity || "Other";
+  if (!city || /^\d[A-Za-z]{2}$/i.test(city) || /^[A-Za-z]{1,2}\d[A-Za-z\d]?$/i.test(city)) {
+    return derivedCity || "UK";
+  }
+  return city;
 }
 
 module.exports = {
   normalizeLocationString,
+  extractOutwardCode,
+  isDistrictCoveredByActiveDealer,
+  getDistrictRate,
   resolveSupportedCity,
   determineServiceArea,
   getCityFromPostcode,
+  POSTCODE_AREA_PREFIX_MAP,
+  getCityNameFromOutwardCode,
 };

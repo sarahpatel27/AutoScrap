@@ -60,7 +60,7 @@ export default function Step1HighValueForm({
 
   // UK Postcode regex validation
   const ukPostcodeRegex = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i;
-  const detectedCity = getCityFromPostcode(postcode, customer.collectionAddress);
+  const detectedCity = data.postTown || data.matchedServiceArea || data.quote?.city || getCityFromPostcode(postcode, customer.collectionAddress);
 
   // Mileage Validation
   const handleMileageChange = (e) => {
@@ -261,6 +261,8 @@ export default function Step1HighValueForm({
         photos,
         postcode: postcode.trim(),
         city: detectedCity,
+        postTown: data.postTown || '',
+        matchedServiceArea: data.matchedServiceArea || '',
         estimatedValue,
         customerExpectedValue,
         valuePreference,
@@ -582,9 +584,45 @@ export default function Step1HighValueForm({
               id="field-phone"
               className={inputClass}
               type="tel"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={customer.phone}
-              onChange={(e) => updateCustomer('phone', e.target.value)}
-              placeholder="07123 456789"
+              onKeyDown={(e) => {
+                if (
+                  [
+                    'Backspace',
+                    'Delete',
+                    'Tab',
+                    'Escape',
+                    'Enter',
+                    'ArrowLeft',
+                    'ArrowRight',
+                    'ArrowUp',
+                    'ArrowDown',
+                    'Home',
+                    'End',
+                  ].includes(e.key) ||
+                  ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x', 'z'].includes(e.key.toLowerCase()))
+                ) {
+                  return;
+                }
+                if (!/^[0-9]$/.test(e.key)) {
+                  e.preventDefault();
+                }
+              }}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData?.getData('text') || '';
+                const digits = pasted.replace(/\D/g, '').slice(0, 11);
+                updateCustomer('phone', digits);
+              }}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '');
+                updateCustomer('phone', digits.slice(0, 11));
+              }}
+              placeholder="e.g. 07123456789"
+              autoComplete="tel"
+              maxLength={11}
             />
           </label>
         </div>
