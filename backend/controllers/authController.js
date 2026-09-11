@@ -184,7 +184,10 @@ async function createUser(req, res) {
       ? (requestedRole === 'Super Admin' ? 'Super Admin' : 'City Dealer')
       : ((resolvedCityName || postcodesArray.length > 0) ? 'City Dealer' : 'City Dealer');
 
-    const accountName = name || (postcodesArray.length > 0 ? `${postcodesArray.join('/')} Dealer` : (role === 'City Dealer' ? 'Dealer Account' : 'Administrator'));
+    const defaultDealerName = postcodesArray.length > 3
+      ? `${postcodesArray.slice(0, 3).join('/')} (+${postcodesArray.length - 3}) Dealer`
+      : (postcodesArray.length > 0 ? `${postcodesArray.join('/')} Dealer` : 'Dealer Account');
+    const accountName = name || (role === 'City Dealer' ? defaultDealerName : 'Administrator');
 
     await prisma.user.create({
       data: {
@@ -204,7 +207,8 @@ async function createUser(req, res) {
       email: cleanEmail,
       password,
       role,
-      assignedCity: postcodesArray.length > 0 ? postcodesArray.join(', ') : (role === 'City Dealer' ? 'Dealer Coverage' : 'National'),
+      assignedCity: resolvedCityName,
+      coveredPostcodes: postcodesArray,
     }).catch((emailErr) => {
       console.error('[AuthController] Failed to send account creation email:', emailErr.message);
     });
