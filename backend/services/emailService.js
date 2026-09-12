@@ -853,6 +853,7 @@ async function sendAccountCreatedNotification({
   password,
   role,
   assignedCity,
+  coveredPostcodes = [],
 }) {
   try {
     if (!email || !email.includes('@')) {
@@ -866,6 +867,7 @@ async function sendAccountCreatedNotification({
       password,
       role,
       assignedCity,
+      coveredPostcodes,
       loginUrl: process.env.ADMIN_PORTAL_URL || 'https://www.myautoscrap.co.uk/admin/login',
     });
 

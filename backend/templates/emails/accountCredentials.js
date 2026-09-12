@@ -8,12 +8,49 @@ function accountCredentialsTemplate({
   password,
   role,
   assignedCity,
+  coveredPostcodes = [],
   loginUrl = 'https://www.myautoscrap.co.uk/admin/login',
 }) {
   const isSuperAdmin = role === 'Super Admin';
-  const roleDisplay = isSuperAdmin
-    ? 'Super Administrator'
-    : `Dealer (${assignedCity || 'All UK'})`;
+
+  // Extract array of outward district postcodes
+  let postcodes = [];
+  if (Array.isArray(coveredPostcodes) && coveredPostcodes.length > 0) {
+    postcodes = coveredPostcodes.map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+  } else if (assignedCity && typeof assignedCity === 'string') {
+    postcodes = assignedCity
+      .split(/[\s,]+/)
+      .map((p) => p.trim().toUpperCase())
+      .filter((p) => p.length >= 2);
+  }
+
+  // Deduplicate and natural sort (CB1, CB23, IP27, MK40, PE1, PE2...)
+  postcodes = Array.from(new Set(postcodes)).sort((a, b) =>
+    a.localeCompare(b, undefined, { numeric: true })
+  );
+
+  // Formulate the Dealer role title:
+  // - Super Admin: "Super Administrator"
+  // - 0 postcodes: "Dealer (All UK / Nationwide)"
+  // - 1 to 3 postcodes: "Dealer (PE1, PE2)"
+  // - > 3 postcodes: "Dealer (PE1, PE2, PE3, +44 more)"
+  let roleDisplay = 'Super Administrator';
+  if (!isSuperAdmin) {
+    if (postcodes.length === 0) {
+      roleDisplay = 'Dealer (All UK)';
+    } else if (postcodes.length <= 3) {
+      roleDisplay = `Dealer (${postcodes.join(', ')})`;
+    } else {
+      const firstThree = postcodes.slice(0, 3).join(', ');
+      const remainingCount = postcodes.length - 3;
+      roleDisplay = `Dealer (${firstThree}, +${remainingCount} more)`;
+    }
+  }
+
+  // Assigned Areas MUST show all postcodes
+  const allPostcodesDisplay = postcodes.length > 0
+    ? postcodes.join(', ')
+    : (assignedCity || 'All UK / Unrestricted');
 
   const roleBadgeBg = isSuperAdmin ? '#ecfdf5' : '#fef3c7';
   const roleBadgeBorder = isSuperAdmin ? '#6ee7b7' : '#fcd34d';
@@ -46,25 +83,29 @@ function accountCredentialsTemplate({
       
       <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%" style="font-size: 14px;">
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 9px 0; color: #64748b; font-weight: 600; width: 32%;">Assigned Role:</td>
+          <td style="padding: 9px 0; color: #64748b; font-weight: 600; width: 30%; vertical-align: top;">Assigned Role:</td>
           <td style="padding: 9px 0; color: #0f172a; font-weight: 800;">
             ${roleDisplay}
           </td>
         </tr>
-        ${assignedCity ? `
+        ${!isSuperAdmin ? `
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Assigned Areas:</td>
-          <td style="padding: 9px 0; color: #0f7b4f; font-weight: 800;">📮 ${assignedCity}</td>
+          <td style="padding: 9px 0; color: #64748b; font-weight: 600; vertical-align: top;">
+            Assigned Areas ${postcodes.length > 0 ? `(${postcodes.length} Districts)` : ''}:
+          </td>
+          <td style="padding: 9px 0; color: #0f7b4f; font-weight: 700; line-height: 1.6;">
+            📮 ${allPostcodesDisplay}
+          </td>
         </tr>
         ` : ''}
         <tr style="border-bottom: 1px solid #edf2f7;">
-          <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Email Address:</td>
+          <td style="padding: 9px 0; color: #64748b; font-weight: 600; vertical-align: top;">Email Address:</td>
           <td style="padding: 9px 0; color: #0f172a; font-weight: 700; font-family: monospace; font-size: 14px;">
             ${email}
           </td>
         </tr>
         <tr>
-          <td style="padding: 9px 0; color: #64748b; font-weight: 600;">Password:</td>
+          <td style="padding: 9px 0; color: #64748b; font-weight: 600; vertical-align: top;">Password:</td>
           <td style="padding: 9px 0;">
             <span style="display: inline-block; background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px 10px; font-family: 'Courier New', Courier, monospace; font-size: 15px; font-weight: 700; color: #0f172a; letter-spacing: 0.5px;">
               ${password}

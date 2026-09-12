@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
   fetchSupportedCities,
@@ -36,6 +36,11 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
   const [loadingDistricts, setLoadingDistricts] = useState(true);
   const [savingDistrict, setSavingDistrict] = useState(false);
 
+  // Filter & Search states for outward districts
+  const [districtSearch, setDistrictSearch] = useState('');
+  const [selectedAreaFilter, setSelectedAreaFilter] = useState('ALL');
+  const [isTrayExpanded, setIsTrayExpanded] = useState(false);
+
   // City rates states (Legacy)
   const [supportedCitiesList, setSupportedCitiesList] = useState([]);
   const [selectedCity, setSelectedCity] = useState(user?.assignedCity || '');
@@ -48,6 +53,48 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
   const visibleDistricts = isSuperAdmin
     ? activeDistrictsList
     : dealerDistricts.filter((d) => activeDistrictsList.includes(d));
+
+  // Extract unique area code prefixes (CB, CH, PE, MK, etc.)
+  const areaGroups = useMemo(() => {
+    const map = {};
+    visibleDistricts.forEach((d) => {
+      const prefix = d.match(/^[A-Z]+/i)?.[0]?.toUpperCase() || 'OTHER';
+      map[prefix] = (map[prefix] || 0) + 1;
+    });
+    return Object.entries(map)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([prefix, count]) => ({ prefix, count }));
+  }, [visibleDistricts]);
+
+  // Naturally sorted visible districts (PE1, PE2, PE3... PE10)
+  const sortedVisibleDistricts = useMemo(() => {
+    return [...visibleDistricts].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true })
+    );
+  }, [visibleDistricts]);
+
+  // Filtered districts by search and area code
+  const filteredDistricts = useMemo(() => {
+    let list = [...sortedVisibleDistricts];
+
+    if (selectedAreaFilter !== 'ALL') {
+      list = list.filter((d) => d.toUpperCase().startsWith(selectedAreaFilter));
+    }
+
+    if (districtSearch.trim()) {
+      const q = districtSearch.toLowerCase().trim();
+      list = list.filter((d) => {
+        const distMatch = d.toLowerCase().includes(q);
+        const origin = districtData.districtOrigins?.[d] || '';
+        const originMatch = origin.toLowerCase().includes(q);
+        const rate = String(districtData.districtRates[d] ?? districtData.defaultPricePerTonne ?? 235);
+        const rateMatch = rate.includes(q);
+        return distMatch || originMatch || rateMatch;
+      });
+    }
+
+    return list;
+  }, [sortedVisibleDistricts, selectedAreaFilter, districtSearch, districtData]);
 
   const loadDistrictPricingData = async () => {
     setLoadingDistricts(true);
@@ -398,8 +445,9 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
             <div className="space-y-4 sm:space-y-5 rounded-2xl sm:rounded-3xl border border-gray-200 bg-white p-4 sm:p-6 shadow-xs lg:col-span-2">
-              <div className="flex flex-col gap-2.5 border-b border-gray-100 pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="flex flex-col gap-3 border-b border-gray-100 pb-4">
+                {/* Header row: Selected District title, Origin badge, and Quick Dropdown */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
                       <span>📮 District Scrap Rate:</span>
@@ -418,53 +466,150 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
                   </div>
 
                   {visibleDistricts.length > 1 && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-gray-600">Select:</span>
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                      <span className="text-xs font-bold text-gray-600 shrink-0">Select:</span>
                       <select
                         value={selectedDistrict}
                         onChange={(e) => handleDistrictChange(e.target.value)}
-                        className="rounded-xl border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs font-black text-slate-900 outline-none focus:border-[#0f7b4f]"
+                        className="flex-1 sm:flex-initial rounded-xl border border-gray-300 bg-gray-50 px-3 py-2 sm:py-1.5 text-xs font-black text-slate-900 outline-none focus:border-[#0f7b4f] cursor-pointer"
                       >
-                        {visibleDistricts.map((dist) => (
-                          <option key={dist} value={dist}>{dist}</option>
-                        ))}
+                        {sortedVisibleDistricts.map((dist) => {
+                          const rate =
+                            districtData.districtRates[dist] ?? districtData.defaultPricePerTonne ?? 235;
+                          const isCustom = districtData.districtOrigins?.[dist] === 'custom';
+                          return (
+                            <option key={dist} value={dist}>
+                              {dist} (£{rate}/t){isCustom ? ' [Custom]' : ''}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}
                 </div>
 
-                {/* Quick district pills */}
-                {visibleDistricts.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                    {visibleDistricts.map((dist) => {
-                      const currentRate = districtData.districtRates[dist] ?? districtData.defaultPricePerTonne ?? 235;
-                      const isSelected = selectedDistrict === dist;
-                      const origin = districtData.districtOrigins?.[dist];
-                      return (
+                {/* Filter and Area Code Navigation bar when multiple districts exist */}
+                {visibleDistricts.length > 6 && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="relative flex-1 max-w-xs">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs">
+                          🔍
+                        </span>
+                        <input
+                          type="text"
+                          value={districtSearch}
+                          onChange={(e) => setDistrictSearch(e.target.value)}
+                          placeholder="Filter districts (e.g. PE1, CB, 130)..."
+                          className="w-full rounded-xl border border-gray-200 bg-gray-50/80 pl-7 pr-7 py-1.5 text-xs font-medium outline-none focus:border-[#0f7b4f] focus:bg-white uppercase"
+                        />
+                        {districtSearch && (
+                          <button
+                            type="button"
+                            onClick={() => setDistrictSearch('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 font-bold text-xs cursor-pointer"
+                          >
+                            ×
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-2 text-[11px] font-bold text-gray-500">
+                        <span>
+                          {filteredDistricts.length} of {visibleDistricts.length} Districts
+                        </span>
+                        {visibleDistricts.length > 12 && (
+                          <button
+                            type="button"
+                            onClick={() => setIsTrayExpanded(!isTrayExpanded)}
+                            className="text-[#0f7b4f] hover:underline font-extrabold cursor-pointer select-none"
+                          >
+                            {isTrayExpanded ? '▲ Compact' : '▾ Expand All'}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Area Code Quick Filter Chips */}
+                    {areaGroups.length > 1 && (
+                      <div className="flex items-center gap-1 overflow-x-auto pb-1 text-xs">
                         <button
-                          key={dist}
                           type="button"
-                          onClick={() => handleDistrictChange(dist)}
-                          className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-black transition cursor-pointer ${
-                            isSelected
-                              ? 'bg-[#0b2e21] text-[#dff46b] shadow-sm'
-                              : 'bg-emerald-50 text-[#0f7b4f] border border-emerald-200 hover:bg-emerald-100'
+                          onClick={() => setSelectedAreaFilter('ALL')}
+                          className={`rounded-lg px-2.5 py-1 text-[10px] font-black transition cursor-pointer shrink-0 ${
+                            selectedAreaFilter === 'ALL'
+                              ? 'bg-[#0f7b4f] text-white shadow-2xs'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                           }`}
                         >
-                          <span>📮 {dist}</span>
-                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
-                            isSelected ? 'bg-white/20 text-white' : 'bg-white text-slate-800 border border-emerald-100'
-                          }`}>
-                            £{currentRate}/t
-                          </span>
-                          {origin === 'custom' && (
-                            <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase">
-                              Custom
-                            </span>
-                          )}
+                          ALL ({visibleDistricts.length})
                         </button>
-                      );
-                    })}
+                        {areaGroups.map(({ prefix, count }) => (
+                          <button
+                            key={prefix}
+                            type="button"
+                            onClick={() => setSelectedAreaFilter(prefix)}
+                            className={`rounded-lg px-2 py-0.5 text-[10px] font-black transition cursor-pointer shrink-0 ${
+                              selectedAreaFilter === prefix
+                                ? 'bg-[#0f7b4f] text-white shadow-2xs'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            }`}
+                          >
+                            {prefix} ({count})
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Quick district pills container (CAPPED SCROLLABLE TRAY) */}
+                {visibleDistricts.length > 0 && (
+                  <div
+                    className={`flex flex-wrap items-center gap-1.5 p-2 rounded-2xl border border-slate-200/80 bg-slate-50/70 transition-all duration-200 ${
+                      isTrayExpanded ? 'max-h-96' : 'max-h-36 sm:max-h-44'
+                    } overflow-y-auto pr-1 shadow-2xs`}
+                  >
+                    {filteredDistricts.length === 0 ? (
+                      <div className="w-full py-4 text-center text-xs text-gray-400 font-medium">
+                        No districts match your filter.
+                      </div>
+                    ) : (
+                      filteredDistricts.map((dist) => {
+                        const currentRate =
+                          districtData.districtRates[dist] ?? districtData.defaultPricePerTonne ?? 235;
+                        const isSelected = selectedDistrict === dist;
+                        const origin = districtData.districtOrigins?.[dist];
+                        return (
+                          <button
+                            key={dist}
+                            type="button"
+                            onClick={() => handleDistrictChange(dist)}
+                            className={`flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-black transition cursor-pointer active:scale-95 ${
+                              isSelected
+                                ? 'bg-[#0b2e21] text-[#dff46b] shadow-sm ring-2 ring-[#0f7b4f]/40'
+                                : 'bg-emerald-50/90 text-[#0f7b4f] border border-emerald-200 hover:bg-emerald-100'
+                            }`}
+                          >
+                            <span>📮 {dist}</span>
+                            <span
+                              className={`text-[10px] font-bold px-1 py-0.2 rounded-md ${
+                                isSelected
+                                  ? 'bg-white/20 text-white'
+                                  : 'bg-white text-slate-800 border border-emerald-100'
+                              }`}
+                            >
+                              £{currentRate}/t
+                            </span>
+                            {origin === 'custom' && (
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-400 text-slate-950 font-black uppercase">
+                                Custom
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
                   </div>
                 )}
               </div>
