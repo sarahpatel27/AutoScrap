@@ -718,7 +718,8 @@ export default function UserManagementSection() {
                           <button
                             type="button"
                             onClick={() => openCoverageModal(u)}
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 transition active:scale-95 cursor-pointer"
+                            className="inline-flex items-center justify-center gap-1 rounded-md border border-blue-200 bg-blue-50 text-[10px] font-extrabold text-blue-700 hover:bg-blue-100 transition active:scale-95 cursor-pointer"
+                            style={{ fontSize: '10px', padding: '3px 8px', lineHeight: '1.2' }}
                           >
                             📮 Edit Coverage ({u.coveredPostcodes?.length || 0})
                           </button>
@@ -726,7 +727,8 @@ export default function UserManagementSection() {
                         <button
                           type="button"
                           onClick={() => openDeleteModal(u)}
-                          className="inline-flex items-center justify-center gap-1 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition active:scale-95 cursor-pointer shrink-0"
+                          className="inline-flex items-center justify-center gap-1 rounded-md border border-red-200 bg-red-50 text-[10px] font-extrabold text-red-700 hover:bg-red-100 transition active:scale-95 cursor-pointer shrink-0"
+                          style={{ fontSize: '10px', padding: '3px 8px', lineHeight: '1.2' }}
                         >
                           🗑️ Remove
                         </button>

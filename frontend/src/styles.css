@@ -1,42 +1,44 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap');
 @import "tailwindcss";
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-html {
-  scroll-behavior: smooth;
-}
+  html {
+    scroll-behavior: smooth;
+  }
 
-body {
-  margin: 0;
-  font-family: 'DM Sans', sans-serif;
-  color: #13231d;
-  background: #fff;
-  line-height: 1.65;
-}
+  body {
+    margin: 0;
+    font-family: 'DM Sans', sans-serif;
+    color: #13231d;
+    background: #fff;
+    line-height: 1.65;
+  }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 
-a {
-  text-decoration: none;
-}
+  a {
+    text-decoration: none;
+  }
 
-img {
-  max-width: 100%;
-}
+  img {
+    max-width: 100%;
+  }
 
-h1,
-h2,
-h3,
-h4 {
-  margin: 0 0 14px;
-  font-family: 'Manrope', sans-serif;
-  line-height: 1.15;
+  h1,
+  h2,
+  h3,
+  h4 {
+    margin: 0 0 14px;
+    font-family: 'Manrope', sans-serif;
+    line-height: 1.15;
+  }
 }
