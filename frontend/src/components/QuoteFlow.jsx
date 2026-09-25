@@ -15,6 +15,7 @@ import Step1HighValueForm from './quote-flow/Step1HighValueForm';
 import Step2QuoteDisplay from './quote-flow/Step2QuoteDisplay';
 import Step3ContactDetails from './quote-flow/Step3ContactDetails';
 import Step5SuccessConfirmation from './quote-flow/Step5SuccessConfirmation';
+import { trackLeadGenerated } from '../utils/tracking';
 
 export default function QuoteFlow({ compact = false }) {
   const [step, setStep] = useState(0);
@@ -461,6 +462,8 @@ export default function QuoteFlow({ compact = false }) {
 
       const enquiry = await submitEnquiry(formData);
 
+      trackLeadGenerated('high_value');
+
       setData((previousData) => ({
         ...previousData,
         ...formattedData,
@@ -500,6 +503,8 @@ export default function QuoteFlow({ compact = false }) {
       };
 
       const enquiry = await submitEnquiry(formattedData);
+
+      trackLeadGenerated('normal');
 
       setData((previousData) => ({
         ...previousData,
