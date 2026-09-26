@@ -15,7 +15,7 @@ import Step1HighValueForm from './quote-flow/Step1HighValueForm';
 import Step2QuoteDisplay from './quote-flow/Step2QuoteDisplay';
 import Step3ContactDetails from './quote-flow/Step3ContactDetails';
 import Step5SuccessConfirmation from './quote-flow/Step5SuccessConfirmation';
-import { trackLeadGenerated } from '../utils/tracking';
+import { trackLeadGenerated, trackBeginQuote, trackQuoteGenerated } from '../utils/tracking';
 
 export default function QuoteFlow({ compact = false }) {
   const [step, setStep] = useState(0);
@@ -133,6 +133,11 @@ export default function QuoteFlow({ compact = false }) {
                 collectionPostcode: addressRes.postcode,
               },
             }));
+            trackBeginQuote('high_value');
+            const numericQuoteValue = Number(quote?.finalValue);
+            if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
+              trackQuoteGenerated('high_value', numericQuoteValue);
+            }
             setStep(1);
           } else {
             setData((prev) => ({
@@ -151,6 +156,13 @@ export default function QuoteFlow({ compact = false }) {
                 collectionPostcode: addressRes.postcode,
               },
             }));
+            trackBeginQuote('normal');
+            const numericQuoteValue = Number(quote?.finalValue);
+            if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
+              trackQuoteGenerated('normal', numericQuoteValue);
+            } else {
+              trackQuoteGenerated('normal');
+            }
             setStep(1);
           }
         } catch (err) {
@@ -297,6 +309,11 @@ export default function QuoteFlow({ compact = false }) {
             collectionPostcode: cleanPostcode,
           },
         }));
+        trackBeginQuote('high_value');
+        const numericQuoteValue = Number(quote?.finalValue);
+        if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
+          trackQuoteGenerated('high_value', numericQuoteValue);
+        }
         setStep(1);
       } else {
         // Standard Scrap Vehicle (<= 2015): Continue existing instant quote flow
@@ -316,6 +333,13 @@ export default function QuoteFlow({ compact = false }) {
             collectionPostcode: cleanPostcode,
           },
         }));
+        trackBeginQuote('normal');
+        const numericQuoteValue = Number(quote?.finalValue);
+        if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
+          trackQuoteGenerated('normal', numericQuoteValue);
+        } else {
+          trackQuoteGenerated('normal');
+        }
         setStep(1);
       }
     } catch (err) {

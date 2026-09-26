@@ -4,6 +4,7 @@ import SEO from '../components/Seo';
 import { getOrganizationSchema, getBreadcrumbSchema } from '../config/seo.config';
 import { submitContactMessage } from '../services/adminStore';
 import { showToast } from '../components/admin/ToastContainer';
+import { trackContactFormSubmitted } from '../utils/tracking';
 
 const contactItems = [
   {
@@ -93,6 +94,8 @@ export default function ContactPage() {
         subject,
         message,
       });
+
+      trackContactFormSubmitted();
 
       setSent(true);
       showToast('Message submitted successfully! Our team will get back to you shortly.', 'success');
