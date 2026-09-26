@@ -1,8 +1,15 @@
 import { Link } from 'react-router';
+import SEO from '../components/Seo';
 
 export default function NotFoundPage() {
   return (
-    <section className="grid min-h-[70vh] place-items-center px-5 text-center">
+    <>
+      <SEO
+        title="Page Not Found | MyAutoScrap"
+        description="The requested page could not be found."
+        noIndex={true}
+      />
+      <section className="grid min-h-[70vh] place-items-center px-5 text-center">
       <div>
         <span className="block font-['Manrope'] text-8xl font-black leading-none text-[#d9e8e0]">
           404
@@ -20,6 +27,7 @@ export default function NotFoundPage() {
           Return home
         </Link>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

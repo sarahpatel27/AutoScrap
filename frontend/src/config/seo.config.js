@@ -26,7 +26,7 @@ export function getOrganizationSchema() {
     '@id': `${SITE_CONFIG.domain}/#organization`,
     name: SITE_CONFIG.name,
     url: SITE_CONFIG.domain,
-    logo: `${SITE_CONFIG.domain}/logo.png`,
+    logo: `${SITE_CONFIG.domain}/myautoscraplogo.png`,
     description: SITE_CONFIG.defaultDescription,
     telephone: SITE_CONFIG.telephone,
     sameAs: [SITE_CONFIG.social.googleProfile]

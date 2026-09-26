@@ -1,10 +1,34 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router';
 import QuoteFlow from '../components/QuoteFlow';
+import FAQList from '../components/FAQList';
 import { reviews, formatCityLocation } from '../data/siteData';
 import { fetchSupportedCities, fetchPublicReviews } from '../services/adminStore';
 import SEO from '../components/Seo';
-import { getOrganizationSchema, getWebSiteSchema } from '../config/seo.config';
+import { getOrganizationSchema, getWebSiteSchema, getFaqPageSchema } from '../config/seo.config';
+
+const homepageFaqs = [
+  [
+    'How is my scrap car quote calculated?',
+    'Your estimate is calculated using your vehicle’s weight and live UK scrap metal market rates. Any specific vehicle details you submit help determine the final estimated value.',
+  ],
+  [
+    'Can I scrap a car that doesn’t run or has failed its MOT?',
+    'Yes. We collect non-running, damaged, write-off, and MOT-failed vehicles across our service areas. An MOT is not required because our recovery driver collects the vehicle directly from your location.',
+  ],
+  [
+    'Is vehicle collection free?',
+    'Yes. Vehicle collection is 100% free with no hidden collection charges across our supported service areas.',
+  ],
+  [
+    'What documents do I need to scrap my car?',
+    'Having your V5C logbook makes the process faster, but if it is misplaced, you can still scrap your car provided you supply valid photo ID and proof of ownership.',
+  ],
+  [
+    'How does collection and payment work?',
+    'After submitting your enquiry, our team contacts you to arrange a convenient collection date and time window. Once collection is arranged, payment is made directly via bank transfer.',
+  ],
+];
 
 const benefits = [
   ['£', 'Competitive estimates', 'Transparent pricing based on vehicle details, weight and condition.'],
@@ -95,6 +119,7 @@ function HomeSectionTitle({ eyebrow, title, text, light = false }) {
 export default function HomePage() {
   const organizationSchema = getOrganizationSchema();
   const websiteSchema = getWebSiteSchema();
+  const faqSchema = getFaqPageSchema(homepageFaqs);
   const [activeLocations, setActiveLocations] = useState([]);
   const [customerReviews, setCustomerReviews] = useState(reviews);
   const [ratingData, setRatingData] = useState({
@@ -174,10 +199,10 @@ export default function HomePage() {
   return (
     <>
       <SEO
-        title="Scrap My Car | Instant Scrap Car Quote & Free Collection | MyAutoScrap"
-        description="Get a competitive instant estimate for your scrap car with MyAutoScrap. Enter your reg and postcode to arrange free vehicle collection across the UK."
+        title="Scrap My Car | Scrap Car Buyer & Free Collection | MyAutoScrap"
+        description="Scrap your car with MyAutoScrap. Get a fast scrap estimate, free vehicle collection across our service areas, and direct payment."
         canonical="/"
-        schema={[organizationSchema, websiteSchema]}
+        schema={[organizationSchema, websiteSchema, faqSchema]}
       />
       <section className="relative flex min-h-0 items-center overflow-hidden bg-[#0c3d2a] text-white lg:min-h-[710px]">
         {/* Cinematic Car Background Image with Overlay */}
@@ -197,13 +222,13 @@ export default function HomePage() {
             </h1>
 
             <p className="mx-auto max-w-[610px] text-[1.16rem] leading-[1.7] text-[#dcece5] lg:mx-0">
-              Get an instant estimated scrap value for your car. Free collection available across our service areas.
+              Sell or scrap your car with MyAutoScrap. Enter your registration and postcode for a fast price estimate, free vehicle collection across our service areas, and direct payment.
             </p>
 
             <div className="my-6 flex flex-wrap justify-center gap-2.5 text-sm font-bold sm:gap-[22px] sm:text-base lg:justify-start">
-              <span>✓ Free estimate</span>
-              <span>✓ Fast response</span>
-              <span>✓ UK coverage</span>
+              <span>✓ Free collection in service areas</span>
+              <span>✓ Non-runners & damaged cars welcome</span>
+              <span>✓ Direct bank payment</span>
             </div>
 
             <div className="my-6 flex flex-wrap items-center justify-center gap-3.5 lg:justify-start">
@@ -293,6 +318,58 @@ export default function HomePage() {
                 <p className="m-0 text-slate-500">{description}</p>
               </article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className={`${sectionClass} bg-slate-50`}>
+        <div className={containerClass}>
+          <HomeSectionTitle
+            eyebrow="All conditions considered"
+            title="Scrap Vehicles in Varied Conditions Accepted"
+            text="Whether your vehicle is running or has reached the end of its life, we arrange collection directly from your home, workplace, or driveway across our service areas. An active MOT is not required."
+          />
+
+          <div className="grid gap-[22px] sm:grid-cols-2 lg:grid-cols-4">
+            <article className="h-full min-w-0 rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.05)]">
+              <div className="mb-[22px] grid h-12 w-12 place-items-center rounded-[13px] bg-emerald-50 text-xl font-black text-[#0f7b4f]">
+                ⚠️
+              </div>
+              <h3 className="mb-3.5 text-[1.18rem] font-bold text-slate-900">Non-Running & Broken-Down Cars</h3>
+              <p className="m-0 text-slate-500 leading-relaxed text-sm">
+                If your vehicle has mechanical failure, engine problems, or will not start, our recovery drivers collect non-running vehicles directly from your address.
+              </p>
+            </article>
+
+            <article className="h-full min-w-0 rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.05)]">
+              <div className="mb-[22px] grid h-12 w-12 place-items-center rounded-[13px] bg-emerald-50 text-xl font-black text-[#0f7b4f]">
+                📋
+              </div>
+              <h3 className="mb-3.5 text-[1.18rem] font-bold text-slate-900">MOT Failures & High Mileage</h3>
+              <p className="m-0 text-slate-500 leading-relaxed text-sm">
+                If repair costs exceed the value of your vehicle after an MOT failure, scrapping can be a practical option. We collect vehicles without an active MOT.
+              </p>
+            </article>
+
+            <article className="h-full min-w-0 rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.05)]">
+              <div className="mb-[22px] grid h-12 w-12 place-items-center rounded-[13px] bg-emerald-50 text-xl font-black text-[#0f7b4f]">
+                💥
+              </div>
+              <h3 className="mb-3.5 text-[1.18rem] font-bold text-slate-900">Accident-Damaged & Written-Off Cars</h3>
+              <p className="m-0 text-slate-500 leading-relaxed text-sm">
+                We accept accident-damaged vehicles, insurance write-offs, and salvage cars, providing an estimate based on vehicle weight and materials.
+              </p>
+            </article>
+
+            <article className="h-full min-w-0 rounded-[18px] border border-slate-200 bg-white p-[26px] shadow-[0_8px_30px_rgba(30,70,50,0.05)]">
+              <div className="mb-[22px] grid h-12 w-12 place-items-center rounded-[13px] bg-emerald-50 text-xl font-black text-[#0f7b4f]">
+                ♻️
+              </div>
+              <h3 className="mb-3.5 text-[1.18rem] font-bold text-slate-900">End-of-Life & Unwanted Vehicles</h3>
+              <p className="m-0 text-slate-500 leading-relaxed text-sm">
+                Old or unused vehicles taking up space can be collected and handled through responsible vehicle recycling and disposal processes.
+              </p>
+            </article>
           </div>
         </div>
       </section>
@@ -488,6 +565,24 @@ export default function HomePage() {
               <span>Give us a review</span>
               <span>↗</span>
             </a>
+          </div>
+        </div>
+      </section>
+
+      <section className={sectionClass}>
+        <div className={`${containerClass} max-w-[820px]`}>
+          <HomeSectionTitle
+            eyebrow="Got questions?"
+            title="Frequently Asked Questions"
+            text="Common questions about scrapping your vehicle, collection, and payment."
+          />
+
+          <FAQList items={homepageFaqs} />
+
+          <div className="mt-8 text-center">
+            <Link className="text-sm font-extrabold text-[#0f7b4f] hover:underline" to="/faqs">
+              View all frequently asked questions →
+            </Link>
           </div>
         </div>
       </section>

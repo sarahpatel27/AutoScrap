@@ -1,10 +1,24 @@
+import SEO from '../components/Seo';
+
 const containerClass = 'mx-auto w-[calc(100%-36px)] max-w-[1180px]';
 const paragraphClass = 'mb-[18px] text-slate-500';
 const headingClass = 'mb-3.5 mt-[30px] text-[1.4rem] leading-tight first:mt-0';
 
 export default function LegalPage({ type = 'Privacy Policy' }) {
+  const isPrivacy = type === 'Privacy Policy';
+  const metaTitle = isPrivacy ? 'Privacy Policy | MyAutoScrap' : 'Terms and Conditions | MyAutoScrap';
+  const metaDescription = isPrivacy
+    ? 'Read the MyAutoScrap privacy policy explaining how vehicle details and personal information are handled and protected.'
+    : 'Read the terms and conditions for MyAutoScrap scrap car valuation, enquiry, and collection services.';
+  const canonicalUrl = isPrivacy ? '/privacy-policy' : '/terms-and-conditions';
+
   return (
     <>
+      <SEO
+        title={metaTitle}
+        description={metaDescription}
+        canonical={canonicalUrl}
+      />
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-[82px] text-white">
         <div className={containerClass}>
           <span className="mb-4 inline-block text-xs font-extrabold uppercase tracking-[0.16em] text-[#dff46b]">
