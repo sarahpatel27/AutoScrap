@@ -8,7 +8,7 @@ import LocationCard from '../components/LocationCard';
 import CoverageMapSection from '../components/CoverageMapSection';
 import UnlistedAreaCTA from '../components/UnlistedAreaCTA';
 import SEO from '../components/Seo';
-import { getBreadcrumbSchema } from '../config/seo.config';
+import { getBreadcrumbSchema, getItemListSchema } from '../config/seo.config';
 
 const containerClass = 'mx-auto w-[calc(100%-36px)] max-w-[1180px]';
 const eyebrowClass =
@@ -45,13 +45,20 @@ export default function AreasPage() {
         { name: 'Areas We Cover', url: '/areas-we-cover' }
     ]);
 
+    const itemListSchema = getItemListSchema(
+        locationsList.map((loc) => ({
+            name: `Scrap Car Collection ${loc.city}`,
+            url: `/areas-we-cover/${loc.slug}`,
+        }))
+    );
+
     return (
         <>
             <SEO
-                title="Scrap Car Collection Areas UK | Nationwide Vehicle Recovery"
-                description="Check MyAutoScrap coverage across our active supported UK cities and surrounding areas."
+                title="Areas We Cover | Scrap Car Collection Locations | MyAutoScrap"
+                description="Check MyAutoScrap vehicle collection coverage across supported UK cities and districts. View active regional service areas or check your postcode online."
                 canonical="/areas-we-cover"
-                schema={breadcrumbSchema}
+                schema={[breadcrumbSchema, itemListSchema].filter(Boolean)}
             />
             {/* Hero Section with Postcode Search Form */}
             <section className="bg-linear-to-br from-emerald-950/95 to-[#0f704a]/90 py-16 text-white sm:py-[90px]">
@@ -59,16 +66,14 @@ export default function AreasPage() {
                     className={`${containerClass} grid items-center gap-9 lg:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)] lg:gap-14`}
                 >
                     <div>
-                        <span className={lightEyebrowClass}>UK vehicle collection</span>
+                        <span className={lightEyebrowClass}>Supported Collection Areas</span>
 
                         <h1 className="my-2.5 text-[42px] leading-[1.05] sm:mb-[18px] sm:text-[clamp(42px,6vw,68px)]">
-                            Areas We Cover
+                            Areas We Cover for Scrap Car Collection
                         </h1>
 
                         <p className="mb-7 max-w-[650px] text-lg leading-[1.7] text-white/85">
-                            MyAutoScrap arranges scrap vehicle collection across major UK
-                            cities and surrounding areas. Check your postcode or select your
-                            nearest city to get started.
+                            MyAutoScrap arranges free scrap vehicle collection across supported UK cities and regional service areas. Check your postcode below or select your nearest city to view active local coverage.
                         </p>
 
                         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

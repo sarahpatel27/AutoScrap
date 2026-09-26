@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import FAQList from '../components/FAQList';
 import { faqs } from '../data/siteData';
 import SEO from '../components/Seo';
-import { getFaqPageSchema } from '../config/seo.config';
+import { getFaqPageSchema, getBreadcrumbSchema } from '../config/seo.config';
 
 const containerClass = 'mx-auto w-[calc(100%-36px)] max-w-[1180px]';
 const lightButtonClass =
@@ -18,26 +18,29 @@ export default function FAQPage() {
   );
 
   const faqSchema = getFaqPageSchema(faqs);
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'FAQs', url: '/faqs' }
+  ]);
 
   return (
     <>
       <SEO
-        title="Scrap Car FAQs | Frequently Asked Questions | MyAutoScrap"
-        description="Find answers to common questions about scrap car prices, free vehicle collection, MOT requirements, V5C documents and scrapping damaged cars across the UK."
+        title="Scrap Car FAQs | Common Scrapping Questions | MyAutoScrap"
+        description="Find clear answers to frequent questions about scrap car valuations, free vehicle collection, required documents, MOT requirements, and direct payment."
         canonical="/faqs"
-        schema={faqSchema}
+        schema={[faqSchema, breadcrumbSchema]}
       />
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-[82px] text-white">
         <div className={containerClass}>
           <span className="mb-4 inline-block text-xs font-extrabold uppercase tracking-[0.16em] text-[#dff46b]">
-            Help centre
+            Help & Guidance
           </span>
           <h1 className="mb-3.5 text-[clamp(2.5rem,6vw,5.2rem)] leading-tight">
-            Frequently asked questions
+            Frequently Asked Questions About Scrapping Your Car
           </h1>
           <p className="m-0 max-w-[760px] text-[1.08rem] text-[#d7e9e1]">
-            Find answers about quotes, collection, payment, documentation and
-            vehicle condition.
+            Find clear answers to common questions about scrap vehicle estimates, collection scheduling, required documentation, payment methods, and vehicle condition.
           </p>
         </div>
       </section>
@@ -58,6 +61,23 @@ export default function FAQPage() {
               No matching questions found.
             </div>
           )}
+
+          {/* Unanswered Questions Prompt */}
+          <div className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center sm:p-8">
+            <h3 className="mb-2 text-lg font-bold text-slate-900">
+              Have a question that isn't answered here?
+            </h3>
+            <p className="mb-4 text-sm text-slate-600 max-w-[600px] mx-auto">
+              Our customer support team is available Monday to Saturday, 9:00 AM to 6:00 PM, to assist with specific vehicle enquiries and collection arrangements.
+            </p>
+            <Link
+              to="/contact-us"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-extrabold text-slate-900 shadow-xs transition hover:bg-slate-100 hover:border-[#0f7b4f]"
+            >
+              <span>Contact Our Support Team</span>
+              <span className="text-xs">→</span>
+            </Link>
+          </div>
         </div>
       </section>
 

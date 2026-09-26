@@ -114,3 +114,43 @@ export function getBreadcrumbSchema(breadcrumbs) {
     }))
   };
 }
+
+/**
+ * Generate Schema.org JSON-LD for ItemList (e.g. collection locations)
+ */
+export function getItemListSchema(items, name = 'Supported Scrap Car Collection Areas') {
+  if (!items || !Array.isArray(items) || items.length === 0) return null;
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name,
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: item.url.startsWith('http') ? item.url : `${SITE_CONFIG.domain}${item.url}`
+    }))
+  };
+}
+
+/**
+ * Generate Schema.org JSON-LD for ContactPage
+ */
+export function getContactPageSchema() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    '@id': `${SITE_CONFIG.domain}/contact-us#webpage`,
+    url: `${SITE_CONFIG.domain}/contact-us`,
+    name: 'Contact MyAutoScrap',
+    description: 'Get in touch with the MyAutoScrap customer support team for scrap car valuation and collection enquiries.',
+    mainEntity: {
+      '@type': 'Organization',
+      name: SITE_CONFIG.name,
+      telephone: SITE_CONFIG.telephone,
+      url: SITE_CONFIG.domain,
+      sameAs: [SITE_CONFIG.social.googleProfile]
+    }
+  };
+}
