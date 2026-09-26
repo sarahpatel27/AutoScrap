@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import SEO from '../components/Seo';
-import { getOrganizationSchema } from '../config/seo.config';
+import { getOrganizationSchema, getBreadcrumbSchema } from '../config/seo.config';
 import { submitContactMessage } from '../services/adminStore';
 import { showToast } from '../components/admin/ToastContainer';
 
@@ -111,14 +112,18 @@ export default function ContactPage() {
   };
 
   const orgSchema = getOrganizationSchema();
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Contact Us', url: '/contact-us' },
+  ]);
 
   return (
     <>
       <SEO
-        title="Contact Us | MyAutoScrap | Free Scrap Car Collection UK"
-        description="Contact the MyAutoScrap team via phone, WhatsApp or email for queries regarding instant scrap car estimates and free vehicle collection."
+        title="Contact MyAutoScrap | Customer Support & Collection Enquiries"
+        description="Get in touch with the MyAutoScrap team by phone, WhatsApp, or email. We are here to help with quote enquiries, collection bookings, and customer support."
         canonical="/contact-us"
-        schema={orgSchema}
+        schema={[orgSchema, breadcrumbSchema]}
       />
 
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-[82px] text-white">
@@ -127,11 +132,10 @@ export default function ContactPage() {
             Contact us
           </span>
           <h1 className="mb-3.5 max-w-[900px] text-[clamp(2.5rem,5vw,4.5rem)] leading-tight">
-            Speak with the MyAutoScrap team
+            Speak with the MyAutoScrap Team
           </h1>
           <p className="m-0 max-w-[760px] text-[1.08rem] text-[#d7e9e1]">
-            Ask about a quote, collection, documents, an existing enquiry or
-            anything else.
+            Have a question about a quote, vehicle collection, documentation, or an existing enquiry? Our customer team is here to help.
           </p>
         </div>
       </section>
@@ -286,6 +290,30 @@ export default function ContactPage() {
               </a>
             </div>
           </aside>
+        </div>
+
+        {/* Immediate Answers Resource Section */}
+        <div className="mx-auto mt-12 w-[calc(100%-36px)] max-w-[1180px] rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
+          <h3 className="mb-2 text-lg font-bold text-slate-900">Looking for immediate answers?</h3>
+          <p className="mb-5 text-sm text-slate-600 max-w-[700px]">
+            Browse our self-service guides to find instant answers or check if your area is currently supported for vehicle collection:
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Link
+              to="/faqs"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-[#0f7b4f] shadow-xs transition hover:bg-emerald-50 hover:border-[#0f7b4f]"
+            >
+              <span>❓ Frequently Asked Questions</span>
+              <span className="text-xs">→</span>
+            </Link>
+            <Link
+              to="/areas-we-cover"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-[#0f7b4f] shadow-xs transition hover:bg-emerald-50 hover:border-[#0f7b4f]"
+            >
+              <span>📍 View Covered Areas & Postcodes</span>
+              <span className="text-xs">→</span>
+            </Link>
+          </div>
         </div>
       </section>
     </>

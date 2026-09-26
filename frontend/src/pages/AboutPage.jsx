@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import SEO from '../components/Seo';
+import { getOrganizationSchema, getBreadcrumbSchema } from '../config/seo.config';
 
 const trustItems = [
   'Clear estimated price breakdowns',
@@ -142,23 +143,28 @@ function ChecklistPanel({ title, items }) {
 }
 
 export default function AboutPage() {
+  const organizationSchema = getOrganizationSchema();
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'About Us', url: '/about-us' },
+  ]);
+
   return (
     <>
       <SEO
-        title="About Us | MyAutoScrap | Trusted UK Scrap Car Buyers"
-        description="Discover how MyAutoScrap simplifies vehicle disposal across the UK with transparent scrap estimates, fast collection, and responsible recycling."
+        title="About MyAutoScrap | UK Vehicle Disposal & Recycling Service"
+        description="Learn about MyAutoScrap, our vehicle recycling commitments, transparent scrap valuation process, and dedicated customer support across our supported UK locations."
         canonical="/about-us"
+        schema={[organizationSchema, breadcrumbSchema]}
       />
       <section className="bg-linear-to-br from-[#0a3626] to-[#0f704a] py-[82px] text-white">
         <div className={containerClass}>
           <span className={lightEyebrowClass}>About MyAutoScrap</span>
           <h1 className="mb-3.5 max-w-[900px] text-[clamp(2.5rem,5vw,4.5rem)] leading-tight">
-            Making vehicle disposal clearer and easier
+            About MyAutoScrap: Clear & Responsible Vehicle Disposal
           </h1>
           <p className="m-0 max-w-[760px] text-[1.08rem] text-[#d7e9e1]">
-            A professional digital experience built around transparent
-            estimates, responsible vehicle recycling and helpful customer
-            service.
+            A professional vehicle disposal service built around transparent estimates, responsible recycling, and helpful customer support across our supported UK locations.
           </p>
         </div>
       </section>
@@ -266,6 +272,15 @@ export default function AboutPage() {
             {supportCards.map(([icon, title, text]) => (
               <FeatureCard icon={icon} key={title} text={text} title={title} />
             ))}
+          </div>
+
+          <div className="mt-8 text-center">
+            <p className="m-0 text-sm text-slate-600">
+              Have a specific question about an enquiry, collection, or vehicle documents?{' '}
+              <Link to="/contact-us" className="font-bold text-[#0f7b4f] underline hover:text-[#075b3a]">
+                Speak with our customer support team
+              </Link>.
+            </p>
           </div>
         </div>
       </section>
