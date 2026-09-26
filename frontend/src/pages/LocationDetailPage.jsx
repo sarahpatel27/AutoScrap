@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router';
-import { faqs, formatCityLocation } from '../data/siteData';
+import { faqs, formatCityLocation, CITY_CONTENT_OVERRIDES } from '../data/siteData';
 import { fetchSupportedCities } from '../services/adminStore';
 import SEO from '../components/Seo';
 import { getLocalBusinessSchema, getBreadcrumbSchema, getFaqPageSchema } from '../config/seo.config';
@@ -51,8 +51,10 @@ export default function LocationDetailPage() {
     return <Navigate to="/areas-we-cover" replace />;
   }
 
-  const pageTitle = `Scrap My Car in ${location.city} | Instant Scrap Car Quote | MyAutoScrap`;
-  const pageDescription = `Looking to scrap your car in ${location.city}? Get an instant valuation and arrange free vehicle collection across ${location.areas.slice(0, 4).join(', ')} and surrounding areas.`;
+  const override = CITY_CONTENT_OVERRIDES[location.slug];
+
+  const pageTitle = override?.title || `Scrap My Car in ${location.city} | Instant Scrap Car Quote | MyAutoScrap`;
+  const pageDescription = override?.description || `Looking to scrap your car in ${location.city}? Get an instant valuation and arrange free vehicle collection across ${location.areas.slice(0, 4).join(', ')} and surrounding areas.`;
 
   const localBusinessSchema = getLocalBusinessSchema(location);
   const breadcrumbSchema = getBreadcrumbSchema([
@@ -60,7 +62,8 @@ export default function LocationDetailPage() {
     { name: 'Areas We Cover', url: '/areas-we-cover' },
     { name: location.city, url: `/areas-we-cover/${location.slug}` }
   ]);
-  const faqSchema = getFaqPageSchema(faqs.slice(0, 4));
+  const faqItems = override?.faqs || faqs.slice(0, 4);
+  const faqSchema = getFaqPageSchema(faqItems);
 
   return (
     <>
@@ -80,16 +83,20 @@ export default function LocationDetailPage() {
             </nav>
 
             <h1 className="mb-4 text-3xl sm:text-5xl font-black leading-tight tracking-tight">
-              Scrap Car Collection in <span className="text-[#dff46b]">{location.city}</span>
+              {override?.h1 || (
+                <>Scrap Car Collection in <span className="text-[#dff46b]">{location.city}</span></>
+              )}
             </h1>
 
             <p className="mb-6 text-lg leading-relaxed text-[#dcece5]">
-              {location.description} We buy non-runners, MOT failures, damaged cars, and salvage vehicles across {location.city} with free home or workplace collection.
+              {override?.heroCopy || (
+                <>{location.description} We buy non-runners, MOT failures, damaged cars, and salvage vehicles across {location.city} with free home or workplace collection.</>
+              )}
             </p>
 
             <div className="flex flex-wrap gap-4 font-bold text-sm">
               <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/15">✓ Free {location.city} Pickup</span>
-              <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/15">✓ Instant Bank Payment</span>
+              <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/15">✓ Direct Bank Payment</span>
               <span className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/15">✓ DVLA Paperwork Assistance</span>
             </div>
           </div>
@@ -100,32 +107,51 @@ export default function LocationDetailPage() {
         </div>
       </section>
 
+      {/* Local Collection Section (Rendered when override provides collectionCopy) */}
+      {override?.collectionHeading && (
+        <section className="py-14 bg-white border-b border-slate-100">
+          <div className={containerClass}>
+            <div className="max-w-3xl">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Direct Collection</span>
+              <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
+                {override.collectionHeading}
+              </h2>
+              <div className="mt-3 space-y-3 text-slate-600 leading-relaxed">
+                {override.collectionCopy.map((para, i) => (
+                  <p key={i} className="m-0">{para}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Specific Covered Districts */}
-      <section className="py-16 bg-white">
+      <section className={`py-16 ${override?.collectionHeading ? 'bg-slate-50' : 'bg-white'}`}>
         <div className={containerClass}>
           <div className="max-w-3xl mb-10">
             <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Local Coverage</span>
             <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
-              Areas & Districts Covered Around {location.city}
+              {override?.coverageHeading || `Areas & Districts Covered Around ${location.city}`}
             </h2>
             <p className="text-slate-600 mt-2">
-              Our scrap vehicle recovery transporters operate daily throughout {location.city} and neighboring postcodes:
+              {override?.coverageIntro || `Our scrap vehicle recovery transporters operate daily throughout ${location.city} and neighboring postcodes:`}
             </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {location.areas.map((area) => (
-              <div key={area} className="p-4 rounded-xl border border-slate-200 bg-slate-50 font-bold text-slate-800 flex items-center gap-2">
+              <div key={area} className="p-4 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 flex items-center gap-2">
                 <span className="text-[#0f7b4f]">📮</span>
                 <span>{area}</span>
               </div>
             ))}
           </div>
 
-          <div className="mt-12 bg-slate-100 p-8 rounded-2xl flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="mt-12 bg-white p-8 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
               <h3 className="text-xl font-bold text-slate-900">Live in or near {location.city}?</h3>
-              <p className="text-slate-600">Get an instant guaranteed valuation for your vehicle in under 60 seconds.</p>
+              <p className="text-slate-600 mt-1 mb-0">Get an estimated valuation for your vehicle in seconds. Learn more in our <Link to="/how-it-works" className="text-[#0f7b4f] font-bold hover:underline">step-by-step guide</Link>.</p>
             </div>
             <Link to="/scrap-my-car" className={primaryButtonClass}>
               Get Scrap Quote Now
@@ -134,19 +160,40 @@ export default function LocationDetailPage() {
         </div>
       </section>
 
+      {/* Vehicle Conditions Section (Rendered when override provides conditionCopy) */}
+      {override?.conditionHeading && (
+        <section className="py-14 bg-white border-t border-slate-100">
+          <div className={containerClass}>
+            <div className="max-w-3xl">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Vehicle Condition</span>
+              <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
+                {override.conditionHeading}
+              </h2>
+              <div className="mt-3 space-y-3 text-slate-600 leading-relaxed">
+                {override.conditionCopy.map((para, i) => (
+                  <p key={i} className="m-0">{para}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Local FAQs */}
       <section className="py-16 bg-slate-50 border-t border-slate-200">
         <div className={containerClass}>
           <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Questions & Answers</span>
-            <h2 className="text-3xl font-extrabold text-slate-900 mt-1">Scrapping a Car in {location.city} FAQs</h2>
+            <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
+              {override?.faqsHeading || `Scrapping a Car in ${location.city} FAQs`}
+            </h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {faqs.slice(0, 4).map(([q, a]) => (
+            {faqItems.map(([q, a]) => (
               <div key={q} className="bg-white p-6 rounded-xl border border-slate-200 shadow-xs">
                 <h3 className="font-bold text-lg text-slate-900 mb-2">{q}</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">{a}</p>
+                <p className="text-slate-600 text-sm leading-relaxed m-0">{a}</p>
               </div>
             ))}
           </div>

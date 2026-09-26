@@ -42,6 +42,50 @@ export const CITY_METADATA_FALLBACKS = {
   },
 };
 
+export const CITY_CONTENT_OVERRIDES = {
+  peterborough: {
+    title: 'Scrap My Car Peterborough | Free Collection | MyAutoScrap',
+    description: 'Scrap your car in Peterborough with MyAutoScrap. Get a fast online valuation and free collection across Peterborough and supported surrounding areas.',
+    h1: 'Scrap My Car in Peterborough',
+    heroCopy: 'Need to scrap or sell an old, damaged or MOT-failed car in Peterborough? Enter your registration and postcode for a fast scrap valuation and check collection availability in your area.',
+    collectionHeading: 'Free Scrap Car Collection in Peterborough',
+    collectionCopy: [
+      'If you have an old, non-running, or unwanted car in Peterborough, MyAutoScrap provides a straightforward way to arrange vehicle disposal. We collect vehicles across Peterborough and supported surrounding areas including Bretton, Werrington, Orton, Hampton, Yaxley, Whittlesey, and Stamford.',
+      'Collection is completely free with no separate collection charges. You do not need to deliver the vehicle yourself—our recovery driver collects it directly from your home, workplace, or driveway.'
+    ],
+    coverageHeading: 'Areas We Cover Around Peterborough',
+    coverageIntro: 'We collect vehicles across Peterborough and supported surrounding areas including Hampton, Whittlesey, Yaxley, Stamford, Bretton, Werrington and Orton. The registration and postcode quote tool above remains the authoritative way to confirm collection availability for your exact address.',
+    conditionHeading: 'Scrapping Non-Running or MOT-Failed Cars in Peterborough',
+    conditionCopy: [
+      'Many vehicles scrapped in Peterborough are non-runners or have failed their MOT test. If the cost of necessary repairs outweighs what the vehicle is worth, scrapping is often the most practical choice.',
+      'Non-running and MOT-failed vehicles can be collected directly from your location, so you do not need to drive the vehicle to a scrapyard. An active MOT is not required for collection.'
+    ],
+    faqsHeading: 'Peterborough Scrap Car FAQs',
+    faqs: [
+      [
+        'Do you collect scrap cars in Peterborough?',
+        'Yes. We arrange free vehicle collection across Peterborough and supported surrounding areas including Hampton, Werrington, Bretton, Orton, Yaxley, Whittlesey and Stamford. Enter your postcode in the quote tool to confirm availability for your address.'
+      ],
+      [
+        'How do I get a scrap car quote in Peterborough?',
+        'Enter your vehicle registration and collection postcode into the online quote form. The vehicle details are used to provide an estimated scrap value before you continue with your enquiry.'
+      ],
+      [
+        'Can you collect a non-running or MOT-failed car in Peterborough?',
+        'Yes. Non-running and MOT-failed vehicles can be collected directly from your location, so you do not need to drive the vehicle to a scrapyard.'
+      ],
+      [
+        'Is scrap car collection free in Peterborough?',
+        'Yes. Collection is free across supported Peterborough service areas, with no separate collection charge.'
+      ],
+      [
+        'How is payment made?',
+        'Payment is made by bank transfer as part of the vehicle collection process.'
+      ]
+    ]
+  }
+};
+
 export function formatCityLocation(city) {
   const slug = (city.slug || city.name.toLowerCase().replace(/\s+/g, "-")).toLowerCase();
   const postcodes = Array.isArray(city.postcodes) ? city.postcodes : [];

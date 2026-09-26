@@ -7,8 +7,8 @@ export default function QuotePage() {
   return (
     <>
       <SEO
-        title="Get an Instant Scrap Car Quote Online | MyAutoScrap"
-        description="Calculate your scrap car value in under 60 seconds with MyAutoScrap. Enter your registration and postcode for instant pricing and free collection."
+        title="Instant Scrap Car Quote Online | Free Valuation | MyAutoScrap"
+        description="Get an instant scrap car quote online. Enter your vehicle registration and collection postcode for an accurate estimated valuation and free collection."
         canonical="/scrap-my-car"
       />
       <div className="flex flex-col">
@@ -19,10 +19,10 @@ export default function QuotePage() {
               Instant quote
             </span>
             <h1 className="mb-3.5 max-w-[900px] text-[clamp(2.2rem,5vw,4.5rem)] leading-tight">
-              Get your estimated scrap value
+              Get an Instant Scrap Car Quote Online
             </h1>
             <p className="m-0 max-w-[760px] text-[1.08rem] text-[#d7e9e1]">
-              Complete the guided form to get an instant scrap vehicle estimate.
+              Enter your vehicle registration and collection postcode below to calculate your estimated scrap car value with free vehicle collection included.
             </p>
           </div>
         </section>

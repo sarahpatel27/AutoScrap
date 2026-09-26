@@ -15,10 +15,10 @@ export default function SEO({
     const cleanCanonical = canonical
         ? canonical.startsWith('/')
             ? canonical === '/'
-                ? ''
+                ? '/'
                 : canonical
             : `/${canonical}`
-        : '';
+        : '/';
         
     const fullUrl = `${siteUrl}${cleanCanonical}`;
 
