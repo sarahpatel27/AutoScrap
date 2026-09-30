@@ -430,7 +430,12 @@ export default function PricingConfigurator({ pricing, onSavePricing, onResetPri
       )}
 
       {activeTab === 'district' && (
-        visibleDistricts.length === 0 ? (
+        loadingDistricts ? (
+          <div className="rounded-2xl border border-gray-200/80 bg-white p-12 text-center text-xs font-semibold text-gray-500 flex flex-col items-center justify-center gap-3 shadow-xs min-h-[220px]">
+            <div className="h-8 w-8 animate-spin rounded-full border-3 border-[#0f7b4f] border-t-transparent" />
+            <span className="text-slate-600 font-bold">Loading district scrap rates and active coverage...</span>
+          </div>
+        ) : visibleDistricts.length === 0 ? (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:p-8 text-center space-y-2.5">
             <span className="text-3xl sm:text-4xl">📮</span>
             <h4 className="text-base font-black text-amber-950">

@@ -26,12 +26,17 @@
     </url>
 
     <url>
-        <loc>https://www.myautoscrap.co.uk/areas-we-cover/doncaster</loc>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/shrewsbury</loc>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://www.myautoscrap.co.uk/areas-we-cover/leicester</loc>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/warrington</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/milton-keynes</loc>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
@@ -41,7 +46,22 @@
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://www.myautoscrap.co.uk/areas-we-cover/london</loc>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/liverpool</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/llandudno</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/crewe</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/ipswich</loc>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>
@@ -51,12 +71,7 @@
         <priority>0.8</priority>
     </url>
     <url>
-        <loc>https://www.myautoscrap.co.uk/areas-we-cover/liverpool</loc>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
-    </url>
-    <url>
-        <loc>https://www.myautoscrap.co.uk/areas-we-cover/manchester</loc>
+        <loc>https://www.myautoscrap.co.uk/areas-we-cover/chester</loc>
         <changefreq>weekly</changefreq>
         <priority>0.8</priority>
     </url>

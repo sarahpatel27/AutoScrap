@@ -51,31 +51,36 @@ export function getWebSiteSchema() {
 }
 
 /**
- * Generate Schema.org JSON-LD for LocalBusiness / AutoRepair service
+ * Generate Schema.org JSON-LD for Service in a given location / service area
  */
-export function getLocalBusinessSchema(location) {
+export function getServiceLocationSchema(location) {
   const cityName = location?.city || 'UK';
   const slug = location?.slug ? `/areas-we-cover/${location.slug}` : '/areas-we-cover';
-  const areasList = location?.areas ? location.areas.join(', ') : 'Nationwide UK';
 
   return {
     '@context': 'https://schema.org',
-    '@type': 'AutoRepair',
-    '@id': `${SITE_CONFIG.domain}${slug}#localbusiness`,
-    name: `MyAutoScrap - Scrap Car Collection ${cityName}`,
+    '@type': 'Service',
+    '@id': `${SITE_CONFIG.domain}${slug}#service`,
+    name: `Scrap Car Collection in ${cityName}`,
+    serviceType: 'Scrap Car Collection',
     url: `${SITE_CONFIG.domain}${slug}`,
-    telephone: SITE_CONFIG.telephone,
-    priceRange: SITE_CONFIG.priceRange,
-    description: `Professional scrap car buying and free vehicle collection service operating in ${cityName} and surrounding areas (${areasList}).`,
+    description: `Free vehicle collection and scrap car disposal across supported areas in and around ${cityName}.`,
+    provider: {
+      '@type': 'Organization',
+      '@id': `${SITE_CONFIG.domain}/#organization`,
+      name: SITE_CONFIG.name,
+      url: SITE_CONFIG.domain,
+      telephone: SITE_CONFIG.telephone
+    },
     areaServed: {
       '@type': 'AdministrativeArea',
       name: cityName
-    },
-    provider: {
-      '@id': `${SITE_CONFIG.domain}/#organization`
     }
   };
 }
+
+// Backward-compatible alias
+export const getLocalBusinessSchema = getServiceLocationSchema;
 
 /**
  * Generate Schema.org JSON-LD for FAQPage
