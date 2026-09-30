@@ -58,16 +58,18 @@ export default function LocationDetailPage() {
   const pageDescription = override?.description || `Scrap your car in ${location.city} with MyAutoScrap. Get a fast online valuation and free collection across supported areas in and around ${location.city}.`;
 
   // 2. Dynamic Copy Elements
-  const heroCopy = override?.heroCopy || `Need to scrap or sell an old, damaged or MOT-failed car in ${location.city}? Enter your registration and postcode for a fast scrap valuation and check collection availability in your area.`;
+  const heroCopy = override?.heroCopy || `Looking to scrap your car in ${location.city}? Get a fast online scrap car valuation using your registration and postcode, with free collection across supported areas in and around ${location.city}.`;
 
   const collectionHeading = override?.collectionHeading || `Free Scrap Car Collection in ${location.city}`;
   const collectionCopy = override?.collectionCopy || [
-    `MyAutoScrap arranges free vehicle collection across supported areas in and around ${location.city}. Enter your postcode in the quote tool to confirm availability for your exact location.`
+    `MyAutoScrap arranges free scrap car collection across supported areas in and around ${location.city}. Enter your postcode in the quote tool to confirm availability for your exact location.`,
+    `If you're looking to scrap a car in ${location.city}, MyAutoScrap provides a simple online quote and collection process across supported areas.`
   ];
 
   const conditionHeading = override?.conditionHeading || `Scrapping Non-Running or MOT-Failed Cars in ${location.city}`;
   const conditionCopy = override?.conditionCopy || [
-    `Non-running and MOT-failed vehicles can be collected directly from your location, so you do not need to drive the vehicle to a scrapyard. An active MOT is not required for collection where supported by the existing business flow.`
+    `If your vehicle is non-running or has failed its MOT, you do not need to drive it to a scrap yard. Collection can be arranged directly from your location where supported in and around ${location.city}.`,
+    `An active MOT is not required for scrap car collection where supported by our collection network.`
   ];
 
   const hasCoverageItems = Boolean(
@@ -204,7 +206,7 @@ export default function LocationDetailPage() {
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-700">
               <p className="m-0 text-base leading-relaxed">
-                MyAutoScrap arranges free vehicle collection across supported areas in and around {location.city}. Enter your postcode in the quote tool to confirm availability for your exact location.
+                MyAutoScrap arranges free scrap car collection across supported areas in and around {location.city}. Enter your postcode in the quote tool to confirm availability for your exact location.
               </p>
             </div>
           )}
@@ -216,13 +218,19 @@ export default function LocationDetailPage() {
             </p>
           )}
 
+          <div className="mt-6">
+            <Link to="/areas-we-cover" className="inline-flex items-center gap-1.5 text-xs font-extrabold text-[#0f7b4f] hover:underline">
+              <span>View all scrap car collection areas →</span>
+            </Link>
+          </div>
+
           <div className="mt-12 bg-white p-8 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
               <h3 className="text-xl font-bold text-slate-900">Live in or near {location.city}?</h3>
-              <p className="text-slate-600 mt-1 mb-0">Get an estimated valuation for your vehicle in seconds. Learn more in our <Link to="/how-it-works" className="text-[#0f7b4f] font-bold hover:underline">step-by-step guide</Link>.</p>
+              <p className="text-slate-600 mt-1 mb-0">Get an estimated valuation for your vehicle in seconds. Learn <Link to="/how-it-works" className="text-[#0f7b4f] font-bold hover:underline">how scrap car collection works</Link> in our step-by-step guide.</p>
             </div>
             <Link to="/scrap-my-car" className={primaryButtonClass}>
-              Get Scrap Quote Now
+              Get a Scrap Car Quote
             </Link>
           </div>
         </div>
