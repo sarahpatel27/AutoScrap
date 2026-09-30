@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, Navigate } from 'react-router';
-import { faqs, formatCityLocation, CITY_CONTENT_OVERRIDES } from '../data/siteData';
+import { formatCityLocation, CITY_CONTENT_OVERRIDES, getDefaultCityFaqs } from '../data/siteData';
 import { fetchSupportedCities } from '../services/adminStore';
 import SEO from '../components/Seo';
 import { getLocalBusinessSchema, getBreadcrumbSchema, getFaqPageSchema } from '../config/seo.config';
@@ -53,16 +53,56 @@ export default function LocationDetailPage() {
 
   const override = CITY_CONTENT_OVERRIDES[location.slug];
 
-  const pageTitle = override?.title || `Scrap My Car in ${location.city} | Instant Scrap Car Quote | MyAutoScrap`;
-  const pageDescription = override?.description || `Looking to scrap your car in ${location.city}? Get an instant valuation and arrange free vehicle collection across ${location.areas.slice(0, 4).join(', ')} and surrounding areas.`;
+  // 1. Dynamic SEO Titles & Meta Descriptions
+  const pageTitle = override?.title || `Scrap My Car ${location.city} | Free Collection | MyAutoScrap`;
+  const pageDescription = override?.description || `Scrap your car in ${location.city} with MyAutoScrap. Get a fast online valuation and free collection across supported areas in and around ${location.city}.`;
 
-  const localBusinessSchema = getLocalBusinessSchema(location);
+  // 2. Dynamic Copy Elements
+  const heroCopy = override?.heroCopy || `Need to scrap or sell an old, damaged or MOT-failed car in ${location.city}? Enter your registration and postcode for a fast scrap valuation and check collection availability in your area.`;
+
+  const collectionHeading = override?.collectionHeading || `Free Scrap Car Collection in ${location.city}`;
+  const collectionCopy = override?.collectionCopy || [
+    `MyAutoScrap arranges free vehicle collection across supported areas in and around ${location.city}. Enter your postcode in the quote tool to confirm availability for your exact location.`
+  ];
+
+  const conditionHeading = override?.conditionHeading || `Scrapping Non-Running or MOT-Failed Cars in ${location.city}`;
+  const conditionCopy = override?.conditionCopy || [
+    `Non-running and MOT-failed vehicles can be collected directly from your location, so you do not need to drive the vehicle to a scrapyard. An active MOT is not required for collection where supported by the existing business flow.`
+  ];
+
+  const hasCoverageItems = Boolean(
+    override ||
+    location.hasNamedAreas ||
+    (location.postcodes && location.postcodes.length > 0)
+  );
+
+  // 3. Dynamic Local Coverage & Suburbs
+  const coverageHeading = override?.coverageHeading || (
+    location.hasNamedAreas
+      ? `Areas & Districts Covered Around ${location.city}`
+      : (location.postcodes && location.postcodes.length > 0
+          ? `Postcode Coverage in and Around ${location.city}`
+          : `Collection Coverage in and Around ${location.city}`)
+  );
+
+  const coverageIntro = override?.coverageIntro || (
+    location.hasNamedAreas
+      ? `We arrange vehicle collection across ${location.city} and supported surrounding areas. Enter your postcode in the quote tool to confirm availability for your exact address.`
+      : (location.postcodes && location.postcodes.length > 0
+          ? `Supported postcode districts currently include: ${location.postcodes.join(', ')}. The registration and postcode quote tool remains the authoritative way to confirm collection availability for your exact address.`
+          : `MyAutoScrap arranges free vehicle collection across supported areas in and around ${location.city}. Enter your postcode in the quote tool to confirm availability for your exact location.`)
+  );
+
+  // 4. Dynamic FAQs & Schemas
+  const faqItems = override?.faqs || getDefaultCityFaqs(location.city);
+  const faqHeading = override?.faqsHeading || `${location.city} Scrap Car FAQs`;
+
+  const serviceSchema = getLocalBusinessSchema(location);
   const breadcrumbSchema = getBreadcrumbSchema([
     { name: 'Home', url: '/' },
     { name: 'Areas We Cover', url: '/areas-we-cover' },
     { name: location.city, url: `/areas-we-cover/${location.slug}` }
   ]);
-  const faqItems = override?.faqs || faqs.slice(0, 4);
   const faqSchema = getFaqPageSchema(faqItems);
 
   return (
@@ -71,7 +111,7 @@ export default function LocationDetailPage() {
         title={pageTitle}
         description={pageDescription}
         canonical={`/areas-we-cover/${location.slug}`}
-        schema={[localBusinessSchema, breadcrumbSchema, faqSchema]}
+        schema={[serviceSchema, breadcrumbSchema, faqSchema]}
       />
 
       {/* Hero Section */}
@@ -84,14 +124,12 @@ export default function LocationDetailPage() {
 
             <h1 className="mb-4 text-3xl sm:text-5xl font-black leading-tight tracking-tight">
               {override?.h1 || (
-                <>Scrap Car Collection in <span className="text-[#dff46b]">{location.city}</span></>
+                <>Scrap My Car in <span className="text-[#dff46b]">{location.city}</span></>
               )}
             </h1>
 
             <p className="mb-6 text-lg leading-relaxed text-[#dcece5]">
-              {override?.heroCopy || (
-                <>{location.description} We buy non-runners, MOT failures, damaged cars, and salvage vehicles across {location.city} with free home or workplace collection.</>
-              )}
+              {heroCopy}
             </p>
 
             <div className="flex flex-wrap gap-4 font-bold text-sm">
@@ -107,46 +145,76 @@ export default function LocationDetailPage() {
         </div>
       </section>
 
-      {/* Local Collection Section (Rendered when override provides collectionCopy) */}
-      {override?.collectionHeading && (
-        <section className="py-14 bg-white border-b border-slate-100">
-          <div className={containerClass}>
-            <div className="max-w-3xl">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Direct Collection</span>
-              <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
-                {override.collectionHeading}
-              </h2>
-              <div className="mt-3 space-y-3 text-slate-600 leading-relaxed">
-                {override.collectionCopy.map((para, i) => (
-                  <p key={i} className="m-0">{para}</p>
-                ))}
-              </div>
+      {/* Local Collection Section */}
+      <section className="py-14 bg-white border-b border-slate-100">
+        <div className={containerClass}>
+          <div className="max-w-3xl">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Direct Collection</span>
+            <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
+              {collectionHeading}
+            </h2>
+            <div className="mt-3 space-y-3 text-slate-600 leading-relaxed">
+              {collectionCopy.map((para, i) => (
+                <p key={i} className="m-0">{para}</p>
+              ))}
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      {/* Specific Covered Districts */}
-      <section className={`py-16 ${override?.collectionHeading ? 'bg-slate-50' : 'bg-white'}`}>
+      {/* Specific Covered Districts / Areas */}
+      <section className="py-16 bg-slate-50">
         <div className={containerClass}>
           <div className="max-w-3xl mb-10">
             <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Local Coverage</span>
             <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
-              {override?.coverageHeading || `Areas & Districts Covered Around ${location.city}`}
+              {coverageHeading}
             </h2>
             <p className="text-slate-600 mt-2">
-              {override?.coverageIntro || `Our scrap vehicle recovery transporters operate daily throughout ${location.city} and neighboring postcodes:`}
+              {coverageIntro}
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {location.areas.map((area) => (
-              <div key={area} className="p-4 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 flex items-center gap-2">
-                <span className="text-[#0f7b4f]">📮</span>
-                <span>{area}</span>
-              </div>
-            ))}
-          </div>
+          {/* Area cards: prioritizes verified named areas when present, or clear postcode districts */}
+          {hasCoverageItems ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {override ? (
+                location.areas.map((area) => (
+                  <div key={area} className="p-4 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 flex items-center gap-2">
+                    <span className="text-[#0f7b4f]">📮</span>
+                    <span>{area}</span>
+                  </div>
+                ))
+              ) : location.hasNamedAreas ? (
+                location.namedAreas.map((area) => (
+                  <div key={area} className="p-4 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 flex items-center gap-2">
+                    <span className="text-[#0f7b4f]">📍</span>
+                    <span>{area}</span>
+                  </div>
+                ))
+              ) : (
+                location.postcodes.map((pc) => (
+                  <div key={pc} className="p-4 rounded-xl border border-slate-200 bg-white font-bold text-slate-800 flex items-center gap-2">
+                    <span className="text-[#0f7b4f]">📮</span>
+                    <span>{pc} District</span>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-700">
+              <p className="m-0 text-base leading-relaxed">
+                MyAutoScrap arranges free vehicle collection across supported areas in and around {location.city}. Enter your postcode in the quote tool to confirm availability for your exact location.
+              </p>
+            </div>
+          )}
+
+          {/* If named areas are shown, also display verified outward postcodes context */}
+          {!override && location.hasNamedAreas && location.postcodes && location.postcodes.length > 0 && (
+            <p className="text-xs text-slate-500 mt-4">
+              Supported outward postcode districts currently include: {location.postcodes.join(', ')}. The registration and postcode quote tool remains the authoritative way to confirm availability for your address.
+            </p>
+          )}
 
           <div className="mt-12 bg-white p-8 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
@@ -160,24 +228,22 @@ export default function LocationDetailPage() {
         </div>
       </section>
 
-      {/* Vehicle Conditions Section (Rendered when override provides conditionCopy) */}
-      {override?.conditionHeading && (
-        <section className="py-14 bg-white border-t border-slate-100">
-          <div className={containerClass}>
-            <div className="max-w-3xl">
-              <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Vehicle Condition</span>
-              <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
-                {override.conditionHeading}
-              </h2>
-              <div className="mt-3 space-y-3 text-slate-600 leading-relaxed">
-                {override.conditionCopy.map((para, i) => (
-                  <p key={i} className="m-0">{para}</p>
-                ))}
-              </div>
+      {/* Vehicle Conditions Section */}
+      <section className="py-14 bg-white border-t border-slate-100">
+        <div className={containerClass}>
+          <div className="max-w-3xl">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Vehicle Condition</span>
+            <h2 className="text-3xl font-extrabold mt-1 text-slate-900">
+              {conditionHeading}
+            </h2>
+            <div className="mt-3 space-y-3 text-slate-600 leading-relaxed">
+              {conditionCopy.map((para, i) => (
+                <p key={i} className="m-0">{para}</p>
+              ))}
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
       {/* Local FAQs */}
       <section className="py-16 bg-slate-50 border-t border-slate-200">
@@ -185,7 +251,7 @@ export default function LocationDetailPage() {
           <div className="text-center max-w-2xl mx-auto mb-12">
             <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f]">Questions & Answers</span>
             <h2 className="text-3xl font-extrabold text-slate-900 mt-1">
-              {override?.faqsHeading || `Scrapping a Car in ${location.city} FAQs`}
+              {faqHeading}
             </h2>
           </div>
 

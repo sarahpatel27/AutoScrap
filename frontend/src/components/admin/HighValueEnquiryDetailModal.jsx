@@ -9,6 +9,109 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
   const [selectingWinnerId, setSelectingWinnerId] = useState(null);
   const [winnerError, setWinnerError] = useState('');
   const [winnerSuccess, setWinnerSuccess] = useState('');
+  const [expandedBids, setExpandedBids] = useState({});
+
+  const toggleExpandBid = (bidId) => {
+    setExpandedBids((prev) => ({ ...prev, [bidId]: !prev[bidId] }));
+  };
+
+  const renderDealerPostcodes = (bid) => {
+    let postcodes = [];
+    if (Array.isArray(bid.coveredPostcodes) && bid.coveredPostcodes.length > 0) {
+      postcodes = bid.coveredPostcodes.map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+    } else if (bid.dealerPostcodes && bid.dealerPostcodes !== 'UK' && bid.dealerPostcodes !== 'All UK') {
+      postcodes = bid.dealerPostcodes.split(',').map((p) => p.trim().toUpperCase()).filter(Boolean);
+    }
+
+    // Deduplicate postcodes
+    postcodes = Array.from(new Set(postcodes));
+    const count = postcodes.length;
+
+    if (count === 0) {
+      return (
+        <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 italic">
+          {bid.dealerCity && bid.dealerCity !== 'UK' ? bid.dealerCity : '🌐 Nationwide (All Districts)'}
+        </span>
+      );
+    }
+
+    const isExpanded = !!expandedBids[bid.id];
+    const sortedPostcodes = [...postcodes].sort((a, b) =>
+      a.localeCompare(b, undefined, { numeric: true })
+    );
+
+    // If 3 or fewer postcodes, show all directly
+    if (count <= 3) {
+      return (
+        <div className="flex flex-wrap items-center gap-1">
+          {sortedPostcodes.map((dist) => (
+            <span
+              key={dist}
+              className="inline-flex items-center rounded-md bg-blue-50 border border-blue-200/90 px-1.5 py-0.5 text-[10px] font-extrabold text-blue-800"
+            >
+              📮 {dist}
+            </span>
+          ))}
+        </div>
+      );
+    }
+
+    // 4 or more postcodes (e.g. 38 codes):
+    // Show summary badge, first 3 preview chips, and interactive "+X more" toggle
+    const previewCodes = sortedPostcodes.slice(0, 3);
+    const remainingCount = count - previewCodes.length;
+
+    return (
+      <div className="w-full space-y-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex items-center gap-1 rounded-md bg-blue-100/90 border border-blue-300 px-2 py-0.5 text-[10px] font-black text-blue-900 shadow-2xs">
+            📍 {count} Districts
+          </span>
+
+          {previewCodes.map((dist) => (
+            <span
+              key={dist}
+              className="inline-flex items-center rounded-md bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[10px] font-extrabold text-blue-800"
+            >
+              📮 {dist}
+            </span>
+          ))}
+
+          <button
+            type="button"
+            onClick={() => toggleExpandBid(bid.id)}
+            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-black transition cursor-pointer active:scale-95 border ${
+              isExpanded
+                ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+            }`}
+            title={isExpanded ? 'Collapse district list' : `View all ${count} districts inline`}
+          >
+            {isExpanded ? '▲ Hide' : `+${remainingCount} more ▾`}
+          </button>
+        </div>
+
+        {/* Expanded inline scrollable chip drawer */}
+        {isExpanded && (
+          <div className="rounded-xl border border-blue-200/90 bg-gradient-to-b from-blue-50/70 to-slate-50/80 p-2.5 text-xs shadow-inner animate-in fade-in duration-200">
+            <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-blue-200/60 text-[11px] font-extrabold text-blue-900">
+              <span>All {count} Assigned Districts:</span>
+            </div>
+            <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto pr-1">
+              {sortedPostcodes.map((dist) => (
+                <span
+                  key={dist}
+                  className="inline-flex items-center rounded-md bg-white border border-blue-200 px-1.5 py-0.5 text-[10px] font-bold text-blue-900 shadow-2xs"
+                >
+                  📮 {dist}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   if (!enquiry) return null;
 
@@ -268,11 +371,11 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                 <table className="w-full text-left text-xs">
                   <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
                     <tr>
-                      <th className="py-2.5 px-3">Dealer Identity</th>
-                      <th className="py-2.5 px-3">Covered Postcodes</th>
-                      <th className="py-2.5 px-3">Bid Amount</th>
-                      <th className="py-2.5 px-3">Status</th>
-                      <th className="py-2.5 px-3 text-right">Action</th>
+                      <th className="py-2.5 px-3 min-w-[150px]">Dealer Identity</th>
+                      <th className="py-2.5 px-3 min-w-[260px]">Covered Postcodes</th>
+                      <th className="py-2.5 px-3 min-w-[100px]">Bid Amount</th>
+                      <th className="py-2.5 px-3 min-w-[80px]">Status</th>
+                      <th className="py-2.5 px-3 text-right min-w-[130px]">Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 font-medium">
@@ -282,7 +385,7 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                       const isWinner = bid.status === 'WINNING' || Number(enquiry.winningBidId) === Number(bid.id);
 
                       return (
-                        <tr key={bid.id} className={`hover:bg-slate-50/50 ${isHighest ? 'bg-amber-50/40' : ''}`}>
+                        <tr key={bid.id} className={`hover:bg-slate-50/50 align-top ${isHighest ? 'bg-amber-50/40' : ''}`}>
                           <td className="py-2.5 px-3">
                             <div className="flex items-center gap-2 max-sm:gap-0.5">
                               <strong className="block text-slate-900">{bid.dealerName}</strong>
@@ -295,36 +398,7 @@ export default function HighValueEnquiryDetailModal({ enquiry, onClose, onWinner
                             <span className="text-[10px] text-gray-400">{bid.dealerEmail}</span>
                           </td>
                           <td className="py-2.5 px-3">
-                            {Array.isArray(bid.coveredPostcodes) && bid.coveredPostcodes.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {bid.coveredPostcodes.map((dist) => (
-                                  <span
-                                    key={dist}
-                                    className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-[#0f7b4f] border border-emerald-200"
-                                  >
-                                    📮 {dist}
-                                  </span>
-                                ))}
-                              </div>
-                            ) : bid.dealerPostcodes && bid.dealerPostcodes !== 'UK' && bid.dealerPostcodes !== 'All UK' ? (
-                              <div className="flex flex-wrap gap-1">
-                                {bid.dealerPostcodes.split(',').map((dist) => {
-                                  const clean = dist.trim();
-                                  return (
-                                    <span
-                                      key={clean}
-                                      className="inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-[#0f7b4f] border border-emerald-200"
-                                    >
-                                      📮 {clean}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 font-medium text-[11px]">
-                                {bid.dealerCity && bid.dealerCity !== 'UK' ? bid.dealerCity : 'All UK / Unrestricted'}
-                              </span>
-                            )}
+                            {renderDealerPostcodes(bid)}
                           </td>
                           <td className="py-2.5 px-3 font-black text-sm text-[#0f7b4f]">
                             £{amount.toLocaleString('en-GB')}

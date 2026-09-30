@@ -86,15 +86,47 @@ export const CITY_CONTENT_OVERRIDES = {
   }
 };
 
+export function getDefaultCityFaqs(cityName) {
+  const city = cityName || 'your area';
+  return [
+    [
+      `Do you collect scrap cars in ${city}?`,
+      `We arrange vehicle collection across supported areas in and around ${city}. Enter your postcode in the quote tool to confirm availability for your address.`
+    ],
+    [
+      `How do I get a scrap car quote in ${city}?`,
+      `Enter your vehicle registration and collection postcode into the online quote form to receive an estimated scrap value.`
+    ],
+    [
+      `Can you collect a non-running or MOT-failed car in ${city}?`,
+      `Non-running and MOT-failed vehicles can be collected where the service is available, so the vehicle does not need to be driven to a scrapyard.`
+    ],
+    [
+      `Is scrap car collection free in ${city}?`,
+      `Collection is free across supported service areas, with no separate collection charge.`
+    ],
+    [
+      `How is payment made?`,
+      `Payment is made by bank transfer as part of the vehicle collection process.`
+    ]
+  ];
+}
+
 export function formatCityLocation(city) {
   const slug = (city.slug || city.name.toLowerCase().replace(/\s+/g, "-")).toLowerCase();
   const postcodes = Array.isArray(city.postcodes) ? city.postcodes : [];
   const postcodesText = postcodes.length > 0 ? postcodes.join(", ") : "";
 
-  const fallback = CITY_METADATA_FALLBACKS[slug] || {
+  const staticFallback = CITY_METADATA_FALLBACKS[slug];
+
+  // Preserve verified readable named areas if they exist in static fallback data
+  const hasFallbackNamedAreas = Array.isArray(staticFallback?.areas) && staticFallback.areas.length > 0;
+  const namedAreas = hasFallbackNamedAreas ? staticFallback.areas : [];
+
+  const fallback = staticFallback || {
     code: postcodesText || city.name.slice(0, 3).toUpperCase(),
-    description: `Fast and free scrap car collection across ${city.name} and surrounding areas.`,
-    areas: [`${city.name} City Centre`, "Surrounding Districts", "Local Boroughs"],
+    description: `Scrap car collection available across ${city.name} and surrounding areas.`,
+    areas: [],
   };
 
   return {
@@ -103,9 +135,12 @@ export function formatCityLocation(city) {
     name: city.name,
     slug,
     postcodes,
+    namedAreas,
+    hasNamedAreas: namedAreas.length > 0,
     code: city.code || (postcodesText || fallback.code),
     description: city.description || fallback.description,
-    areas: postcodes.length > 0 ? postcodes : (Array.isArray(city.areas) ? city.areas : fallback.areas),
+    // If verified readable named areas exist in fallback, prioritize them; otherwise use verified postcodes
+    areas: namedAreas.length > 0 ? namedAreas : (postcodes.length > 0 ? postcodes : []),
     ratePerTon: city.ratePerTon || 235,
     dealerCount: city.dealerCount || 0,
     isActive: city.isActive !== false,
