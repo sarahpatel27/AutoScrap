@@ -40,7 +40,7 @@ export default function Layout() {
   return (
     <>
       <div className="flex justify-between bg-[#0b2e21] px-[4%] py-[7px] text-[0.78rem] text-[#c8ded4] max-[720px]:justify-center">
-        <span>Licensed & responsible vehicle recycling</span>
+        <span className='max-sm:text-[0.63rem]'>Working with Licensed & Responsible Vehicle Recycling Partners</span>
         <span className="max-[720px]:hidden">Mon–Sat: 9:00 AM to 6:00 PM</span>
       </div>
 
