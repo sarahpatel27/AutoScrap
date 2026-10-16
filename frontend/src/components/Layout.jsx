@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
 import { DotLottiePlayer } from '@dotlottie/react-player';
+import CookieBanner from './CookieBanner';
+import { openCookiePreferences } from '../utils/consent';
 
 const links = [
   ['/', 'Home'],
@@ -174,17 +176,27 @@ export default function Layout() {
           <span className="text-[#a9beb5]">
             © 2026 MyAutoScrap. All rights reserved.
           </span>
-          <span className="text-[#a9beb5]">
+          <span className="text-[#a9beb5] flex flex-wrap items-center gap-x-2 gap-y-1">
             <Link className={footerLinkClass} to="/privacy-policy">
               Privacy Policy
-            </Link>{' '}
-            ·{' '}
+            </Link>
+            <span>·</span>
             <Link className={footerLinkClass} to="/terms-and-conditions">
               Terms
             </Link>
+            <span>·</span>
+            <button
+              type="button"
+              id="footer-cookie-settings-btn"
+              onClick={openCookiePreferences}
+              className={`${footerLinkClass} cursor-pointer border-0 bg-transparent p-0 text-inherit hover:underline`}
+            >
+              Cookie Settings
+            </button>
           </span>
         </div>
       </footer>
+      <CookieBanner />
     </>
   );
 }
