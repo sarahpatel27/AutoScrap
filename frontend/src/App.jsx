@@ -61,6 +61,10 @@ export default function App() {
                         element={<LegalPage type="Privacy Policy" />}
                     />
                     <Route
+                        path="/cookie-policy"
+                        element={<LegalPage type="Cookie Policy" />}
+                    />
+                    <Route
                         path="/terms-and-conditions"
                         element={
                             <LegalPage type="Terms and Conditions" />

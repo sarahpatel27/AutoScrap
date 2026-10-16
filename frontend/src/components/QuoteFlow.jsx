@@ -48,6 +48,7 @@ export default function QuoteFlow({ compact = false }) {
 
     const stateReg = location.state?.reg || location.state?.registration;
     const statePostcode = location.state?.postcode;
+    const isFromHomepageNavigation = Boolean(location.state?.quoteInitiated || stateReg);
     const regParam = searchParams.get('reg') || stateReg;
     const postcodeParam = searchParams.get('postcode') || statePostcode;
 
@@ -66,6 +67,15 @@ export default function QuoteFlow({ compact = false }) {
         registration: formattedReg,
         postcode: formattedPostcode,
       }));
+
+      // Fire begin_quote only if arriving via direct query params (not from homepage where it already fired)
+      if (!isFromHomepageNavigation) {
+        const cleanReg = formattedReg.replace(/\s/g, '');
+        const cleanPc = formattedPostcode.replace(/\s/g, '');
+        if (cleanReg.length >= 2 && cleanPc.length >= 3) {
+          trackBeginQuote();
+        }
+      }
 
       (async () => {
         try {
@@ -133,7 +143,6 @@ export default function QuoteFlow({ compact = false }) {
                 collectionPostcode: addressRes.postcode,
               },
             }));
-            trackBeginQuote('high_value');
             const numericQuoteValue = Number(quote?.finalValue);
             if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
               trackQuoteGenerated('high_value', numericQuoteValue);
@@ -156,7 +165,6 @@ export default function QuoteFlow({ compact = false }) {
                 collectionPostcode: addressRes.postcode,
               },
             }));
-            trackBeginQuote('normal');
             const numericQuoteValue = Number(quote?.finalValue);
             if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
               trackQuoteGenerated('normal', numericQuoteValue);
@@ -212,16 +220,35 @@ export default function QuoteFlow({ compact = false }) {
 
     const registration = data.registration.trim();
     const postcode = data.postcode.trim();
+    const sanitizedReg = registration.replace(/\s/g, '');
+    const sanitizedPostcode = postcode.replace(/\s/g, '');
 
-    if (!registration) {
+    if (!sanitizedReg) {
       setError('Please enter your vehicle registration.');
       return;
     }
 
-    if (!postcode) {
+    if (sanitizedReg.length < 2) {
+      setError('Please enter a valid vehicle registration.');
+      return;
+    }
+
+    if (!sanitizedPostcode) {
       setError('Please enter your collection postcode.');
       return;
     }
+
+    if (sanitizedPostcode.length < 3) {
+      setError('Please provide a valid UK postcode.');
+      return;
+    }
+
+    const knownLeadType =
+      data.vehicle?.year && data.vehicle?.registration === sanitizedReg
+        ? (isHighValueVehicle(data.vehicle.year) ? 'high_value' : 'normal')
+        : undefined;
+
+    trackBeginQuote(knownLeadType);
 
     try {
       setLoading(true);
@@ -262,6 +289,7 @@ export default function QuoteFlow({ compact = false }) {
           state: {
             reg: registration,
             postcode: cleanPostcode,
+            quoteInitiated: true,
           },
         });
         return;
@@ -309,7 +337,6 @@ export default function QuoteFlow({ compact = false }) {
             collectionPostcode: cleanPostcode,
           },
         }));
-        trackBeginQuote('high_value');
         const numericQuoteValue = Number(quote?.finalValue);
         if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
           trackQuoteGenerated('high_value', numericQuoteValue);
@@ -333,7 +360,6 @@ export default function QuoteFlow({ compact = false }) {
             collectionPostcode: cleanPostcode,
           },
         }));
-        trackBeginQuote('normal');
         const numericQuoteValue = Number(quote?.finalValue);
         if (!isNaN(numericQuoteValue) && numericQuoteValue > 0) {
           trackQuoteGenerated('normal', numericQuoteValue);
