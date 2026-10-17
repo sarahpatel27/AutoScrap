@@ -58,6 +58,33 @@ export function trackQuoteGenerated(leadType, quoteValue) {
 }
 
 /**
+ * Track quote acceptance event in GTM without any PII.
+ *
+ * @param {'normal' | 'high_value'} [leadType='normal'] - The category of enquiry
+ * @param {number} [quoteValue] - Optional calculated quote amount (numeric only, no currency symbols)
+ */
+export function trackQuoteAccepted(leadType = 'normal', quoteValue) {
+  let actualLeadType = leadType;
+  let actualQuoteValue = quoteValue;
+
+  if (typeof leadType === 'number' || (!isNaN(Number(leadType)) && typeof leadType !== 'string')) {
+    actualQuoteValue = leadType;
+    actualLeadType = 'normal';
+  }
+
+  const params = {
+    lead_type: actualLeadType || 'normal',
+  };
+
+  const numericValue = typeof actualQuoteValue === 'number' ? actualQuoteValue : Number(actualQuoteValue);
+  if (!isNaN(numericValue) && numericValue > 0) {
+    params.quote_value = numericValue;
+  }
+
+  pushToDataLayer('accept_quote', params);
+}
+
+/**
  * Track successful Contact Us form submission in GTM without any PII.
  */
 export function trackContactFormSubmitted() {
@@ -65,3 +92,4 @@ export function trackContactFormSubmitted() {
     form_name: 'contact_us',
   });
 }
+

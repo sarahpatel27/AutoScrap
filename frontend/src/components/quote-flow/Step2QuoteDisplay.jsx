@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StepHeading from './StepHeading';
 import DetailItem from './DetailItem';
+import { trackQuoteAccepted } from '../../utils/tracking';
 import {
   primaryButtonClass,
   secondaryButtonClass,
@@ -12,6 +13,7 @@ export default function Step2QuoteDisplay({
   error,
   setError,
   setStep,
+  onAcceptQuote,
 }) {
   const [imageError, setImageError] = useState(false);
 
@@ -87,7 +89,16 @@ export default function Step2QuoteDisplay({
           className={`${primaryButtonClass} min-w-[220px]`}
           onClick={() => {
             setError('');
-            setStep(2);
+            if (onAcceptQuote) {
+              onAcceptQuote();
+            } else {
+              const currentQuote = data.quote;
+              if (currentQuote && !currentQuote._accepted) {
+                currentQuote._accepted = true;
+                trackQuoteAccepted('normal', currentQuote.finalValue);
+              }
+              setStep(2);
+            }
           }}
         >
           Accept £{data.quote.finalValue} and Arrange a Collection

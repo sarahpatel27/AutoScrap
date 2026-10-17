@@ -15,7 +15,12 @@ import Step1HighValueForm from './quote-flow/Step1HighValueForm';
 import Step2QuoteDisplay from './quote-flow/Step2QuoteDisplay';
 import Step3ContactDetails from './quote-flow/Step3ContactDetails';
 import Step5SuccessConfirmation from './quote-flow/Step5SuccessConfirmation';
-import { trackLeadGenerated, trackBeginQuote, trackQuoteGenerated } from '../utils/tracking';
+import {
+  trackLeadGenerated,
+  trackBeginQuote,
+  trackQuoteGenerated,
+  trackQuoteAccepted,
+} from '../utils/tracking';
 
 export default function QuoteFlow({ compact = false }) {
   const [step, setStep] = useState(0);
@@ -27,6 +32,7 @@ export default function QuoteFlow({ compact = false }) {
   const [searchParams] = useSearchParams();
   const containerRef = useRef(null);
   const initialParamsHandledRef = useRef(false);
+  const acceptedQuoteIdRef = useRef(null);
 
   useEffect(() => {
     if (step > 0 && containerRef.current) {
@@ -124,6 +130,12 @@ export default function QuoteFlow({ compact = false }) {
             ratePerTon: addressRes.ratePerTon,
             postTown: addressRes.postTown,
           });
+
+          if (quote) {
+            quote.quoteId = `quote_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+            quote._accepted = false;
+          }
+          acceptedQuoteIdRef.current = null;
 
           if (highValue) {
             setData((prev) => ({
@@ -311,6 +323,10 @@ export default function QuoteFlow({ compact = false }) {
         if (!quote || !quote.pricePerTonne || quote.pricePerTonne <= 0) {
           throw new Error(`Scrap valuation rate is currently unavailable for ${addressRes.matchedServiceArea || 'this location'}. Please contact support.`);
         }
+
+        quote.quoteId = `quote_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+        quote._accepted = false;
+        acceptedQuoteIdRef.current = null;
       } catch (quoteErr) {
         const msg = quoteErr.message || 'Scrap pricing is currently unavailable for this area. Please contact support.';
         setError(msg);
@@ -380,6 +396,7 @@ export default function QuoteFlow({ compact = false }) {
   };
 
   const handleEditRegistration = () => {
+    acceptedQuoteIdRef.current = null;
     setData((previousData) => ({
       ...previousData,
       vehicle: null,
@@ -390,6 +407,22 @@ export default function QuoteFlow({ compact = false }) {
 
     setError('');
     setStep(0);
+  };
+
+  const handleAcceptQuote = () => {
+    setError('');
+    const currentQuote = data.quote;
+    const quoteId = currentQuote?.quoteId;
+
+    if (currentQuote && !currentQuote._accepted && (!quoteId || acceptedQuoteIdRef.current !== quoteId)) {
+      currentQuote._accepted = true;
+      if (quoteId) {
+        acceptedQuoteIdRef.current = quoteId;
+      }
+      trackQuoteAccepted('normal', currentQuote.finalValue);
+    }
+
+    setStep(2);
   };
 
   const isFullNameValid = /^[A-Za-z\s'\-]{2,60}$/.test(
@@ -680,6 +713,7 @@ export default function QuoteFlow({ compact = false }) {
             error={error}
             setError={setError}
             setStep={setStep}
+            onAcceptQuote={handleAcceptQuote}
           />
         )}
 
