@@ -1,6 +1,7 @@
 const UK_CITIES = require('../constants/ukCities');
 const { prisma } = require('../config/db');
 const { normalizeLocationString, extractOutwardCode, getCityNameFromOutwardCode } = require('../utils/postcodeHelper');
+const { renderCityNotFoundHtml } = require('../utils/cityTemplateRenderer');
 
 /**
  * Helper to generate URL safe slug from city name.
@@ -60,6 +61,210 @@ async function getCityOptions(req, res) {
 }
 
 /**
+ * Shared computation helper that resolves active cities dynamically
+ * based on active dealers, covered postcodes, assigned cities, and district pricing.
+ * Reused identically by getCities and validateCitySlug.
+ */
+async function computeActiveCitiesData() {
+  const [districtPricings, dbCities, activeDealers] = await Promise.all([
+    prisma.districtPricing.findMany(),
+    prisma.city.findMany({
+      include: { pricing: true },
+      orderBy: { name: 'asc' },
+    }),
+    prisma.user.findMany({
+      where: {
+        role: 'City Dealer',
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        coveredPostcodes: true,
+        assignedCity: true,
+      },
+    }),
+  ]);
+
+  const districtPricingMap = new Map();
+  for (const dp of districtPricings) {
+    if (dp.district && dp.pricePerTonne) {
+      districtPricingMap.set(dp.district.trim().toUpperCase(), Number(dp.pricePerTonne));
+    }
+  }
+
+  const dbCityMap = new Map();
+  for (const c of dbCities) {
+    dbCityMap.set(c.name.trim().toLowerCase(), c);
+  }
+
+  // Map to aggregate active cities based on active dealer coverage
+  const activeCityGroups = new Map();
+  function getActiveGroup(name) {
+    const key = name.trim().toLowerCase();
+    if (!activeCityGroups.has(key)) {
+      activeCityGroups.set(key, {
+        name: name.trim(),
+        slug: slugify(name),
+        postcodes: new Set(),
+        dealers: new Set(),
+        customRates: [],
+      });
+    }
+    return activeCityGroups.get(key);
+  }
+
+  for (const dealer of activeDealers) {
+    const pcs = (dealer.coveredPostcodes || [])
+      .map((p) => extractOutwardCode(p).toUpperCase())
+      .filter(Boolean);
+
+    if (pcs.length > 0) {
+      for (const pc of pcs) {
+        const cityName = getCityNameFromOutwardCode(pc) || (dealer.assignedCity ? dealer.assignedCity.trim() : pc);
+        const group = getActiveGroup(cityName);
+        group.postcodes.add(pc);
+        group.dealers.add(dealer.id);
+        if (districtPricingMap.has(pc)) {
+          group.customRates.push(districtPricingMap.get(pc));
+        }
+      }
+    } else if (dealer.assignedCity) {
+      const cityName = dealer.assignedCity.trim();
+      const group = getActiveGroup(cityName);
+      group.dealers.add(dealer.id);
+    }
+  }
+
+  // Format active cities
+  const activeResults = Array.from(activeCityGroups.values()).map((group) => {
+    const postcodesArray = Array.from(group.postcodes).sort();
+    const dbCity = dbCityMap.get(group.name.trim().toLowerCase());
+    const ratePerTon = group.customRates.length > 0
+      ? Math.max(...group.customRates)
+      : (dbCity?.pricing?.pricePerTonne ? Number(dbCity.pricing.pricePerTonne) : 235);
+    const postcodesText = postcodesArray.join(', ');
+    const code = postcodesArray.length > 0 ? postcodesArray.slice(0, 3).join(', ') : group.name.slice(0, 3).toUpperCase();
+
+    return {
+      id: dbCity?.id || group.slug,
+      name: group.name,
+      city: group.name,
+      slug: dbCity?.slug || group.slug,
+      isActive: true,
+      postcodes: postcodesArray,
+      code,
+      areas: postcodesArray.length > 0 ? postcodesArray : [`${group.name} Central`, 'Local Districts'],
+      ratePerTon,
+      dealerCount: group.dealers.size,
+      description: postcodesArray.length > 0
+        ? `Fast and free scrap car collection across ${group.name} covering ${postcodesText} and surrounding districts.`
+        : `Scrap car collection available across ${group.name} and surrounding areas.`,
+      createdAt: dbCity?.createdAt || new Date(),
+      updatedAt: dbCity?.updatedAt || new Date(),
+    };
+  }).sort((a, b) => a.name.localeCompare(b.name));
+
+  return {
+    districtPricingMap,
+    dbCities,
+    activeDealers,
+    activeCityGroups,
+    activeResults,
+  };
+}
+
+// 10-second microcache with in-flight promise deduplication to prevent DB spikes during heavy bot crawling
+let cachedActiveComputation = null;
+let cacheExpiry = 0;
+let inFlightComputation = null;
+
+function clearActiveCitiesCache() {
+  cachedActiveComputation = null;
+  cacheExpiry = 0;
+}
+
+async function getCachedActiveCitiesData() {
+  const now = Date.now();
+  if (cachedActiveComputation && now < cacheExpiry) {
+    return cachedActiveComputation;
+  }
+
+  if (inFlightComputation) {
+    return inFlightComputation;
+  }
+
+  inFlightComputation = (async () => {
+    try {
+      const data = await computeActiveCitiesData();
+      cachedActiveComputation = data;
+      cacheExpiry = Date.now() + 10000; // 10-second TTL
+      return data;
+    } finally {
+      inFlightComputation = null;
+    }
+  })();
+
+  return inFlightComputation;
+}
+
+/**
+ * GET /api/cities/validate-slug?slug=:slug
+ * Internal validation endpoint called by Caddy forward_auth.
+ *
+ * Status codes:
+ * 200: City is currently active and supported.
+ * 404: City is not active / unapproved (returns X-Robots-Tag: noindex, nofollow and branded 404 HTML).
+ * 503: Database error or empty database anomaly (prevents valid cities from false 404s).
+ */
+async function validateCitySlug(req, res) {
+  try {
+    const rawSlug = req.query.slug;
+    if (!rawSlug || typeof rawSlug !== 'string') {
+      return res.status(400).send('Missing slug parameter');
+    }
+
+    const normalizedSlug = rawSlug.trim().toLowerCase();
+
+    const { activeResults, dbCities, activeDealers } = await getCachedActiveCitiesData();
+
+    // Outage guard: if database returned 0 dealers or 0 cities during an outage,
+    // return 503 so valid cities are never falsely treated as 404.
+    if ((!activeResults || activeResults.length === 0) && (activeDealers.length === 0 || dbCities.length === 0)) {
+      return res
+        .status(503)
+        .set('Retry-After', '60')
+        .send('Service Temporarily Unavailable');
+    }
+
+    const isActive = (activeResults || []).some(
+      (c) => c.slug.toLowerCase() === normalizedSlug || slugify(c.name) === normalizedSlug
+    );
+
+    if (isActive) {
+      return res.status(200).send('OK');
+    }
+
+    // City is unapproved or inactive: return 404 with X-Robots-Tag: noindex, nofollow and branded HTML
+    const displayName = rawSlug.replace(/[-_]+/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+    const notFoundHtml = renderCityNotFoundHtml(displayName);
+
+    return res
+      .status(404)
+      .set('X-Robots-Tag', 'noindex, nofollow')
+      .set('Content-Type', 'text/html; charset=utf-8')
+      .send(notFoundHtml);
+  } catch (err) {
+    console.error('Validate City Slug Error:', err);
+    return res
+      .status(503)
+      .set('Retry-After', '60')
+      .send('Service Temporarily Unavailable');
+  }
+}
+
+/**
  * GET /api/cities
  * Returns configured supported cities in MyAutoScrap.
  * Supports query param: ?active=true
@@ -68,105 +273,11 @@ async function getCities(req, res) {
   try {
     const { active } = req.query;
 
-    const [districtPricings, dbCities, activeDealers] = await Promise.all([
-      prisma.districtPricing.findMany(),
-      prisma.city.findMany({
-        include: { pricing: true },
-        orderBy: { name: 'asc' },
-      }),
-      prisma.user.findMany({
-        where: {
-          role: 'City Dealer',
-          isActive: true,
-        },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          coveredPostcodes: true,
-          assignedCity: true,
-        },
-      }),
-    ]);
-
-    const districtPricingMap = new Map();
-    for (const dp of districtPricings) {
-      if (dp.district && dp.pricePerTonne) {
-        districtPricingMap.set(dp.district.trim().toUpperCase(), Number(dp.pricePerTonne));
-      }
-    }
-
-    const dbCityMap = new Map();
-    for (const c of dbCities) {
-      dbCityMap.set(c.name.trim().toLowerCase(), c);
-    }
-
-    // Map to aggregate active cities based on active dealer coverage
-    const activeCityGroups = new Map();
-    function getActiveGroup(name) {
-      const key = name.trim().toLowerCase();
-      if (!activeCityGroups.has(key)) {
-        activeCityGroups.set(key, {
-          name: name.trim(),
-          slug: slugify(name),
-          postcodes: new Set(),
-          dealers: new Set(),
-          customRates: [],
-        });
-      }
-      return activeCityGroups.get(key);
-    }
-
-    for (const dealer of activeDealers) {
-      const pcs = (dealer.coveredPostcodes || [])
-        .map((p) => extractOutwardCode(p).toUpperCase())
-        .filter(Boolean);
-
-      if (pcs.length > 0) {
-        for (const pc of pcs) {
-          const cityName = getCityNameFromOutwardCode(pc) || (dealer.assignedCity ? dealer.assignedCity.trim() : pc);
-          const group = getActiveGroup(cityName);
-          group.postcodes.add(pc);
-          group.dealers.add(dealer.id);
-          if (districtPricingMap.has(pc)) {
-            group.customRates.push(districtPricingMap.get(pc));
-          }
-        }
-      } else if (dealer.assignedCity) {
-        const cityName = dealer.assignedCity.trim();
-        const group = getActiveGroup(cityName);
-        group.dealers.add(dealer.id);
-      }
-    }
-
-    // Format active cities
-    const activeResults = Array.from(activeCityGroups.values()).map((group) => {
-      const postcodesArray = Array.from(group.postcodes).sort();
-      const dbCity = dbCityMap.get(group.name.trim().toLowerCase());
-      const ratePerTon = group.customRates.length > 0
-        ? Math.max(...group.customRates)
-        : (dbCity?.pricing?.pricePerTonne ? Number(dbCity.pricing.pricePerTonne) : 235);
-      const postcodesText = postcodesArray.join(', ');
-      const code = postcodesArray.length > 0 ? postcodesArray.slice(0, 3).join(', ') : group.name.slice(0, 3).toUpperCase();
-
-      return {
-        id: dbCity?.id || group.slug,
-        name: group.name,
-        city: group.name,
-        slug: dbCity?.slug || group.slug,
-        isActive: true,
-        postcodes: postcodesArray,
-        code,
-        areas: postcodesArray.length > 0 ? postcodesArray : [`${group.name} Central`, 'Local Districts'],
-        ratePerTon,
-        dealerCount: group.dealers.size,
-        description: postcodesArray.length > 0
-          ? `Fast and free scrap car collection across ${group.name} covering ${postcodesText} and surrounding districts.`
-          : `Scrap car collection available across ${group.name} and surrounding areas.`,
-        createdAt: dbCity?.createdAt || new Date(),
-        updatedAt: dbCity?.updatedAt || new Date(),
-      };
-    }).sort((a, b) => a.name.localeCompare(b.name));
+    const {
+      dbCities,
+      activeCityGroups,
+      activeResults,
+    } = await getCachedActiveCitiesData();
 
     if (active === 'true') {
       return res.json(activeResults);
@@ -352,6 +463,8 @@ async function createCity(req, res) {
         updatedAt: newRecord.updatedAt,
       },
     });
+
+    clearActiveCitiesCache();
   } catch (err) {
     console.error('Create City Error:', err);
     res.status(500).json({ error: err.message });
@@ -459,6 +572,8 @@ async function updateCity(req, res) {
         updatedAt: updated.updatedAt,
       },
     });
+
+    clearActiveCitiesCache();
   } catch (err) {
     console.error('Update City Error:', err);
     res.status(500).json({ error: err.message });
@@ -519,6 +634,8 @@ async function deleteCity(req, res) {
         isActive: false,
       },
     });
+
+    clearActiveCitiesCache();
   } catch (err) {
     console.error('Delete City Error:', err);
     res.status(500).json({ error: err.message });
@@ -528,6 +645,7 @@ async function deleteCity(req, res) {
 module.exports = {
   getCityOptions,
   getCities,
+  validateCitySlug,
   createCity,
   updateCity,
   deleteCity,
