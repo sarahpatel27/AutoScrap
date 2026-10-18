@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router';
 import { useAuth } from '../../context/AuthContext';
+import SEO from '../../components/Seo';
 
 export default function AdminLoginPage() {
   const { isAuthenticated, login } = useAuth();
@@ -50,7 +51,13 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col justify-between bg-linear-to-br from-[#0b241b] via-[#0b2e21] to-[#0a3827] px-3 py-6 sm:px-4 sm:py-8 text-white font-['DM_Sans',sans-serif]">
+    <>
+      <SEO
+        title="Admin Login | MyAutoScrap"
+        description="MyAutoScrap Admin Portal Login"
+        noIndex={true}
+      />
+      <div className="flex min-h-screen flex-col justify-between bg-linear-to-br from-[#0b241b] via-[#0b2e21] to-[#0a3827] px-3 py-6 sm:px-4 sm:py-8 text-white font-['DM_Sans',sans-serif]">
       {/* Header logo link */}
       <div className="mx-auto w-full max-w-md pt-2 sm:pt-4">
         <Link to="/" className="flex items-center justify-center gap-2.5 font-['Manrope'] text-xl sm:text-2xl font-black text-white">
@@ -149,5 +156,6 @@ export default function AdminLoginPage() {
         <Link to="/" className="hover:underline">← Return to MyAutoScrap Public Site</Link>
       </div>
     </div>
+    </>
   );
 }
