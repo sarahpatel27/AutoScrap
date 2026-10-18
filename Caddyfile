@@ -21,6 +21,15 @@ www.myautoscrap.co.uk {
 		reverse_proxy api:3000
 	}
 
+	@cityPage path_regexp city ^/areas-we-cover/([a-zA-Z0-9_-]+)/?$
+	handle @cityPage {
+		forward_auth api:3000 {
+			uri /api/cities/validate-slug?slug={re.city.1}
+			copy_headers X-Robots-Tag
+		}
+		reverse_proxy frontend:80
+	}
+
 	handle {
 		reverse_proxy frontend:80
 	}
