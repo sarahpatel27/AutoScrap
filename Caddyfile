@@ -2,7 +2,11 @@
 	email {$ACME_EMAIL}
 }
 
-myautoscrap.co.uk, www.myautoscrap.co.uk {
+myautoscrap.co.uk {
+	redir https://www.myautoscrap.co.uk{uri} permanent
+}
+
+www.myautoscrap.co.uk {
 	encode gzip
 
 	request_body {
