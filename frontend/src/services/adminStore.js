@@ -512,22 +512,39 @@ export async function deleteContactSubmission(id) {
 // Supported Cities Management APIs
 // ----------------------------------------------------
 
-export async function fetchSupportedCities(query = {}) {
+export async function fetchSupportedCities(query = {}, options = {}) {
   try {
     const params = new URLSearchParams();
     if (query.active !== undefined) params.append('active', query.active);
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
-    const res = await fetch(getApiUrl(`/api/cities${queryString}`), {
+    const signal = options.signal || query.signal;
+    const fetchOptions = {
       headers: getAuthHeaders(),
-    });
+      ...(signal ? { signal } : {}),
+    };
+
+    const res = await fetch(getApiUrl(`/api/cities${queryString}`), fetchOptions);
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      return query.withStatus ? { ok: true, data } : data;
+    }
+    if (query.withStatus) {
+      return { ok: false, status: res.status, error: `HTTP ${res.status}` };
     }
   } catch (err) {
+    if (err.name === 'AbortError') {
+      if (query.withStatus) {
+        return { ok: false, aborted: true, error: 'Aborted' };
+      }
+      return [];
+    }
     console.error('Error fetching supported cities:', err);
+    if (query.withStatus) {
+      return { ok: false, error: err.message };
+    }
   }
-  return [];
+  return query.withStatus ? { ok: false, error: 'Unknown error' } : [];
 }
 
 export async function fetchCityOptions(search = '') {

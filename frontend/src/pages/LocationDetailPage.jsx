@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, Navigate } from 'react-router';
+import { useParams, Link } from 'react-router';
 import { formatCityLocation, CITY_CONTENT_OVERRIDES, getDefaultCityFaqs } from '../data/siteData';
 import { fetchSupportedCities } from '../services/adminStore';
 import SEO from '../components/Seo';
+import NotFoundPage from './NotFoundPage';
 import { getLocalBusinessSchema, getBreadcrumbSchema, getFaqPageSchema } from '../config/seo.config';
 import QuoteFlow from '../components/QuoteFlow';
 
@@ -14,32 +15,60 @@ const secondaryButtonClass =
 
 export default function LocationDetailPage() {
   const { slug } = useParams();
+  const [status, setStatus] = useState('loading'); // 'loading' | 'active' | 'not_found' | 'error'
   const [location, setLocation] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    let isCurrent = true;
+    const controller = new AbortController();
+
     async function loadCityDetail() {
-      setLoading(true);
+      setStatus('loading');
       try {
-        const cities = await fetchSupportedCities({ active: 'true' });
-        const matched = (cities || []).find(
+        const res = await fetchSupportedCities(
+          { active: 'true', withStatus: true },
+          { signal: controller.signal }
+        );
+
+        if (!isCurrent) return;
+
+        if (!res.ok) {
+          if (res.aborted) return;
+          setStatus('error');
+          setLocation(null);
+          return;
+        }
+
+        const cities = res.data || [];
+        const matched = cities.find(
           (c) => (c.slug || c.name.toLowerCase()).toLowerCase() === slug?.toLowerCase(),
         );
+
         if (matched) {
           setLocation(formatCityLocation(matched));
+          setStatus('active');
         } else {
           setLocation(null);
+          setStatus('not_found');
         }
       } catch (err) {
+        if (!isCurrent || err.name === 'AbortError') return;
         console.error('Error finding city detail:', err);
-      } finally {
-        setLoading(false);
+        setStatus('error');
+        setLocation(null);
       }
     }
-    loadCityDetail();
-  }, [slug]);
 
-  if (loading) {
+    loadCityDetail();
+
+    return () => {
+      isCurrent = false;
+      controller.abort();
+    };
+  }, [slug, retryCount]);
+
+  if (status === 'loading') {
     return (
       <div className="min-h-[50vh] flex items-center justify-center text-sm font-bold text-gray-500">
         Loading coverage details...
@@ -47,8 +76,46 @@ export default function LocationDetailPage() {
     );
   }
 
-  if (!location) {
-    return <Navigate to="/areas-we-cover" replace />;
+  if (status === 'error') {
+    return (
+      <>
+        <SEO
+          title="Coverage Details Temporarily Unavailable | MyAutoScrap"
+          description="Unable to load coverage details right now. Please try again or check back shortly."
+          noIndex={true}
+        />
+        <div className="min-h-[55vh] flex flex-col items-center justify-center px-4 py-16 text-center">
+          <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <span className="text-4xl mb-3 block" aria-hidden="true">⚠️</span>
+            <h1 className="text-2xl font-black text-slate-900 mb-2">
+              Unable to Load Coverage Details
+            </h1>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+              We encountered a temporary connection issue while loading coverage information. Please check your connection and try again.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setRetryCount((c) => c + 1)}
+                className="w-full sm:w-auto cursor-pointer rounded-xl border-0 bg-[#0f7b4f] px-6 py-3 text-sm font-extrabold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[#075b3a]"
+              >
+                Try Again
+              </button>
+              <Link
+                to="/areas-we-cover"
+                className="w-full sm:w-auto inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                View All Areas
+              </Link>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (status === 'not_found' || !location) {
+    return <NotFoundPage />;
   }
 
   const override = CITY_CONTENT_OVERRIDES[location.slug];

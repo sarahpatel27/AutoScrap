@@ -12,15 +12,18 @@ export default function SEO({
 }) {
     const siteUrl = SITE_CONFIG.domain;
 
-    const cleanCanonical = canonical
+    const hasExplicitCanonical = typeof canonical === 'string' && canonical.trim().length > 0;
+
+    const cleanCanonical = hasExplicitCanonical
         ? canonical.startsWith('/')
             ? canonical === '/'
                 ? '/'
                 : canonical
             : `/${canonical}`
-        : '/';
+        : null;
         
-    const fullUrl = `${siteUrl}${cleanCanonical}`;
+    const canonicalUrl = !noIndex && cleanCanonical ? `${siteUrl}${cleanCanonical}` : null;
+    const ogUrl = cleanCanonical ? `${siteUrl}${cleanCanonical}` : siteUrl;
 
     const metaTitle = title || SITE_CONFIG.defaultTitle;
     const metaDescription = description || SITE_CONFIG.defaultDescription;
@@ -35,7 +38,7 @@ export default function SEO({
         <Helmet>
             <title>{metaTitle}</title>
             <meta name="description" content={metaDescription} />
-            <link rel="canonical" href={fullUrl} />
+            {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
 
             {noIndex ? (
                 <meta name="robots" content="noindex, nofollow" />
@@ -47,7 +50,7 @@ export default function SEO({
             <meta property="og:type" content={type} />
             <meta property="og:title" content={metaTitle} />
             <meta property="og:description" content={metaDescription} />
-            <meta property="og:url" content={fullUrl} />
+            <meta property="og:url" content={ogUrl} />
             <meta property="og:image" content={ogImage} />
             <meta property="og:locale" content="en_GB" />
 
