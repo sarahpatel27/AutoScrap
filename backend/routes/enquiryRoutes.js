@@ -9,6 +9,8 @@ const {
   selectWinningDealer,
   markEnquiryPurchased,
   updateEnquiryStatus,
+  bookCollection,
+  cancelCollection,
   updateBulkEnquiryStatus,
   deleteEnquiry,
   deleteManyEnquiries,
@@ -32,6 +34,8 @@ router.delete('/high-value/:id', authenticateToken, deleteHighValueEnquiry);
 router.get('/past', authenticateToken, getPastEnquiries);
 router.patch('/bulk-status', authenticateToken, updateBulkEnquiryStatus);
 router.patch('/:id/status', authenticateToken, updateEnquiryStatus);
+router.post('/:id/book-collection', authenticateToken, bookCollection);
+router.post('/:id/cancel-collection', authenticateToken, cancelCollection);
 router.delete('/bulk-delete', authenticateToken, deleteManyEnquiries);
 router.delete('/:id', authenticateToken, deleteEnquiry);
 

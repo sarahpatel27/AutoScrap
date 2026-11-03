@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { getCityFromPostcode } from '../../utils/cityHelper';
 import { showToast } from './ToastContainer';
+import { bookEnquiryCollection, cancelEnquiryCollection } from '../../services/adminStore';
 
 const STATUS_OPTIONS = [
   { value: 'Pending', icon: '⏳' },
@@ -11,6 +12,60 @@ const STATUS_OPTIONS = [
   { value: 'Cancelled', icon: '❌' },
 ];
 
+const TIME_SLOT_OPTIONS = [
+  'Morning (08:00 - 12:00)',
+  'Midday (10:00 - 14:00)',
+  'Afternoon (12:00 - 16:00)',
+  'Late Afternoon (14:00 - 18:00)',
+  'All Day (08:00 - 18:00)',
+  'Exact Time',
+];
+
+function getTodayString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function getTomorrowString() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const day = String(tomorrow.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDisplayDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const parts = String(dateStr).split('-');
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+      return dateObj.toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+    const dObj = new Date(dateStr);
+    return isNaN(dObj.getTime())
+      ? dateStr
+      : dObj.toLocaleDateString('en-GB', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function EnquiryDetailModal({
   enquiry,
   onClose,
@@ -19,6 +74,25 @@ export default function EnquiryDetailModal({
 }) {
   const [status, setStatus] = useState(enquiry?.status || 'Pending');
   const [saving, setSaving] = useState(false);
+
+  const initialConfirmedBooking = (enquiry?.collectionDate || enquiry?.customer?.collectionDate)
+    ? {
+        date: enquiry.collectionDate || enquiry.customer?.collectionDate,
+        time: enquiry.collectionTime || enquiry.customer?.collectionTime || 'Morning (08:00 - 12:00)',
+        notes: enquiry.collectionNotes || enquiry.customer?.collectionNotes || '',
+        bookedBy: enquiry.collectionBookedBy || enquiry.customer?.collectionBookedBy,
+        bookedAt: enquiry.collectionBookedAt || enquiry.customer?.collectionBookedAt,
+      }
+    : null;
+
+  const [confirmedBooking, setConfirmedBooking] = useState(initialConfirmedBooking);
+  const [collectionDate, setCollectionDate] = useState(initialConfirmedBooking?.date || '');
+  const [collectionTime, setCollectionTime] = useState(initialConfirmedBooking?.time || 'Morning (08:00 - 12:00)');
+  const [customTime, setCustomTime] = useState('');
+  const [collectionNotes, setCollectionNotes] = useState(initialConfirmedBooking?.notes || '');
+  const [notifyCustomer, setNotifyCustomer] = useState(true);
+  const [bookingSaving, setBookingSaving] = useState(false);
+  const [isEditingBooking, setIsEditingBooking] = useState(false);
 
   const [statusOpen, setStatusOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState(null);
@@ -33,6 +107,22 @@ export default function EnquiryDetailModal({
     setStatus(enquiry.status || 'Pending');
     setStatusOpen(false);
     setDropdownPosition(null);
+
+    const booking = (enquiry.collectionDate || enquiry.customer?.collectionDate)
+      ? {
+          date: enquiry.collectionDate || enquiry.customer?.collectionDate,
+          time: enquiry.collectionTime || enquiry.customer?.collectionTime || 'Morning (08:00 - 12:00)',
+          notes: enquiry.collectionNotes || enquiry.customer?.collectionNotes || '',
+          bookedBy: enquiry.collectionBookedBy || enquiry.customer?.collectionBookedBy,
+          bookedAt: enquiry.customer?.collectionBookedAt,
+        }
+      : null;
+
+    setConfirmedBooking(booking);
+    setCollectionDate(booking?.date || '');
+    setCollectionTime(booking?.time || 'Morning (08:00 - 12:00)');
+    setCollectionNotes(booking?.notes || '');
+    setIsEditingBooking(false);
   }, [enquiry]);
 
   useEffect(() => {
@@ -138,9 +228,71 @@ export default function EnquiryDetailModal({
     }
   };
 
+  const handleBookCollection = async () => {
+    if (!collectionDate) {
+      showToast('Please select a collection date.', 'error');
+      return;
+    }
+
+    try {
+      setBookingSaving(true);
+      const effectiveTime = collectionTime === 'Exact Time' ? (customTime || 'Agreed Time') : collectionTime;
+
+      // Call dedicated booking API (sends collection schedule email and transitions status to Accepted)
+      await bookEnquiryCollection(enquiry.id, {
+        collectionDate,
+        collectionTime: effectiveTime,
+        collectionNotes,
+        notifyCustomer,
+        status: 'Accepted',
+      });
+
+      setStatus('Accepted');
+      setConfirmedBooking({
+        date: collectionDate,
+        time: effectiveTime,
+        notes: collectionNotes,
+        bookedBy: enquiry.customer?.collectionBookedBy || 'Admin',
+        bookedAt: new Date().toISOString(),
+      });
+      setIsEditingBooking(false);
+
+      showToast(
+        `Collection booked for ${formatDisplayDate(collectionDate)} (${effectiveTime})!${notifyCustomer ? ' Confirmation email sent.' : ''}`,
+        'success'
+      );
+    } catch (err) {
+      showToast(err?.message || 'Failed to book collection', 'error');
+    } finally {
+      setBookingSaving(false);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!window.confirm(`Are you sure you want to cancel the scheduled collection for enquiry #${enquiry.reference}?`)) {
+      return;
+    }
+
+    try {
+      setBookingSaving(true);
+      await cancelEnquiryCollection(enquiry.id);
+      setConfirmedBooking(null);
+      setCollectionDate('');
+      setCollectionTime('Morning (08:00 - 12:00)');
+      setCollectionNotes('');
+      setIsEditingBooking(false);
+      showToast('Collection booking cancelled.', 'info');
+    } catch (err) {
+      showToast(err?.message || 'Failed to cancel collection booking', 'error');
+    } finally {
+      setBookingSaving(false);
+    }
+  };
+
   const handleSave = async () => {
     try {
       setSaving(true);
+      // ONLY updates the status and notes! NO booking email is sent on save!
       await onUpdateStatus(enquiry.id, status);
       showToast(`Enquiry #${enquiry.reference} status updated to "${status}"!`, 'success');
       onClose();
@@ -392,6 +544,252 @@ export default function EnquiryDetailModal({
                 </p>
               )}
             </div>
+
+            {/* Vehicle Collection Booking */}
+            {Boolean(confirmedBooking && !isEditingBooking) ? (
+              <div className="rounded-2xl border border-emerald-300 bg-gradient-to-br from-emerald-50/90 to-teal-50/70 p-4 shadow-xs space-y-3">
+                <div className="flex items-center justify-between gap-2 border-b border-emerald-200/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#0f7b4f] text-sm text-white shadow-xs">
+                      📅
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-emerald-950">
+                        Collection Scheduled
+                      </h4>
+                      <p className="text-[10px] font-bold text-emerald-700">
+                        Vehicle pickup confirmed with customer
+                      </p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-white px-2.5 py-0.5 text-[10px] font-black text-emerald-800 shadow-2xs">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Booked
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 text-xs">
+                  <div className="rounded-xl border border-emerald-200/70 bg-white/90 p-2.5">
+                    <span className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+                      Scheduled Date
+                    </span>
+                    <span className="mt-0.5 block font-black text-slate-900 text-sm">
+                      {formatDisplayDate(confirmedBooking.date)}
+                    </span>
+                  </div>
+
+                  <div className="rounded-xl border border-emerald-200/70 bg-white/90 p-2.5">
+                    <span className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+                      Time Window
+                    </span>
+                    <span className="mt-0.5 block font-bold text-emerald-800">
+                      ⏰ {confirmedBooking.time || 'Agreed Window'}
+                    </span>
+                  </div>
+                </div>
+
+                {confirmedBooking.notes && (
+                  <div className="rounded-xl border border-emerald-200/70 bg-white/80 p-2.5 text-xs">
+                    <span className="block text-[10px] font-extrabold uppercase tracking-wider text-gray-400">
+                      Driver Instructions / Notes
+                    </span>
+                    <p className="mt-0.5 font-medium text-slate-800">{confirmedBooking.notes}</p>
+                  </div>
+                )}
+
+                {(confirmedBooking.bookedBy || confirmedBooking.bookedAt) && (
+                  <div className="text-[10px] text-emerald-800/80 font-medium flex items-center justify-between flex-wrap gap-1 pt-1">
+                    {confirmedBooking.bookedBy && (
+                      <span>👤 Booked by: {confirmedBooking.bookedBy}</span>
+                    )}
+                    {confirmedBooking.bookedAt && (
+                      <span>
+                        🕒 {new Date(confirmedBooking.bookedAt).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {!readOnly && !isCollected && (
+                  <div className="flex items-center justify-end gap-2 border-t border-emerald-200/60 pt-2.5">
+                    <button
+                      type="button"
+                      onClick={handleCancelBooking}
+                      disabled={bookingSaving}
+                      className="rounded-lg border border-red-200 bg-white px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 hover:border-red-300 transition cursor-pointer active:scale-95 disabled:opacity-50"
+                    >
+                      Cancel Booking
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCollectionDate(confirmedBooking.date || '');
+                        setCollectionTime(confirmedBooking.time || 'Morning (08:00 - 12:00)');
+                        setCollectionNotes(confirmedBooking.notes || '');
+                        setIsEditingBooking(true);
+                      }}
+                      disabled={bookingSaving}
+                      className="rounded-lg bg-[#0f7b4f] px-3 py-1.5 text-xs font-black text-white hover:bg-[#075b3a] transition cursor-pointer shadow-xs active:scale-95 disabled:opacity-50"
+                    >
+                      ✏️ Reschedule / Edit
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-3.5 rounded-2xl border border-gray-200/80 bg-white p-4 shadow-xs">
+                <div className="flex items-center justify-between gap-2 border-b border-gray-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#0f7b4f]/10 text-sm text-[#0f7b4f]">
+                      📅
+                    </span>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                        {confirmedBooking ? 'Reschedule Vehicle Collection' : 'Book Vehicle Collection'}
+                      </h4>
+                      <p className="text-[10px] font-medium text-gray-500">
+                        Confirm collection date & time agreed with customer
+                      </p>
+                    </div>
+                  </div>
+                  {isEditingBooking && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingBooking(false)}
+                      className="text-[11px] font-bold text-gray-500 hover:text-gray-800 cursor-pointer"
+                    >
+                      ✕ Cancel Edit
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {/* Collection Date */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-extrabold text-slate-700">
+                        Collection Date <span className="text-red-500">*</span>
+                      </label>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setCollectionDate(getTodayString())}
+                          disabled={isStatusDisabled}
+                          className="text-[10px] font-bold text-[#0f7b4f] hover:underline cursor-pointer bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCollectionDate(getTomorrowString())}
+                          disabled={isStatusDisabled}
+                          className="text-[10px] font-bold text-[#0f7b4f] hover:underline cursor-pointer bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200"
+                        >
+                          Tomorrow
+                        </button>
+                      </div>
+                    </div>
+                    <input
+                      type="date"
+                      min={getTodayString()}
+                      value={collectionDate}
+                      onChange={(e) => setCollectionDate(e.target.value)}
+                      disabled={isStatusDisabled}
+                      className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/10"
+                    />
+                  </div>
+
+                  {/* Collection Time Slot */}
+                  <div>
+                    <label className="block mb-1 text-xs font-extrabold text-slate-700">
+                      Time Window
+                    </label>
+                    <select
+                      value={collectionTime}
+                      onChange={(e) => setCollectionTime(e.target.value)}
+                      disabled={isStatusDisabled}
+                      className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/10 cursor-pointer"
+                    >
+                      {TIME_SLOT_OPTIONS.map((slot) => (
+                        <option key={slot} value={slot}>
+                          {slot}
+                        </option>
+                      ))}
+                    </select>
+
+                    {collectionTime === 'Exact Time' && (
+                      <input
+                        type="time"
+                        value={customTime}
+                        onChange={(e) => setCustomTime(e.target.value)}
+                        placeholder="e.g. 11:30"
+                        className="mt-1.5 w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-[#0f7b4f] focus:bg-white"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Driver / Collection Notes */}
+                <div>
+                  <label className="block mb-1 text-xs font-extrabold text-slate-700">
+                    Driver Instructions / Collection Notes <span className="text-gray-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={collectionNotes}
+                    onChange={(e) => setCollectionNotes(e.target.value)}
+                    disabled={isStatusDisabled}
+                    placeholder="e.g. Call customer 30 mins before arrival, vehicle on driveway"
+                    className="w-full rounded-xl border border-gray-300 bg-gray-50 px-3 py-2 text-xs font-medium text-slate-800 outline-none focus:border-[#0f7b4f] focus:bg-white focus:ring-2 focus:ring-[#0f7b4f]/10"
+                  />
+                </div>
+
+                {/* Email Notification Checkbox */}
+                <div className="flex items-center gap-2 pt-0.5">
+                  <label className="flex items-center gap-2 cursor-pointer select-none text-xs font-bold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={notifyCustomer}
+                      onChange={(e) => setNotifyCustomer(e.target.checked)}
+                      disabled={isStatusDisabled}
+                      className="h-4 w-4 rounded border-gray-300 text-[#0f7b4f] focus:ring-[#0f7b4f] cursor-pointer"
+                    />
+                    <span>
+                      Send collection confirmation email to customer
+                      {enquiry.customer?.email && (
+                        <span className="font-normal text-gray-500"> ({enquiry.customer.email})</span>
+                      )}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Confirm / Book Button */}
+                {!readOnly && !isCollected && (
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={handleBookCollection}
+                      disabled={bookingSaving || !collectionDate}
+                      className="cursor-pointer rounded-xl bg-[#0f7b4f] px-4 py-2 text-xs font-black text-white shadow-sm transition hover:bg-[#075b3a] active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-1.5"
+                    >
+                      <span>📅</span>
+                      <span>
+                        {bookingSaving
+                          ? 'Booking Collection...'
+                          : confirmedBooking
+                          ? 'Update Collection Booking'
+                          : 'Book Collection & Notify'}
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Status */}
             <div className="space-y-3 rounded-2xl border border-gray-200/80 bg-white p-4">

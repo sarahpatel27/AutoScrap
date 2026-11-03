@@ -24,6 +24,9 @@ export function formatEnquiryForExport(row) {
     'Customer Phone': row.customer?.phone || row.customerPhone || '',
     'Collection Address': row.customer?.collectionAddress || row.address || '',
     'Flat / House / Additional Info': row.customer?.additionalAddressDetails || '',
+    'Collection Date': row.collectionDate || row.customer?.collectionDate || 'Not Scheduled',
+    'Collection Time Window': row.collectionTime || row.customer?.collectionTime || '',
+    'Collection Driver Notes': row.collectionNotes || row.customer?.collectionNotes || '',
     'Quoted Price (£)': row.quote?.finalValue !== undefined
       ? `£${row.quote.finalValue}`
       : (row.highestBid ? `£${row.highestBid}` : (row.estimatedValue ? `£${row.estimatedValue}` : 'N/A')),

@@ -5,6 +5,7 @@ const { dealerEnquiryTemplate } = require('../templates/emails/dealerEnquiry');
 const { customerHighValueEnquiryTemplate } = require('../templates/emails/customerHighValueEnquiry');
 const { dealerHighValueBiddingTemplate } = require('../templates/emails/dealerHighValueBidding');
 const { customerAcceptedEnquiryTemplate } = require('../templates/emails/customerAcceptedEnquiry');
+const { customerCollectionScheduledTemplate } = require('../templates/emails/customerCollectionScheduled');
 const { customerCollectedEnquiryTemplate } = require('../templates/emails/customerCollectedEnquiry');
 const { customerCancelledEnquiryTemplate } = require('../templates/emails/customerCancelledEnquiry');
 const { dealerBiddingNoBidsMidwayTemplate } = require('../templates/emails/dealerBiddingNoBidsMidway');
@@ -357,6 +358,55 @@ async function sendCustomerVehicleAcceptedNotification({
     subject: template.subject,
     html: template.html,
   }).catch((err) => console.error(`[EmailService] Customer Vehicle Accepted email failed for ${customerEmail}:`, err));
+}
+
+/**
+ * Trigger email to customer when a vehicle collection date and time has been scheduled
+ */
+async function sendCustomerCollectionScheduledNotification({
+  reference,
+  customer,
+  vehicle,
+  quote,
+  postcode,
+  city,
+  bank,
+  collectionDate,
+  collectionTime,
+  collectionNotes,
+}) {
+  const customerEmail = customer?.email?.trim();
+  const customerName = customer?.fullName || 'Valued Customer';
+  const quoteAmount = quote?.finalValue || quote?.estimatedValue || 0;
+  const collectionAddress = customer?.collectionAddress || '';
+  const additionalAddressDetails = customer?.additionalAddressDetails || '';
+  const postCodeVal = postcode || customer?.collectionPostcode || '';
+  const paymentMethod = bank?.accountNumber ? 'Direct Bank Transfer' : 'Bank Transfer';
+
+  if (!customerEmail || !customerEmail.includes('@')) {
+    console.warn(`[EmailService] Cannot send Collection Scheduled email: No valid customer email for Ref: ${reference}`);
+    return { success: false, error: 'No valid customer email' };
+  }
+
+  const template = customerCollectionScheduledTemplate({
+    reference,
+    customerName,
+    vehicle,
+    quoteAmount,
+    collectionAddress,
+    additionalAddressDetails,
+    postcode: postCodeVal,
+    paymentMethod,
+    collectionDate,
+    collectionTime,
+    collectionNotes,
+  });
+
+  return sendEmail({
+    to: customerEmail,
+    subject: template.subject,
+    html: template.html,
+  }).catch((err) => console.error(`[EmailService] Customer Collection Scheduled email failed for ${customerEmail}:`, err));
 }
 
 /**
@@ -890,6 +940,7 @@ module.exports = {
   sendEnquiryCreatedNotifications,
   sendHighValueEnquiryCreatedNotifications,
   sendCustomerVehicleAcceptedNotification,
+  sendCustomerCollectionScheduledNotification,
   sendCustomerVehicleCollectedNotification,
   sendCustomerVehicleCancelledNotification,
   sendMidwayNoBidsNotification,

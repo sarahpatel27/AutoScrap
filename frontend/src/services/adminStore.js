@@ -190,12 +190,16 @@ export async function saveEnquiry(enquiryData) {
   return fallback;
 }
 
-export async function updateEnquiryStatus(id, newStatus, notes) {
+export async function updateEnquiryStatus(id, newStatus, optionsOrNotes) {
+  const payload = typeof optionsOrNotes === 'object' && optionsOrNotes !== null
+    ? { status: newStatus, ...optionsOrNotes }
+    : { status: newStatus, notes: optionsOrNotes };
+
   try {
     const res = await fetch(getApiUrl(`/api/enquiries/${id}/status`), {
       method: 'PATCH',
       headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ status: newStatus, notes }),
+      body: JSON.stringify(payload),
     });
     if (res.ok) {
       const updatedList = await res.json();
@@ -208,17 +212,65 @@ export async function updateEnquiryStatus(id, newStatus, notes) {
 
   cachedEnquiries = cachedEnquiries.map((item) => {
     if (String(item.id) === String(id)) {
+      const updatedCustomer = {
+        ...item.customer,
+        ...(payload.notes !== undefined ? { notes: payload.notes } : {}),
+        ...(payload.collectionDate !== undefined ? { collectionDate: payload.collectionDate } : {}),
+        ...(payload.collectionTime !== undefined ? { collectionTime: payload.collectionTime } : {}),
+        ...(payload.collectionNotes !== undefined ? { collectionNotes: payload.collectionNotes } : {}),
+      };
       return {
         ...item,
-        status: newStatus,
-        customer: {
-          ...item.customer,
-          notes: notes !== undefined ? notes : item.customer?.notes,
-        },
+        status: newStatus || item.status,
+        customer: updatedCustomer,
+        collectionDate: updatedCustomer.collectionDate || null,
+        collectionTime: updatedCustomer.collectionTime || null,
+        collectionNotes: updatedCustomer.collectionNotes || null,
       };
     }
     return item;
   });
+  return cachedEnquiries;
+}
+
+export async function bookEnquiryCollection(id, bookingData = {}) {
+  try {
+    const res = await fetch(getApiUrl(`/api/enquiries/${id}/book-collection`), {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({
+        status: bookingData.status || 'Accepted',
+        collectionDate: bookingData.collectionDate,
+        collectionTime: bookingData.collectionTime,
+        collectionNotes: bookingData.collectionNotes,
+        notifyCustomer: bookingData.notifyCustomer !== false,
+      }),
+    });
+    if (res.ok) {
+      const updatedList = await res.json();
+      cachedEnquiries = updatedList;
+      return updatedList;
+    }
+  } catch (err) {
+    console.error('Error booking collection on backend:', err);
+  }
+  return cachedEnquiries;
+}
+
+export async function cancelEnquiryCollection(id) {
+  try {
+    const res = await fetch(getApiUrl(`/api/enquiries/${id}/cancel-collection`), {
+      method: 'POST',
+      headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+    });
+    if (res.ok) {
+      const updatedList = await res.json();
+      cachedEnquiries = updatedList;
+      return updatedList;
+    }
+  } catch (err) {
+    console.error('Error cancelling collection on backend:', err);
+  }
   return cachedEnquiries;
 }
 

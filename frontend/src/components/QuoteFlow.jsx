@@ -432,7 +432,6 @@ export default function QuoteFlow({ compact = false }) {
     data.customer.email.trim(),
   );
   const isPhoneValid =
-    !data.customer.phone.trim() ||
     data.customer.phone.replace(/\D/g, '').length >= 9;
 
   const effectiveCollectionPostcode =
@@ -449,9 +448,7 @@ export default function QuoteFlow({ compact = false }) {
     isEmailValid &&
     isPhoneValid &&
     isCollectionPostcodeValid &&
-    isCollectionAddressValid &&
-    data.customer.privacy &&
-    data.customer.terms;
+    isCollectionAddressValid;
 
   const isAccountNameValid = /^[A-Za-z\s'\-]{2,60}$/.test(
     data.bank.accountName.trim(),

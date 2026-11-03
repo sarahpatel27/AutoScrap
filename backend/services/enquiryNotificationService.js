@@ -12,6 +12,7 @@ const {
   sendEnquiryCreatedNotifications,
   sendHighValueEnquiryCreatedNotifications,
   sendCustomerVehicleAcceptedNotification,
+  sendCustomerCollectionScheduledNotification,
   sendCustomerVehicleCollectedNotification,
   sendCustomerVehicleCancelledNotification,
   sendEmail,
@@ -150,6 +151,55 @@ function sendStandardEnquiryStatusEmail(enquiry, newStatus) {
 }
 
 /**
+ * Dispatches notification email to customer when a vehicle collection is scheduled/booked
+ * 
+ * @param {Object} enquiry - Enquiry record
+ * @param {Object} [bookingDetails] - { collectionDate, collectionTime, collectionNotes }
+ */
+function sendStandardEnquiryCollectionScheduledEmail(enquiry, bookingDetails = {}) {
+  if (!enquiry) return;
+
+  const customerData = typeof enquiry.customer === 'string'
+    ? JSON.parse(enquiry.customer || '{}')
+    : (enquiry.customer || {});
+
+  const vehicleData = typeof enquiry.vehicle === 'string'
+    ? JSON.parse(enquiry.vehicle || '{}')
+    : (enquiry.vehicle || {});
+
+  const quoteData = typeof enquiry.quote === 'string'
+    ? JSON.parse(enquiry.quote || '{}')
+    : (enquiry.quote || {});
+
+  const bankData = typeof enquiry.bank === 'string'
+    ? JSON.parse(enquiry.bank || '{}')
+    : (enquiry.bank || {});
+
+  const collectionDate = bookingDetails.collectionDate || customerData.collectionDate;
+  const collectionTime = bookingDetails.collectionTime || customerData.collectionTime;
+  const collectionNotes = bookingDetails.collectionNotes !== undefined
+    ? bookingDetails.collectionNotes
+    : (customerData.collectionNotes || '');
+
+  const payload = {
+    reference: enquiry.reference,
+    customer: customerData,
+    vehicle: vehicleData,
+    quote: quoteData,
+    bank: bankData,
+    postcode: enquiry.postcode || customerData.collectionPostcode || '',
+    city: enquiry.city || '',
+    collectionDate,
+    collectionTime,
+    collectionNotes,
+  };
+
+  sendCustomerCollectionScheduledNotification(payload).catch((err) => {
+    console.error(`[NotificationService] Standard enquiry Collection Scheduled email failed for Ref ${enquiry.reference}:`, err.message);
+  });
+}
+
+/**
  * Dispatches notification email to customer when High-Value enquiry is marked as Purchased/Collected
  * 
  * @param {Object} enquiry - HighValueEnquiry record (with bids)
@@ -249,6 +299,7 @@ module.exports = {
   sendStandardEnquiryEmail,
   sendHighValueEnquiryEmail,
   sendStandardEnquiryStatusEmail,
+  sendStandardEnquiryCollectionScheduledEmail,
   sendHighValueEnquiryPurchasedEmail,
   sendEnquiryNotification,
   sendEmail,

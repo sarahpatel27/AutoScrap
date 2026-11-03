@@ -109,8 +109,8 @@ export default function AdminDashboardPage() {
     reloadData();
   }, []);
 
-  const handleUpdateStatus = async (id, newStatus, notes) => {
-    const updated = await updateEnquiryStatus(id, newStatus, notes);
+  const handleUpdateStatus = async (id, newStatus, optionsOrNotes) => {
+    const updated = await updateEnquiryStatus(id, newStatus, optionsOrNotes);
     setEnquiries(updated);
     await reloadData();
   };

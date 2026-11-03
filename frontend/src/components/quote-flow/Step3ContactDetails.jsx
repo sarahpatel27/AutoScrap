@@ -58,7 +58,7 @@ export default function Step3ContactDetails({
         </label>
 
         <label className={labelClass}>
-          Phone number
+          Phone number *
           <input
             className={inputClass}
             type="tel"
@@ -190,30 +190,6 @@ export default function Step3ContactDetails({
           />
         </label>
       </div>
-
-      <label className="my-2.5 flex cursor-pointer items-center gap-2 text-[#42534c]">
-        <input
-          className="m-0 shrink-0"
-          type="checkbox"
-          checked={data.customer.privacy}
-          onChange={(event) =>
-            updateCustomer('privacy', event.target.checked)
-          }
-        />
-        <span>I agree to the Privacy Policy.</span>
-      </label>
-
-      <label className="my-2.5 flex cursor-pointer items-center gap-2 text-[#42534c]">
-        <input
-          className="m-0 shrink-0"
-          type="checkbox"
-          checked={data.customer.terms}
-          onChange={(event) =>
-            updateCustomer('terms', event.target.checked)
-          }
-        />
-        <span>I agree to the Terms and Conditions.</span>
-      </label>
 
       {error && <div className={alertErrorClass}>{error}</div>}
 

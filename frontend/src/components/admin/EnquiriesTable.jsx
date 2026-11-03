@@ -9,6 +9,32 @@ import { exportEnquiriesToExcel } from '../../utils/excelExporter';
 import { getCityFromPostcode, formatCityName, getCityBadgeClass } from '../../utils/cityHelper';
 import DateRangeFilter, { filterByDateRange } from './DateRangeFilter';
 
+function formatCollectionDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    const parts = String(dateStr).split('-');
+    if (parts.length === 3) {
+      const [y, m, d] = parts;
+      const dateObj = new Date(parseInt(y, 10), parseInt(m, 10) - 1, parseInt(d, 10));
+      return dateObj.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    }
+    const dObj = new Date(dateStr);
+    return isNaN(dObj.getTime())
+      ? dateStr
+      : dObj.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+        });
+  } catch {
+    return dateStr;
+  }
+}
+
 export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulkStatus, onDelete, onDeleteBulk, readOnly = false }) {
   const { user } = useAuth();
   const isDealer = user?.role === 'City Dealer';
@@ -563,6 +589,32 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                   </div>
                 </div>
 
+                {/* Collection Booking Row */}
+                {e.collectionDate || e.customer?.collectionDate ? (
+                  <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/90 px-3 py-2 text-xs font-bold text-[#0b2e21]">
+                    <div className="flex items-center gap-1.5 min-w-0 truncate">
+                      <span className="text-emerald-700">📅</span>
+                      <span className="truncate">
+                        Collection: <strong>{formatCollectionDate(e.collectionDate || e.customer?.collectionDate)}</strong>
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-emerald-800 bg-white/90 border border-emerald-200/80 rounded-md px-2 py-0.5 shrink-0 shadow-2xs">
+                      ⏰ {e.collectionTime || e.customer?.collectionTime || 'Scheduled'}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between rounded-xl bg-gray-50 border border-gray-200/70 px-3 py-1.5 text-[11px] text-gray-500 font-medium">
+                    <span className="flex items-center gap-1.5">
+                      <span>📅</span> Collection: <span className="italic text-gray-400">Not scheduled</span>
+                    </span>
+                    {['pending', 'contacted'].includes((e.status || '').toLowerCase()) && (
+                      <span className="text-[10px] text-amber-800 font-bold bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">
+                        Call to book
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 {/* Card Footer: Location & Action */}
                 <div className="flex items-center justify-between pt-0.5 text-xs text-gray-500">
                   <div className="flex items-center gap-1.5">
@@ -617,12 +669,12 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
       </div>
 
       {/* DESKTOP/TABLET TABLE VIEW (Shown on `md` screens and above) */}
-      <div className="hidden md:block overflow-x-auto">
-        <table className="w-full text-left text-xs">
+      <div className="hidden md:block overflow-x-auto overscroll-x-contain">
+        <table className="w-full min-w-[1380px] text-left text-xs">
           <thead className="border-b border-gray-200 bg-gray-50/80 font-extrabold uppercase tracking-wider text-gray-500">
             <tr>
               {!readOnly && (
-                <th className="px-4 py-3.5 w-10 text-center">
+                <th className="px-4 py-3.5 w-12 text-center whitespace-nowrap">
                   <input
                     type="checkbox"
                     checked={selectedIds.length === filteredEnquiries.length && filteredEnquiries.length > 0}
@@ -631,21 +683,22 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                   />
                 </th>
               )}
-              <th className="px-5 py-3.5">Reference</th>
-              <th className="px-5 py-3.5">Date</th>
-              <th className="px-5 py-3.5">Customer</th>
-              <th className="px-5 py-3.5">Vehicle</th>
-              <th className="px-5 py-3.5">City / Location</th>
-              <th className="px-5 py-3.5">Quote</th>
-              <th className="px-5 py-3.5">Status</th>
-              <th className="px-5 py-3.5 text-right">Actions</th>
+              <th className="px-5 py-3.5 min-w-[140px] whitespace-nowrap">Reference</th>
+              <th className="px-5 py-3.5 min-w-[105px] whitespace-nowrap">Date</th>
+              <th className="px-5 py-3.5 min-w-[180px] whitespace-nowrap">Customer</th>
+              <th className="px-5 py-3.5 min-w-[240px] whitespace-nowrap">Vehicle</th>
+              <th className="px-5 py-3.5 min-w-[200px] whitespace-nowrap">City / Location</th>
+              <th className="px-5 py-3.5 min-w-[100px] whitespace-nowrap">Quote</th>
+              <th className="px-5 py-3.5 min-w-[180px] whitespace-nowrap">Collection</th>
+              <th className="px-5 py-3.5 min-w-[120px] whitespace-nowrap">Status</th>
+              <th className="px-5 py-3.5 min-w-[180px] text-right whitespace-nowrap">Actions</th>
             </tr>
           </thead>
 
           <tbody className="divide-y divide-gray-100 font-medium">
             {filteredEnquiries.length === 0 ? (
               <tr>
-                <td colSpan={readOnly ? 8 : 9} className="px-5 py-12 text-center text-gray-500">
+                <td colSpan={readOnly ? 9 : 10} className="px-5 py-12 text-center text-gray-500">
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-3xl">🔍</span>
                     <p className="font-extrabold text-gray-700">No enquiries found</p>
@@ -670,7 +723,7 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                     onClick={() => setSelectedEnquiry(e)}
                   >
                     {!readOnly && (
-                      <td className="px-4 py-4 text-center" onClick={(event) => event.stopPropagation()}>
+                      <td className="px-4 py-4 w-12 text-center whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -680,11 +733,11 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                       </td>
                     )}
 
-                    <td className="px-5 py-4">
-                      <span className="font-mono font-black text-slate-900">{e.reference}</span>
+                    <td className="px-5 py-4 min-w-[140px] whitespace-nowrap">
+                      <span className="font-mono font-black text-slate-900 tracking-tight">{e.reference}</span>
                     </td>
 
-                    <td className="px-5 py-4 text-gray-500 whitespace-nowrap">
+                    <td className="px-5 py-4 min-w-[105px] text-gray-500 whitespace-nowrap font-medium">
                       {new Date(e.date).toLocaleDateString('en-GB', {
                         day: '2-digit',
                         month: 'short',
@@ -692,30 +745,30 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                       })}
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 min-w-[180px] whitespace-nowrap">
                       <div className="font-extrabold text-slate-900">{e.customer?.fullName || 'N/A'}</div>
-                      <div className="text-[11px] text-gray-500">{e.customer?.phone}</div>
+                      <div className="text-[11px] text-gray-500 font-medium">{e.customer?.phone || 'No phone'}</div>
                     </td>
 
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-md border border-[#d1aa16] bg-[#f8ce3d] px-2 py-0.5 font-mono font-black text-[10px] text-black uppercase shrink-0">
+                    <td className="px-5 py-4 min-w-[240px] whitespace-nowrap">
+                      <div className="flex items-center gap-2.5">
+                        <span className="rounded-md border border-[#d1aa16] bg-[#f8ce3d] px-2.5 py-0.5 font-mono font-black text-[10px] text-black uppercase shrink-0 shadow-2xs">
                           {e.vehicle?.registration}
                         </span>
-                        <div className="flex flex-col">
-                          <span className="font-bold text-gray-800">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold text-gray-900 truncate">
                             {e.vehicle?.make} {e.vehicle?.model}
                           </span>
                           {e.vehicle?.year && (
                             <span className="text-[11px] font-medium text-slate-500">
-                              Year: <strong>{e.vehicle.year}</strong>
+                              Year: <strong className="text-slate-700">{e.vehicle.year}</strong>
                             </span>
                           )}
                         </div>
                       </div>
                     </td>
 
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 min-w-[200px] whitespace-nowrap">
                       <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <span className={`rounded-lg border px-2 py-0.5 font-black text-[11px] ${getCityBadgeClass(itemCity)}`}>
                           📍 {itemCity}
@@ -731,19 +784,36 @@ export default function EnquiriesTable({ enquiries, onUpdateStatus, onUpdateBulk
                       </div>
                     </td>
 
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="px-5 py-4 min-w-[100px] whitespace-nowrap">
                       <span className="text-sm font-black text-[#0f7b4f]">
                         £{e.quote?.finalValue || 'N/A'}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4 whitespace-nowrap">
+                    <td className="px-5 py-4 min-w-[180px] whitespace-nowrap">
+                      {e.collectionDate || e.customer?.collectionDate ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="inline-flex items-center gap-1 font-black text-[#0b2e21] bg-emerald-50 border border-emerald-200/90 rounded-md px-2 py-0.5 text-[11px] whitespace-nowrap w-fit">
+                            <span>📅</span> {formatCollectionDate(e.collectionDate || e.customer?.collectionDate)}
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 pl-0.5">
+                            ⏰ {e.collectionTime || e.customer?.collectionTime || 'Scheduled'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] font-semibold text-gray-400 italic">
+                          Not scheduled
+                        </span>
+                      )}
+                    </td>
+
+                    <td className="px-5 py-4 min-w-[120px] whitespace-nowrap">
                       <span className={`inline-block rounded-full border px-2.5 py-1 text-[11px] font-black ${getBadgeClass(e.status)}`}>
                         {e.status}
                       </span>
                     </td>
 
-                    <td className="px-5 py-4 text-right whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
+                    <td className="px-5 py-4 min-w-[180px] text-right whitespace-nowrap" onClick={(event) => event.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
                         <button
                           type="button"

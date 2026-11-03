@@ -7,6 +7,7 @@ const {
   sendStandardEnquiryEmail,
   sendHighValueEnquiryEmail,
   sendStandardEnquiryStatusEmail,
+  sendStandardEnquiryCollectionScheduledEmail,
   sendHighValueEnquiryPurchasedEmail,
 } = require('../services/enquiryNotificationService');
 const { sendWinningDealerAndCustomerNotifications } = require('../services/emailService');
@@ -45,20 +46,28 @@ async function getEnquiries(req, res) {
       }
     }
 
-    const enquiries = eligibleRows.map((row) => ({
-      id: String(row.id),
-      reference: row.reference,
-      date: row.date ? row.date.toISOString() : new Date().toISOString(),
-      status: row.status || 'Pending',
-      postcode: row.postcode,
-      outwardDistrict: extractOutwardCode(row.postcode),
-      city: row.city || 'Unassigned',
-      vehicle: row.vehicle,
-      condition: row.condition,
-      customer: row.customer,
-      bank: row.bank,
-      quote: row.quote,
-    }));
+    const enquiries = eligibleRows.map((row) => {
+      const cust = typeof row.customer === 'string' ? JSON.parse(row.customer || '{}') : (row.customer || {});
+      return {
+        id: String(row.id),
+        reference: row.reference,
+        date: row.date ? row.date.toISOString() : new Date().toISOString(),
+        status: row.status || 'Pending',
+        postcode: row.postcode,
+        outwardDistrict: extractOutwardCode(row.postcode),
+        city: row.city || 'Unassigned',
+        vehicle: row.vehicle,
+        condition: row.condition,
+        customer: cust,
+        bank: row.bank,
+        quote: row.quote,
+        collectionDate: cust.collectionDate || null,
+        collectionTime: cust.collectionTime || null,
+        collectionNotes: cust.collectionNotes || null,
+        collectionBookedAt: cust.collectionBookedAt || null,
+        collectionBookedBy: cust.collectionBookedBy || null,
+      };
+    });
 
     res.json(enquiries);
   } catch (err) {
@@ -196,20 +205,28 @@ async function getPastEnquiries(req, res) {
       }
     }
 
-    const enquiries = eligibleStandardRows.map((row) => ({
-      id: String(row.id),
-      reference: row.reference,
-      date: row.date ? row.date.toISOString() : new Date().toISOString(),
-      status: row.status || 'archived',
-      postcode: row.postcode,
-      outwardDistrict: extractOutwardCode(row.postcode),
-      city: row.city || 'Unassigned',
-      vehicle: row.vehicle,
-      condition: row.condition,
-      customer: row.customer,
-      bank: row.bank,
-      quote: row.quote,
-    }));
+    const enquiries = eligibleStandardRows.map((row) => {
+      const cust = typeof row.customer === 'string' ? JSON.parse(row.customer || '{}') : (row.customer || {});
+      return {
+        id: String(row.id),
+        reference: row.reference,
+        date: row.date ? row.date.toISOString() : new Date().toISOString(),
+        status: row.status || 'archived',
+        postcode: row.postcode,
+        outwardDistrict: extractOutwardCode(row.postcode),
+        city: row.city || 'Unassigned',
+        vehicle: row.vehicle,
+        condition: row.condition,
+        customer: cust,
+        bank: row.bank,
+        quote: row.quote,
+        collectionDate: cust.collectionDate || null,
+        collectionTime: cust.collectionTime || null,
+        collectionNotes: cust.collectionNotes || null,
+        collectionBookedAt: cust.collectionBookedAt || null,
+        collectionBookedBy: cust.collectionBookedBy || null,
+      };
+    });
 
     const eligibleHVRows = highValueRows.filter((row) => isDealerEligibleForEnquiry(user, row));
     let pastHighValueEnquiries = eligibleHVRows.map((row) => anonymizeEnquiryForDealer(row, user));
@@ -658,10 +675,61 @@ async function createEnquiry(req, res) {
   }
 }
 
+async function getEligibleEnquiriesResponse(user) {
+  const all = await prisma.enquiry.findMany({
+    where: {
+      status: {
+        notIn: ['archived', 'deleted'],
+      },
+    },
+    orderBy: { date: 'desc' },
+  });
+
+  let eligibleRows = all;
+  if (user && user.role === 'City Dealer') {
+    const covered = (user.coveredPostcodes || []).map((p) => String(p).trim().toUpperCase()).filter(Boolean);
+    if (covered.length > 0) {
+      eligibleRows = all.filter((row) => {
+        const outward = extractOutwardCode(row.postcode);
+        return covered.includes(outward);
+      });
+    } else if (user.assignedCity) {
+      eligibleRows = all.filter((row) => {
+        return row.city && row.city.trim().toLowerCase() === user.assignedCity.trim().toLowerCase();
+      });
+    } else {
+      eligibleRows = [];
+    }
+  }
+
+  return eligibleRows.map((row) => {
+    const cust = typeof row.customer === 'string' ? JSON.parse(row.customer || '{}') : (row.customer || {});
+    return {
+      id: String(row.id),
+      reference: row.reference,
+      date: row.date,
+      status: row.status,
+      postcode: row.postcode,
+      outwardDistrict: extractOutwardCode(row.postcode),
+      city: row.city,
+      vehicle: row.vehicle,
+      condition: row.condition,
+      customer: cust,
+      bank: row.bank,
+      quote: row.quote,
+      collectionDate: cust.collectionDate || null,
+      collectionTime: cust.collectionTime || null,
+      collectionNotes: cust.collectionNotes || null,
+      collectionBookedAt: cust.collectionBookedAt || null,
+      collectionBookedBy: cust.collectionBookedBy || null,
+    };
+  });
+}
+
 async function updateEnquiryStatus(req, res) {
   try {
     const { id } = req.params;
-    const { status, notes } = req.body;
+    const { status, notes, cancelCollection: shouldCancel } = req.body;
     const numericId = parseInt(id, 10);
 
     const targetEnquiry = await prisma.enquiry.findUnique({
@@ -683,9 +751,20 @@ async function updateEnquiryStatus(req, res) {
       });
     }
 
-    const currentCustomer = targetEnquiry.customer || {};
+    const currentCustomer = typeof targetEnquiry.customer === 'string'
+      ? JSON.parse(targetEnquiry.customer || '{}')
+      : (targetEnquiry.customer || {});
+
     if (notes !== undefined) {
       currentCustomer.notes = notes;
+    }
+
+    if (shouldCancel) {
+      currentCustomer.collectionDate = null;
+      currentCustomer.collectionTime = null;
+      currentCustomer.collectionNotes = null;
+      currentCustomer.collectionBookedAt = null;
+      currentCustomer.collectionBookedBy = null;
     }
 
     const newStatus = status || targetEnquiry.status;
@@ -699,37 +778,132 @@ async function updateEnquiryStatus(req, res) {
       },
     });
 
-    // Send customer notification email if status is updated to Accepted, Collected, or Cancelled
-    if (newStatus && (newStatus.toLowerCase() === 'accepted' || newStatus.toLowerCase() === 'collected' || newStatus.toLowerCase() === 'cancelled')) {
+    // Send customer notification email ONLY for status change (Accepted, Collected, Cancelled)
+    // No booking email is sent on status save
+    if (
+      newStatus &&
+      (newStatus.toLowerCase() === 'accepted' ||
+        newStatus.toLowerCase() === 'collected' ||
+        newStatus.toLowerCase() === 'cancelled')
+    ) {
       sendStandardEnquiryStatusEmail(updatedRecord, newStatus);
     }
 
-    const all = await prisma.enquiry.findMany({
-      where: {
-        status: {
-          notIn: ['archived', 'deleted'],
-        },
-      },
-      orderBy: { date: 'desc' },
-    });
-
-    res.json(
-      all.map((row) => ({
-        id: String(row.id),
-        reference: row.reference,
-        date: row.date,
-        status: row.status,
-        postcode: row.postcode,
-        city: row.city,
-        vehicle: row.vehicle,
-        condition: row.condition,
-        customer: row.customer,
-        bank: row.bank,
-        quote: row.quote,
-      })),
-    );
+    const items = await getEligibleEnquiriesResponse(req.user);
+    res.json(items);
   } catch (err) {
     console.error('Update Enquiry Status Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function bookCollection(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      collectionDate,
+      collectionTime,
+      collectionNotes,
+      notifyCustomer = true,
+      status = 'Accepted',
+    } = req.body;
+    const numericId = parseInt(id, 10);
+
+    const targetEnquiry = await prisma.enquiry.findUnique({
+      where: { id: numericId },
+    });
+
+    if (!targetEnquiry) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+
+    if (
+      targetEnquiry.status &&
+      targetEnquiry.status.toLowerCase() === 'collected'
+    ) {
+      return res.status(400).json({
+        error: 'Status for collected vehicles is locked and cannot be changed.',
+      });
+    }
+
+    if (!collectionDate) {
+      return res.status(400).json({ error: 'Collection date is required to book a collection.' });
+    }
+
+    const currentCustomer = typeof targetEnquiry.customer === 'string'
+      ? JSON.parse(targetEnquiry.customer || '{}')
+      : (targetEnquiry.customer || {});
+
+    currentCustomer.collectionDate = collectionDate;
+    currentCustomer.collectionTime = collectionTime || 'Morning (08:00 - 12:00)';
+    if (collectionNotes !== undefined) {
+      currentCustomer.collectionNotes = collectionNotes;
+    }
+    currentCustomer.collectionBookedAt = new Date().toISOString();
+    currentCustomer.collectionBookedBy = req.user ? `${req.user.name} (${req.user.role})` : 'Staff';
+
+    // Promote status to Accepted upon booking collection
+    const newStatus = status || 'Accepted';
+
+    const updatedRecord = await prisma.enquiry.update({
+      where: { id: numericId },
+      data: {
+        status: newStatus,
+        customer: currentCustomer,
+      },
+    });
+
+    // Send collection scheduled email to customer
+    if (notifyCustomer !== false) {
+      sendStandardEnquiryCollectionScheduledEmail(updatedRecord, {
+        collectionDate: currentCustomer.collectionDate,
+        collectionTime: currentCustomer.collectionTime,
+        collectionNotes: currentCustomer.collectionNotes,
+      });
+    }
+
+    const items = await getEligibleEnquiriesResponse(req.user);
+    res.json(items);
+  } catch (err) {
+    console.error('Book Collection Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+async function cancelCollection(req, res) {
+  try {
+    const { id } = req.params;
+    const numericId = parseInt(id, 10);
+
+    const targetEnquiry = await prisma.enquiry.findUnique({
+      where: { id: numericId },
+    });
+
+    if (!targetEnquiry) {
+      return res.status(404).json({ error: 'Enquiry not found' });
+    }
+
+    const currentCustomer = typeof targetEnquiry.customer === 'string'
+      ? JSON.parse(targetEnquiry.customer || '{}')
+      : (targetEnquiry.customer || {});
+
+    currentCustomer.collectionDate = null;
+    currentCustomer.collectionTime = null;
+    currentCustomer.collectionNotes = null;
+    currentCustomer.collectionBookedAt = null;
+    currentCustomer.collectionBookedBy = null;
+
+    await prisma.enquiry.update({
+      where: { id: numericId },
+      data: {
+        customer: currentCustomer,
+      },
+    });
+
+    const items = await getEligibleEnquiriesResponse(req.user);
+    res.json(items);
+  } catch (err) {
+    console.error('Cancel Collection Error:', err);
     res.status(500).json({ error: err.message });
   }
 }
@@ -1189,6 +1363,8 @@ module.exports = {
   selectWinningDealer,
   markEnquiryPurchased,
   updateEnquiryStatus,
+  bookCollection,
+  cancelCollection,
   updateBulkEnquiryStatus,
   deleteEnquiry,
   deleteManyEnquiries,
