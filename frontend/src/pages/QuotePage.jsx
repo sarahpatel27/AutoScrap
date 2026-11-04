@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import QuoteFlow from '../components/QuoteFlow';
 import SEO from '../components/Seo';
+import {
+  SITE_CONFIG,
+  getBreadcrumbSchema,
+  getFaqPageSchema,
+} from '../config/seo.config';
 
 const containerClass = 'mx-auto w-[calc(100%-36px)] max-w-[1180px]';
 const eyebrowClass =
@@ -62,12 +67,44 @@ export default function QuotePage() {
     }
   };
 
+  const breadcrumbSchema = getBreadcrumbSchema([
+    { name: 'Home', url: '/' },
+    { name: 'Scrap My Car', url: '/scrap-my-car' },
+  ]);
+
+  const serviceSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    '@id': `${SITE_CONFIG.domain}/scrap-my-car#service`,
+    name: 'Scrap Car Valuation & Collection',
+    serviceType: 'Scrap Car Collection',
+    url: `${SITE_CONFIG.domain}/scrap-my-car`,
+    description:
+      'Online scrap car valuations and free vehicle collection across supported UK areas.',
+    provider: {
+      '@type': 'Organization',
+      '@id': `${SITE_CONFIG.domain}/#organization`,
+      name: SITE_CONFIG.name,
+      url: SITE_CONFIG.domain,
+      telephone: SITE_CONFIG.telephone,
+    },
+    areaServed: confirmedCities.map((city) => ({
+      '@type': 'AdministrativeArea',
+      name: city.name,
+    })),
+  };
+
+  const faqSchema = getFaqPageSchema(
+    quoteFaqs.map((faq) => [faq.question, faq.answer])
+  );
+
   return (
     <>
       <SEO
         title="Instant Scrap Car Quote Online | Free Valuation | MyAutoScrap"
         description="Get an instant scrap car quote online. Enter your vehicle registration and collection postcode for an accurate estimated valuation and free collection."
         canonical="/scrap-my-car"
+        schema={[breadcrumbSchema, serviceSchema, faqSchema]}
       />
       <div className="flex flex-col">
         {/* Hero header section: order-2 on mobile screens, order-1 on lg screens */}
