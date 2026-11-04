@@ -291,6 +291,36 @@ export default function LocationDetailPage() {
             </Link>
           </div>
 
+          {override?.nearbyLocations && override.nearbyLocations.length > 0 && (
+            <div className="mt-8 rounded-xl bg-white p-5 border border-slate-200">
+              <span className="text-xs font-extrabold uppercase tracking-widest text-[#0f7b4f] block mb-2">
+                Nearby Regional Collection Areas
+              </span>
+              <p className="text-sm text-slate-600 mb-3">
+                We also arrange free vehicle collection across neighboring regional locations:
+              </p>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-sm">
+                {override.nearbyLocations.map((nearby) => (
+                  <Link
+                    key={nearby.slug}
+                    to={`/areas-we-cover/${nearby.slug}`}
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 font-bold text-slate-700 transition hover:border-[#0f7b4f] hover:text-[#0f7b4f] hover:bg-white"
+                  >
+                    <span>Scrap car collection in {nearby.name}</span>
+                    <span aria-hidden="true">→</span>
+                  </Link>
+                ))}
+                <Link
+                  to="/scrap-my-car"
+                  className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 font-bold text-[#0f7b4f] transition hover:bg-emerald-100"
+                >
+                  <span>Scrap my car UK valuation guide</span>
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </div>
+            </div>
+          )}
+
           <div className="mt-12 bg-white p-8 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between items-center gap-6">
             <div>
               <h3 className="text-xl font-bold text-slate-900">Live in or near {location.city}?</h3>
