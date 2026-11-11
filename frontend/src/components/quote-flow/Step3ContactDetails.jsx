@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import StepHeading from './StepHeading';
 import {
   labelClass,
@@ -17,6 +18,50 @@ export default function Step3ContactDetails({
   setStep,
   submitContactStep,
 }) {
+  const [phoneError, setPhoneError] = useState('');
+  const [emailError, setEmailError] = useState('');
+
+  const handlePhoneBlur = () => {
+    const val = data.customer.phone ? data.customer.phone.trim() : '';
+    if (!val || !/^\d{11,12}$/.test(val)) {
+      setPhoneError('Please enter a valid phone number');
+    } else {
+      setPhoneError('');
+    }
+  };
+
+  const handleEmailBlur = () => {
+    const val = data.customer.email ? data.customer.email.trim() : '';
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!val || !emailRegex.test(val)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e?.preventDefault();
+    const phoneVal = data.customer.phone ? data.customer.phone.trim() : '';
+    const isPhoneOk = Boolean(phoneVal && /^\d{11,12}$/.test(phoneVal));
+    const emailVal = data.customer.email ? data.customer.email.trim() : '';
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const isEmailOk = Boolean(emailVal && emailRegex.test(emailVal));
+
+    if (!isPhoneOk) {
+      setPhoneError('Please enter a valid phone number');
+    }
+    if (!isEmailOk) {
+      setEmailError('Please enter a valid email address');
+    }
+
+    if (!isPhoneOk || !isEmailOk) {
+      return;
+    }
+
+    submitContactStep();
+  };
+
   return (
     <div>
       <StepHeading number="3" title="Your contact details">
@@ -58,9 +103,9 @@ export default function Step3ContactDetails({
         </label>
 
         <label className={labelClass}>
-          Phone number
+          Phone number *
           <input
-            className={inputClass}
+            className={`${inputClass} ${phoneError ? 'border-red-500 focus:border-red-500' : ''}`}
             type="tel"
             inputMode="numeric"
             pattern="[0-9]*"
@@ -91,31 +136,42 @@ export default function Step3ContactDetails({
             onPaste={(e) => {
               e.preventDefault();
               const pasted = e.clipboardData?.getData('text') || '';
-              const digits = pasted.replace(/\D/g, '').slice(0, 11);
+              const digits = pasted.replace(/\D/g, '').slice(0, 12);
               updateCustomer('phone', digits);
+              if (phoneError) setPhoneError('');
             }}
             onChange={(event) => {
               const digits = event.target.value.replace(/\D/g, '');
-              updateCustomer('phone', digits.slice(0, 11));
+              updateCustomer('phone', digits.slice(0, 12));
+              if (phoneError) setPhoneError('');
             }}
+            onBlur={handlePhoneBlur}
             placeholder="e.g. 07714 423293"
             autoComplete="tel"
-            maxLength={11}
+            maxLength={12}
           />
+          {phoneError && (
+            <p className="mt-1 text-xs text-red-600 font-semibold">{phoneError}</p>
+          )}
         </label>
 
         <label className={labelClass}>
           Email address *
           <input
-            className={inputClass}
+            className={`${inputClass} ${emailError ? 'border-red-500 focus:border-red-500' : ''}`}
             type="email"
             value={data.customer.email}
-            onChange={(event) =>
-              updateCustomer('email', event.target.value.trim())
-            }
+            onChange={(event) => {
+              updateCustomer('email', event.target.value.trim());
+              if (emailError) setEmailError('');
+            }}
+            onBlur={handleEmailBlur}
             placeholder="e.g. john@example.com"
             autoComplete="email"
           />
+          {emailError && (
+            <p className="mt-1 text-xs text-red-600 font-semibold">{emailError}</p>
+          )}
         </label>
 
         <label className={`${labelClass} sm:col-span-2`}>
@@ -233,7 +289,7 @@ export default function Step3ContactDetails({
           type="button"
           className={`${primaryButtonClass} flex-1`}
           disabled={!customerValid || loading}
-          onClick={submitContactStep}
+          onClick={handleSubmit}
         >
           {loading ? 'Submitting Details...' : 'Submit Details & Proceed →'}
         </button>
