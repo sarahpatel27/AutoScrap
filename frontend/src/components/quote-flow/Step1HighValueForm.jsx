@@ -46,6 +46,8 @@ export default function Step1HighValueForm({
   const [photoError, setPhotoError] = useState('');
   const [postcode, setPostcode] = useState(customer.collectionPostcode || data.postcode || '');
   const [postcodeError, setPostcodeError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   // Value preference state: 'ESTIMATED_VALUE' | 'CUSTOM_VALUE'
   const [valuePreference, setValuePreference] = useState(
@@ -222,14 +224,23 @@ export default function Step1HighValueForm({
       if (!firstErrorElementId) firstErrorElementId = 'field-fullname';
     }
 
-    if (!customer.phone || !customer.phone.trim()) {
+    const phoneVal = customer.phone ? customer.phone.trim() : '';
+    if (!phoneVal || !/^\d{11,12}$/.test(phoneVal)) {
+      setPhoneError('Please enter a valid phone number');
       missingFields.push('Phone Number');
       if (!firstErrorElementId) firstErrorElementId = 'field-phone';
+    } else {
+      setPhoneError('');
     }
 
-    if (!customer.email || !customer.email.trim()) {
+    const emailVal = customer.email ? customer.email.trim() : '';
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailVal || !emailRegex.test(emailVal)) {
+      setEmailError('Please enter a valid email address');
       missingFields.push('Email Address');
       if (!firstErrorElementId) firstErrorElementId = 'field-email';
+    } else {
+      setEmailError('');
     }
 
     if (!customer.collectionAddress || !customer.collectionAddress.trim()) {
@@ -582,7 +593,7 @@ export default function Step1HighValueForm({
             Phone Number *
             <input
               id="field-phone"
-              className={inputClass}
+              className={`${inputClass} ${phoneError ? 'border-red-500 focus:border-red-500' : ''}`}
               type="tel"
               inputMode="numeric"
               pattern="[0-9]*"
@@ -613,17 +624,30 @@ export default function Step1HighValueForm({
               onPaste={(e) => {
                 e.preventDefault();
                 const pasted = e.clipboardData?.getData('text') || '';
-                const digits = pasted.replace(/\D/g, '').slice(0, 11);
+                const digits = pasted.replace(/\D/g, '').slice(0, 12);
                 updateCustomer('phone', digits);
+                if (phoneError) setPhoneError('');
               }}
               onChange={(e) => {
                 const digits = e.target.value.replace(/\D/g, '');
-                updateCustomer('phone', digits.slice(0, 11));
+                updateCustomer('phone', digits.slice(0, 12));
+                if (phoneError) setPhoneError('');
+              }}
+              onBlur={() => {
+                const val = customer.phone ? customer.phone.trim() : '';
+                if (!val || !/^\d{11,12}$/.test(val)) {
+                  setPhoneError('Please enter a valid phone number');
+                } else {
+                  setPhoneError('');
+                }
               }}
               placeholder="e.g. 07123456789"
               autoComplete="tel"
-              maxLength={11}
+              maxLength={12}
             />
+            {phoneError && (
+              <p className="mt-1 text-xs text-red-600 font-semibold">{phoneError}</p>
+            )}
           </label>
         </div>
 
@@ -631,12 +655,27 @@ export default function Step1HighValueForm({
           Email Address *
           <input
             id="field-email"
-            className={inputClass}
+            className={`${inputClass} ${emailError ? 'border-red-500 focus:border-red-500' : ''}`}
             type="email"
             value={customer.email}
-            onChange={(e) => updateCustomer('email', e.target.value)}
+            onChange={(e) => {
+              updateCustomer('email', e.target.value);
+              if (emailError) setEmailError('');
+            }}
+            onBlur={() => {
+              const val = customer.email ? customer.email.trim() : '';
+              const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+              if (!val || !emailRegex.test(val)) {
+                setEmailError('Please enter a valid email address');
+              } else {
+                setEmailError('');
+              }
+            }}
             placeholder="john@example.com"
           />
+          {emailError && (
+            <p className="mt-1 text-xs text-red-600 font-semibold">{emailError}</p>
+          )}
         </label>
 
         <label className={labelClass}>

@@ -431,9 +431,9 @@ export default function QuoteFlow({ compact = false }) {
   const isEmailValid = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(
     data.customer.email.trim(),
   );
-  const isPhoneValid =
-    !data.customer.phone.trim() ||
-    data.customer.phone.replace(/\D/g, '').length >= 9;
+  const isPhoneValid = Boolean(
+    data.customer.phone && /^\d{11,12}$/.test(data.customer.phone.trim())
+  );
 
   const effectiveCollectionPostcode =
     data.customer.collectionPostcode.trim() || data.postcode.trim();
